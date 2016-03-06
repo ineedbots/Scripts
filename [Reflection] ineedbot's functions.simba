@@ -7,6 +7,15 @@ const
 
       Widget_StatsTab_Container = 320;
 
+      Widget_Ded_Container = 153;
+      Ded_Close = 107;
+
+      Widget_Achieve_Container = 259;
+      Widget_MiniGame_Container = 76;
+      MiniGame_Check = 15;
+      Widget_ZeahTab_Container = 245;
+      ZeahTab_Check = 5;
+
       Widget_Teleother_Container = 326;
       Teleother_Close = -1;
 
@@ -397,6 +406,62 @@ begin
     tb := w.GetBounds;
     Reflect.Mouse.Move(tb);
   end;
+end;
+
+function TReflectionGametab.Current: Integer;override;
+var
+  TempWidget: TReflectWidget;
+  Containers, Gametabs: TIntegerArray;
+  I: Integer;
+begin
+  Containers := [Widget_ClanChat_Container, Widget_FriendsList_Container,
+    Widget_IgnoreList_Container, Widget_Logout_Container,
+    Widget_Options_Container, Widget_Emotes_Container,
+    Widget_MusicPlayer_Container, Widget_CombatOptions_Container,
+    Widget_Stats_Container, Widget_WornEquipment_Container,
+    Widget_Prayer_Container, Widget_Magic_Container, Widget_QuestList_Container,
+    Widget_ChangeWorld_Container
+  ];
+  Gametabs := [Gametab_ClanChat, Gametab_FriendsList, Gametab_IgnoreList,
+    Gametab_Logout, Gametab_Options, Gametab_Emotes, Gametab_MusicPlayer,
+    Gametab_CombatOptions, Gametab_Stats, Gametab_WornEquipment, Gametab_Prayer,
+    Gametab_Magic, Gametab_QuestList, Gametab_Logout
+  ];
+  for I := 0 to High(Gametabs) do
+  begin
+    TempWidget.GetWidget(Containers[I], 0);
+    if not (TempWidget.IsHidden) and (TempWidget.GetBounds.X1 <> -1) then
+    begin
+      TempWidget.Free;
+      Exit(Gametabs[I]);
+    end;
+    TempWidget.Free;
+  end;
+  Result := GameTab_Inventory;
+
+  TempWidget.GetWidget(Widget_Achieve_Container, 0);
+  if not (TempWidget.IsHidden) and (TempWidget.GetBounds.X1 <> -1) then
+  begin
+    TempWidget.Free;
+    Exit(Widget_QuestList_Container);
+  end;
+  TempWidget.Free;
+
+  TempWidget.GetWidget(Widget_MiniGame_Container, MiniGame_Check);
+  if not (TempWidget.IsHidden) and (TempWidget.GetBounds.X1 <> -1) then
+  begin
+    TempWidget.Free;
+    Exit(Widget_QuestList_Container);
+  end;
+  TempWidget.Free;
+
+  TempWidget.GetWidget(Widget_ZeahTab_Container, ZeahTab_Check);
+  if not (TempWidget.IsHidden) and (TempWidget.GetBounds.X1 <> -1) then
+  begin
+    TempWidget.Free;
+    Exit(Widget_QuestList_Container);
+  end;
+  TempWidget.Free;
 end;
 
 function getEquippedItemBounds(Which: string): TBox;
@@ -932,6 +997,21 @@ begin
   end;
 end;
 
+function R_dedOpen(doClick: boolean = false): boolean;
+var W : TReflectWidget;
+begin
+  W.GetWidget(Widget_Ded_Container, Ded_Close);
+  result := W.NotNull;
+  if result then begin
+    {$IFDEF iDEBUG}
+      writeln('30');
+    {$ENDIF}
+    if doClick then
+      W.Interact;
+    W.Free;
+  end;
+end;
+
 procedure R_closeAllMenus;
 begin
   {$IFDEF iDEBUG}
@@ -944,7 +1024,7 @@ begin
   R_GEMenuOpen(false) or R_PollMenuOpen(false) or R_TradeScreenOpen(false) or R_GESetsMenuOpen(false) or
   R_GEHistMenuOpen(false) or R_CollectMenuOpen(false) or R_TradeConfOpen(false) or R_LobbyOpen(false) or
   R_KeyBindOpen(false) or R_XPMenuOpen(false) or R_PinSettingsOpen(false) or R_GameBugOpen(false) or R_ZeahOpen(false)
-  or R_fallyBankOpen(false) then begin
+  or R_fallyBankOpen(false) or R_dedOpen(false) then begin
     updateScreen('Closing interface');
     if ((Reflect.Bank.IsOpen or Reflect.Bank.isPinOpen) and Reflect.Bank.Close) or R_BondMenuOpen(true) or R_PriceCheckOpen(true) or R_AdvancedOptionsOpen(true) or
     R_HouseOptionsOpen(true) or R_KeptMenuOpen(true) or R_ReportMenuOpen(true) or R_EquipMenuOpen(true) or R_QuestMenuOpen(true) or
@@ -952,7 +1032,7 @@ begin
     R_GEMenuOpen(true) or R_PollMenuOpen(true) or R_TradeScreenOpen(true) or R_GESetsMenuOpen(true) or
     R_GEHistMenuOpen(true) or R_CollectMenuOpen(true) or R_TradeConfOpen(true) or R_LobbyOpen(true) or
     R_KeyBindOpen(true) or R_XPMenuOpen(true) or R_PinSettingsOpen(true) or R_GameBugOpen(true) or R_ZeahOpen(true)
-    or R_fallyBankOpen(true) then
+    or R_fallyBankOpen(true) or R_dedOpen(true) then
       updateScreen('Closed interface');
   end;
 end;
@@ -1234,13 +1314,15 @@ begin
   Result := findColor(x, y, 16777215, TB.x1, TB.y1, TB.x2, TB.y2);
 end;
 
-function anySlotActivated:boolean;
+function anySlotActivated(soft:boolean=false):boolean;
 var _string : string;
     i : integer;
 begin
-  _string := GetUpText_WhiteColor;
-  if (pos('->', _string) <= 0) or (pos('Use', _string) <= 0) then
-    exit(false);
+  if not soft then begin
+    _string := GetUpText_WhiteColor;
+    if (pos('->', _string) <= 0) or (pos('Use', _string) <= 0) then
+      exit(false);
+  end;
 
   for i:=1 to 28 do
     if slotActivated(i) then

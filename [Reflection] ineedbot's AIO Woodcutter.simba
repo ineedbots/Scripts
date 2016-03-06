@@ -2883,7 +2883,7 @@ begin
       Reflect.Gametab.Open(Gametab_Inventory);
     _obj.GetAt(ObjGame, tP);
     if not inIntArray(FireIDs, _obj.GetID) then begin
-      if not anySlotActivated then begin
+      if not anySlotActivated(true) then begin
         for h:=0 to high(TinderIds) do begin
           if(_item.Find(TinderIds[h]))then begin
             getMousePos(tP2.x, tP2.y);
@@ -2894,12 +2894,12 @@ begin
               fastClick(mouse_left);
             h:= high(TinderIds);
             fail2.restart;
-            while not anySlotActivated and (fail2.Elapsedtime < 1000) do
+            while not anySlotActivated(true) and (fail2.Elapsedtime < 1000) do
               sleepScript(25);
           end;
         end;
       end;
-      if anySlotActivated then begin
+      if anySlotActivated(true) then begin
         activeID := getActiveItemID;
         if inIntArray(LogIDs, activeID) then begin
           for h:=0 to high(TinderIds) do begin
@@ -2941,7 +2941,7 @@ begin
         if inIntArray(fireAnimIDs, ReflectPlayer.getAnimation) then
           fail.restart;
         if (fail3.Elapsedtime > 350) then begin     //used to stop overlap or false postive with wasactive
-          if not anySlotActivated then begin
+          if not anySlotActivated(true) then begin
             if (R_CountItems(LogIDs) > 1) and ((tP.X-1) >= endFireTiles[goodLane].x) then begin
               for h:=0 to high(TinderIds) do begin
                 if(_item.Find(TinderIds[h]))then begin
@@ -2953,13 +2953,13 @@ begin
                     fastClick(mouse_left);
                   h:= high(TinderIds);
                   fail2.restart;
-                  while not anySlotActivated and (fail2.Elapsedtime < 1000) do
+                  while not anySlotActivated(true) and (fail2.Elapsedtime < 1000) do
                     sleepScript(25);
                 end;
               end;
             end;
           end;
-          if anySlotActivated then begin
+          if anySlotActivated(true) then begin
             activeID := getActiveItemID;
             if inIntArray(LogIDs, activeID) then begin
               for h:=0 to high(TinderIds) do begin
@@ -3651,7 +3651,7 @@ begin
         tempTree := R_getClosestDeadTTreeObject(LocationTreeObjects);
         if not R_isValidTTreeObject(TempTree) then
           goToTrees
-        else if fireMake then
+        else if fireMake and (job = 42) then
           doFire;
         tempTree := R_getTTreeObjectLeastTime(LocationTreeObjects);
         if R_isValidTTreeObject(TempTree) then begin
