@@ -4,7 +4,7 @@ program newLapeFisher;
 {$i Reflection/Reflection.Simba}
 {$i [Reflection] ineedbot's functions.simba}
 
-const Version = 5.0;
+const Version = 5.01;
       whatsNew = 'Rewrite.';
 
       PicturePage = 'http://pastebin.com/raw/hs3w81WZ';
@@ -3637,7 +3637,7 @@ begin
               end;
             end;
           end;
-          if anySlotActivated then begin
+          if anySlotActivated(true) then begin
             if not tinderFirst then begin
               for i:=0 to high(TinderIDs) do begin
                 if(_item.Find(TinderIDs[i]))then begin
@@ -3749,7 +3749,7 @@ begin
               end;
             end;
           end;
-          if anySlotActivated then begin
+          if anySlotActivated(true) then begin
             if R_InteractTile(FireLocations[0], 'Range') then begin
               ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
               sleepScript(1500+random(750));
@@ -3780,7 +3780,7 @@ begin
                 end;
               end;
             end;
-            if anySlotActivated then begin
+            if anySlotActivated(true) then begin
               if R_InteractTile(objTile, 'Fire') then begin
                 ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
                 sleepScript(1500+random(750));
@@ -3819,7 +3819,7 @@ begin
             end;
           end;
 
-          if anySlotActivated then begin
+          if anySlotActivated(true) then begin
             _items.GetAll;
             for i:= high(_items) downto 0 do
               for x:=0 to high(rawFishIds) do
@@ -3851,7 +3851,7 @@ begin
               end;
             end;
           end;
-          if anySlotActivated then begin
+          if anySlotActivated(true) then begin
             for i:=0 to high(rawFishIds) do begin
               if(_item.Find(rawFishIds[i]))then begin
                 Reflect.Mouse.Move(_item.getbox, mouse_left);

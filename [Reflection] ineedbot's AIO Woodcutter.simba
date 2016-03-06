@@ -4,7 +4,7 @@ program newLapeCutter;
 {$i Reflection/Reflection.Simba}
 {$i [Reflection] ineedbot's functions.simba}
 
-const Version = 4.0;
+const Version = 4.01;
       whatsNew = 'Rewrite.';
 
       PicturePage = 'http://pastebin.com/raw/mJtA7u8d';
@@ -2127,7 +2127,7 @@ begin
     1:begin
       BankLocations := [Point(3091, 3245)];
       bankOffset := [Point(0, 0)];
-      LocationTreeObjects := [R_MakeTTreeObject(Point(3084, 3237), [7482], [9471], 'Willow', 0, [0, 0, 200]), R_MakeTTreeObject(Point(3085, 3236), [7422], [9471], 'Willow', 1, [0, 0, 200]), R_MakeTTreeObject(Point(3088, 3235), [7480], [9711], 'Willow', 2, [0, 0, 200]), R_MakeTTreeObject(Point(3088, 3232), [7422], [9471], 'Willow', 3, [0, 0, 200]), R_MakeTTreeObject(Point(3088, 3228), [7424], [9471], 'Willow', 4, [0, 0, 200])];
+      LocationTreeObjects := [R_MakeTTreeObject(Point(3084, 3237), [7482], [9471], 'Willow', 0, [0, 0, 200]), R_MakeTTreeObject(Point(3085, 3236), [7422], [9471], 'Willow', 1, [0, 0, 200]){, R_MakeTTreeObject(Point(3088, 3235), [7480], [9711], 'Willow', 2, [0, 0, 200]), R_MakeTTreeObject(Point(3088, 3232), [7422], [9471], 'Willow', 3, [0, 0, 200]), R_MakeTTreeObject(Point(3088, 3228), [7424], [9471], 'Willow', 4, [0, 0, 200])}];
       PathToBank := [Point(3086, 3237), Point(3087, 3242), Point(3087, 3247), Point(3092, 3247), Point(3093, 3244)];
       PathToTree := [Point(3093, 3244), Point(3089, 3247), Point(3087, 3242), Point(3086, 3237)];
       TreeLocations := [Point(3086, 3237)];
@@ -2136,7 +2136,7 @@ begin
       CanBank := true;
       jobString := 'Draynor Willows';
       fireMake := true;
-      fireTiles := [Point(3102, 3237), Point(3102, 3238), Point(3102, 3239), Point(3111, 3235), Point(3108, 3234)];
+      fireTiles := [Point(3102, 3237), Point(3102, 3238), Point(3102, 3239), Point(3111, 3235), Point(3115, 3234)];
       endFireTiles := [Point(3085, 3237), Point(3085, 3238), Point(3080, 3239), Point(3090, 3235), Point(3090, 3234)];
     end;
     2:begin
@@ -3048,7 +3048,7 @@ begin
         end;
       end;
     end;
-    if anySlotActivated then begin
+    if anySlotActivated(true) then begin
       for i:=0 to high(LogIDs) do begin
         if _item.Find(LogIDs[i]) then begin
           reflect.mouse.move(_item.getBox, mouse_left);
