@@ -1,0 +1,2628 @@
+const
+      fVersion = 2.0;
+      fWhatsNew = 'Rewrite.';
+
+      fScriptPage = 'http://pastebin.com/raw/uewSX2rb';
+
+      Widget_StatsTab_Container = 320;
+
+      Widget_Teleother_Container = 326;
+      Teleother_Close = -1;
+
+      Widget_Zeah_Container = 243;
+      Zeah_Close = 2;
+      Zeah_Close_Child = 13;
+
+      Widget_GameBug_Container = 156;
+      GameBug_Close = 1;
+      GameBug_Close_Child = 11;
+
+      Widget_LevelUp_Container = 233;
+      LevelUp_Continue = 2;
+
+      Widget_LevelUpExtra_Container = 193;
+      LevelUpExtra_Continue = 2;
+
+      Widget_ShopMenu_Container = 300;
+      ShopMenu_Close = 1;
+      ShopMenu_Close_Child = 11;
+      ShopMenu_Items = 2;//childs 0-39
+
+      Widget_Lamp_Container = 134;
+      Lamp_Confirm = 26;
+
+      Widget_fallyBank_Container = 220;
+      fallyBank_Close = 16;
+
+      Widget_DepositMenu_Container = 192;
+      DepositMenu_Close = 1;
+      DepositMenu_Close_Child = 11;
+      DepositMenu_Items = 2;  //0-27 childs
+      DepositMenu_DepositInv = 3;
+      DepositMenu_DepositEqu = 5;
+      DepositMenu_DepositLoot = 7;
+
+      BankMenu_DepositInv = 27;
+      BankMenu_DepositEqu = 29;
+
+      Widget_PollMenu_Container = 310;
+      PollMenu_Close = 1;
+      PollMenu_Close_Child = 11;
+
+      Widget_GEMenu_Container = 465;
+      GEMenu_Close = 2;
+      GEMenu_Close_Child = 11;
+
+      Widget_GEHistMenu_Container = 383;
+      GEHistMenu_Close = 1;
+      GEHistMenu_Close_Child = 11;
+
+      Widget_GESetsMenu_Container = 451;
+      GESetsMenu_Close = 1;
+      GESetsMenu_Close_Child = 11;
+
+      Widget_CollectMenu_Container = 402;
+      CollectMenu_Close = 2;
+      CollectMenu_Close_Child = 11;
+
+      Widget_TradeScreen_Container = 335;
+      TradeScreen_Close = 3;
+      TradeScreen_Close_Child = 13;
+
+      Widget_StatMenu_Container = 214;
+      StatMenu_Close = 25;
+
+      Widget_QuestMenu_Container = 275;
+      QuestMenu_Close = 134;
+
+      Widget_EquipMenu_Container = 84;
+      EquipMenu_Close = 4;
+
+      Widget_TradeConf_Container = 334;
+      TradeConf_Close = 32;
+
+      Widget_ReportMenu_Container = 553;
+      ReportMenu_Close = 1;
+      ReportMenu_Close_Child = 11;
+
+      Widget_KeptMenu_Container = 102;
+      KeptMenu_Close = 13;
+
+      Widget_HouseOptions_Container = 370;
+      HouseOptions_Close = 16;
+
+      Widget_ClanOptions_Container = 590;
+      ClanOptions_Close = 17;
+
+      Widget_Lobby_Container = 378;
+      Lobby_Close = 6;
+
+      Widget_AdvancedOptions_Container = 60;
+      AdvancedOptions_Close = 2;
+      AdvancedOptions_Close_Child = 11;
+
+      Widget_PriceCheck_Container = 464;
+      PriceCheck_Close = 1;
+      PriceCheck_Close_Child = 11;
+
+      Widget_KeyBind_Container = 121;
+      KeyBind_Close = 1;
+      KeyBind_Close_Child = 11;
+
+      Widget_BondMenu_Container = 65;
+      BondMenu_Close = 3;
+      BondMenu_Close_Child = 13;
+
+      Widget_PinSettings_Container = 14;
+      PinSettings_Close = 1;
+      PinSettings_Close_Child = 11;
+
+      Widget_XPMenu_Container = 137;
+      XPMenu_Close = 2;
+      XPMenu_Close_Child = 11;
+
+      Widget_Orbs_Container = 160;
+      Orbs_RunToggle = 22;
+
+type TReflectDoor = record
+     TileEncompass : TPointArray;
+     Tile : TPoint;
+     IDs : TIntegerArray;
+     Offset : array[0..2] of integer;
+end;
+
+var SmartUserAgent, ProggieLocation, me_name, SoundString, fScript : string;
+    daLogger : TReflectLogger;
+    ReflectPlayer : TReflectLocalPlayer;
+    breakIn, breakFor, breakinRandom, breakForRandom, AntiAmount, chatTimeOften, closeAllOften, updateAllOften, me_indice, dismissAllOften, lookForChatOften, checkForLevelOften : integer;
+    breakInTimer, breakForTimer, closeAllTimer, updateAllTimer, tim3, dismissAllTimer, lookForChatTimer, checkForLevelTimer, updateScreenTimer : TReflectTimer;
+    rewardIDs : TIntegerArray;
+    chatTimers : array of TReflectTimer;
+    useAutoResponder, forceUpdate, useFakeWaitTime, wasWorking: boolean;
+
+    commonHelloStrings, youStrings, whatStrings, howStrings, areStrings, thatStrings, questionStrings,
+    doingStrings, hiStrings, helloStrings, lolStrings, heyStrings, puncStrings, imStrings,
+    botStrings, dontStrings, levelStrings, whyStrings, niceStrings, thanksStrings, randomsStrings : TStringArray;
+
+    SkillStringsArray : array of TStringArray;
+
+procedure updateScreen(_string:string);
+begin
+end;
+
+procedure sleepScript(tim : integer);
+begin
+end;
+
+Function getDirectoryName(Directory, Path: String): String;
+var
+  I: Integer;
+  Directories: TStringArray;
+Begin
+  Directories := GetDirectories(Path);
+  For I := 0 To High(Directories) Do
+    If ExecRegExpr(Directory, Directories[I]) Then
+    Begin
+      Result := Directories[I];
+      Exit;
+    End;
+End;
+
+Function findDirectory(Directory, Path: String): Boolean;
+Begin
+  Result := Length(GetDirectoryName(Directory, Path)) > 0;
+End;
+
+// by Brandon
+Function getJavaPath(Console: Boolean): String;
+var
+  Drive: String;
+  CurrentPath: String;
+Begin
+  Drive := Copy(PluginPath, 0, 3);
+
+  If (FindDirectory('Program\sFiles\s\(x86\)', Drive)) Then
+  Begin
+    CurrentPath := Drive + 'Program Files (x86)\';
+  End Else
+    CurrentPath := Drive + 'Program Files\';
+
+  If (FindDirectory('Java|java', CurrentPath + '\')) Then
+  Begin
+    CurrentPath := CurrentPath + 'Java\';
+  End Else
+    Begin
+      daLogger.Error('Failed To Find Path: '+CurrentPath+'Java\', []);
+      Exit;
+    End;
+
+  Drive := GetDirectoryName('jre', CurrentPath);
+  If (Length(Drive) > 0) Then
+  Begin
+    If (Console) Then
+      CurrentPath := CurrentPath + Drive + '\bin\java.exe'
+    Else
+      CurrentPath := CurrentPath + Drive + '\bin\javaw.exe';
+  End Else
+    Begin
+      Drive := GetDirectoryName('jdk', CurrentPath);
+      If (Console) Then
+      CurrentPath := CurrentPath + Drive + 'jre\bin\java.exe'
+    Else
+      CurrentPath := CurrentPath + Drive + 'jre\bin\javaw.exe';
+    End;
+
+  If (FileExists(CurrentPath)) Then
+    Result := CurrentPath
+  Else
+    daLogger.Error('Failed To Find Java.exe or Javaw.exe. Please add ...\JRE\Bin to your PATH environment variable.', []);
+End;
+
+procedure TReflectionSmart.Create(
+  Width, Height: Integer; Unused_UserAgent: string); override;
+var
+  World: Variant;
+  JavaString: string;
+begin
+  if SmartUserAgent = '' then
+    SmartUserAgent := 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:44.0) Gecko/20100101 Firefox/44.0';
+
+  Self.Width := Width;
+  Self.Height := Height;
+  Self.UserAgent := SmartUserAgent;
+  AddOnTerminate('_TReflectionSmartFreeAll');
+  if (not Self.ForceNew) and Self.Pair then
+    Exit;
+  World := Self.GetWorld;
+  Reflect.Logger.Status('Using world %s.', [World]);
+  JavaString := getJavaPath(SmartShowConsole);
+
+  Self.Target := SmartSpawnClient(JavaString, StringReplace(PluginPath, '\',
+    '/', [rfReplaceAll]), Format('http://oldschool%s.runescape.com/', [World]),
+    'j1', Width, Height, '', SmartUserAgent, '', '');
+  if Self.Target = 0 then
+    Reflect.Logger.Fatal('Failed to spawn SMART client.');
+  if not Self.Init then
+  begin
+    SmartFreeClient(Self.Target);
+    Reflect.Logger.Fatal('Failed to pair SMART client.');
+  end;
+end;
+
+function TReflectionText.GetUpText: string;override;
+var
+  Options: TStringArray;
+begin
+  Options := Reflect.Text.GetMenuOptions;
+  if (High(Options) - 1) > 0 then
+    Result := Options[0] + ' / ' + ToStr(High(Options) - 1) + ' more options'
+  else
+    if length(Options) > 0 then
+      Result := Options[0]
+    else
+      result := '';
+  if Result = 'Cancel' then
+    Result := '';
+end;
+
+function TReflectionChat.NpcChooseOption(Options: TStringArray): Boolean;Override;
+var
+  Wid, Child: TReflectWidget;
+  I, J, K, L: Integer;
+  daString : string;
+begin
+  for I := 0 to 600 do
+    for J := 0 to 6 do begin
+      if not Wid.Exists(I, J) then
+          Continue;
+
+      Wid.GetWidget(I, J);
+      daString := Wid.GetText;
+
+      for l:=0 to high(options) do
+        if pos(options[l], daString) > 0 then begin
+          Wid.Interact;
+          Wid.Free;
+          exit(true);
+        end;
+
+      if Wid.HasChild then begin
+        for K := 0 to 6 do begin
+          Child.GetChild(Wid, K);
+          daString := Child.GetText;
+          for l:=0 to high(options) do
+            if pos(options[l], daString) > 0 then begin
+              Child.Interact;
+              Child.Free;
+              Wid.Free;
+              exit(true);
+            end;
+
+          Child.Free;
+        end;
+      end;
+      Wid.Free;
+    end;
+end;
+
+function TReflectLocalPlayer._GetName: string; //this should be in the include
+begin
+  Result := Reflect.Smart.GetFieldString(Self.Reference, Player_Name);
+end;
+
+function GetWordsEx(text, wordCharacters: string): TStringArray;  //thanks  Janilabo
+var
+  l, i, r: Integer;
+begin
+  l := Length(text);
+  if ((l > 0) and (wordCharacters <> '')) then
+  begin
+    SetLength(Result, l);
+    for i := 1 to l do
+      if (Pos(text[i], wordCharacters) > 0) then
+      begin
+        Result[r] := text[i];
+        for i := (i + 1) to l do
+          if (Pos(text[i], wordCharacters) > 0) then
+            Result[r] := (Result[r] + text[i])
+          else
+            Break;
+        Inc(r);
+      end;
+  end;
+  SetLength(Result, r);
+end;
+
+function getPriceGE(id : integer) : integer;   //thx hoodz and flight!
+var sellSource, webSource : string;
+    i : integer;
+    _strings : TStringArray;
+begin
+  if not InRange(id, 0, 12856) then
+    exit;
+  try
+    webSource := getPage('http://services.runescape.com/m=itemdb_oldschool/viewitem?obj='+intToStr(id));
+  except
+    daLogger.Error('Failed to connect to RuneScape database', []);
+    exit;
+  end;
+  sellSource := between('<h3>Current Guide Price <span title=''', '''', webSource);
+  _strings := GetWordsEx(sellSource, '0123456789');
+
+  sellSource := '';
+  if length(_strings) > 0 then
+    for i:=0 to high(_strings) do
+      sellSource := sellSource+_strings[i];
+
+  if (Length(sellSource) > 0) then
+    result := strToInt(sellSource)
+  else
+    daLogger.Error('Failed to connect to RuneScape item id: '+intToStr(id), []);
+end;
+
+procedure hoverSkill(skill:integer);
+var W : TReflectWidget;
+    tb : TBox;
+begin
+  TReflectionGametab.Open(Gametab_Stats);
+  case skill of
+    SKILL_ATTACK:W.GetWidget(Widget_StatsTab_Container, 1);
+    SKILL_STRENGTH:W.GetWidget(Widget_StatsTab_Container, 2);
+    SKILL_DEFENCE:W.GetWidget(Widget_StatsTab_Container, 3);
+    SKILL_RANGE:W.GetWidget(Widget_StatsTab_Container, 4);
+    SKILL_PRAYER:W.GetWidget(Widget_StatsTab_Container, 5);
+    SKILL_MAGIC:W.GetWidget(Widget_StatsTab_Container, 6);
+    SKILL_RUNECRAFTING:W.GetWidget(Widget_StatsTab_Container, 7);
+    SKILL_CONSTRUCTION:W.GetWidget(Widget_StatsTab_Container, 8);
+    SKILL_HITPOINTS:W.GetWidget(Widget_StatsTab_Container, 9);
+    SKILL_AGILITY:W.GetWidget(Widget_StatsTab_Container, 10);
+    SKILL_HERBLORE:W.GetWidget(Widget_StatsTab_Container, 11);
+    SKILL_THIEVING:W.GetWidget(Widget_StatsTab_Container, 12);
+    SKILL_CRAFTING:W.GetWidget(Widget_StatsTab_Container, 13);
+    SKILL_FLETCHING:W.GetWidget(Widget_StatsTab_Container, 14);
+    SKILL_SLAYER:W.GetWidget(Widget_StatsTab_Container, 15);
+    SKILL_HUNTER:W.GetWidget(Widget_StatsTab_Container, 16);
+    SKILL_MINING:W.GetWidget(Widget_StatsTab_Container, 17);
+    SKILL_SMITHING:W.GetWidget(Widget_StatsTab_Container, 18);
+    SKILL_FISHING:W.GetWidget(Widget_StatsTab_Container, 19);
+    SKILL_COOKING:W.GetWidget(Widget_StatsTab_Container, 20);
+    SKILL_FIREMAKING:W.GetWidget(Widget_StatsTab_Container, 21);
+    SKILL_WOODCUTTING:W.GetWidget(Widget_StatsTab_Container, 22);
+    SKILL_FARMING:W.GetWidget(Widget_StatsTab_Container, 23);
+    -1:W.GetWidget(Widget_StatsTab_Container, randomRange(1, 24));
+    else W.GetWidget(Widget_StatsTab_Container, 24);
+  end;
+  if W.NotNull then begin
+    tb := w.GetBounds;
+    Reflect.Mouse.Move(tb);
+  end;
+end;
+
+function getEquippedItemBounds(Which: string): TBox;
+begin
+  case Which of
+    'helm', 'helmet' :
+      Result := inttoBox(629, 213, 656, 240);
+    'cape' :
+      Result := inttoBox(588, 252, 615, 279);
+    'amulet', 'neck', 'necklace' :
+      Result := inttoBox(629, 252, 656, 279);
+    'arrows', 'bolts' :
+      Result := inttoBox(670, 252, 697, 279);
+    'right hand', 'weapon' :
+      Result := inttoBox(573, 291, 600, 318);
+    'plate', 'chest', 'platebody' :
+      Result := inttoBox(629, 291, 656, 318);
+    'left hand', 'sheild', 'shield' :
+      Result := inttoBox(685, 291, 712, 318);
+    'legs', 'platelegs', 'skirt', 'plateskirt' :
+      Result := inttoBox(629, 331, 656, 358);
+    'gloves', 'gauntlets' :
+      Result := inttoBox(573, 371, 600, 398);
+    'boots':
+      Result := inttoBox(629, 371, 656, 398);
+    'ring' :
+      Result := inttoBox(685, 371, 712, 398);
+  end;
+end;
+
+function R_GetEquipText: string;
+begin
+  result := TReflectionGametab.GetWieldedWeapon;
+  if result = '' then begin
+    Reflect.Gametab.Open(Gametab_CombatOptions);
+    result := TReflectionGametab.GetWieldedWeapon;
+  end;
+end;
+
+function R_DidLevelUp(doClick: boolean = false): boolean;
+var W : TReflectWidget;
+begin
+  W.GetWidget(Widget_LevelUp_Container, LevelUp_Continue);
+  result := W.NotNull;
+  if result then begin
+    {$IFDEF iDEBUG}
+      writeln('0');
+    {$ENDIF}
+    if doClick then
+      W.Interact;
+    W.Free;
+  end;
+end;
+
+function R_DidLevelUpExtra(doClick: boolean = false): boolean;
+var W : TReflectWidget;
+begin
+  W.GetWidget(Widget_LevelUpExtra_Container, LevelUpExtra_Continue);
+  result := W.NotNull;
+  if result then begin
+    {$IFDEF iDEBUG}
+      writeln('1');
+    {$ENDIF}
+    if doClick then
+      W.Interact;
+    W.Free;
+  end;
+end;
+
+function R_StatMenuOpen(doClick: boolean = false): boolean;
+var W : TReflectWidget;
+begin
+  W.GetWidget(Widget_StatMenu_Container, StatMenu_Close);
+  result := W.NotNull;
+  if result then begin
+    {$IFDEF iDEBUG}
+      writeln('2');
+    {$ENDIF}
+    if doClick then
+      W.Interact;
+    W.Free;
+  end;
+end;
+
+function R_TradeConfOpen(doClick: boolean = false): boolean;
+var W : TReflectWidget;
+    _B : TBox;
+begin
+  W.GetWidget(Widget_TradeConf_Container, TradeConf_Close);
+  result := W.NotNull;
+  if result then begin
+    {$IFDEF iDEBUG}
+      writeln('3');
+    {$ENDIF}
+    _B := W.GetBounds;
+    result := (_B.X1 > 0);
+    if result then begin
+      if doClick then
+        W.Interact;
+    end;
+    W.Free;
+  end;
+end;
+
+function R_LobbyOpen(doClick: boolean = false): boolean;
+var W : TReflectWidget;
+begin
+  W.GetWidget(Widget_Lobby_Container, Lobby_Close);
+  result := W.NotNull;
+  if result then begin
+    {$IFDEF iDEBUG}
+      writeln('4');
+    {$ENDIF}
+    if doClick then
+      W.Interact;
+    W.Free;
+  end;
+end;
+
+function R_QuestMenuOpen(doClick: boolean = false): boolean;
+var W : TReflectWidget;
+begin
+  W.GetWidget(Widget_QuestMenu_Container, QuestMenu_Close);
+  result := W.NotNull;
+  if result then begin
+    {$IFDEF iDEBUG}
+      writeln('5');
+    {$ENDIF}
+    if doClick then
+      W.Interact;
+    W.Free;
+  end;
+end;
+
+function R_EquipMenuOpen(doClick: boolean = false): boolean;
+var W : TReflectWidget;
+begin
+  W.GetWidget(Widget_EquipMenu_Container, EquipMenu_Close);
+  result := W.NotNull;
+  if result then begin
+    {$IFDEF iDEBUG}
+      writeln('6');
+    {$ENDIF}
+    if doClick then
+      W.Interact;
+    W.Free;
+  end;
+end;
+
+function R_ReportMenuOpen(doClick: boolean = false): boolean;
+var W, C : TReflectWidget;
+begin
+  W.GetWidget(Widget_ReportMenu_Container, ReportMenu_Close);
+  result := W.NotNull;
+  if result then begin
+    {$IFDEF iDEBUG}
+      writeln('11');
+    {$ENDIF}
+    if doClick then begin
+      C.GetChild(W, ReportMenu_Close_Child);
+      C.Interact;
+      C.Free;
+    end;
+    W.Free;
+  end;
+end;
+
+function R_KeptMenuOpen(doClick: boolean = false): boolean;
+var W : TReflectWidget;
+begin
+  W.GetWidget(Widget_KeptMenu_Container, KeptMenu_Close);
+  result := W.NotNull;
+  if result then begin
+    {$IFDEF iDEBUG}
+      writeln('8');
+    {$ENDIF}
+    if doClick then
+      W.Interact;
+    W.Free;
+  end;
+end;
+
+function R_HouseOptionsOpen(doClick: boolean = false): boolean;
+var W : TReflectWidget;
+begin
+  W.GetWidget(Widget_HouseOptions_Container, HouseOptions_Close);
+  result := W.NotNull;
+  if result then begin
+    {$IFDEF iDEBUG}
+      writeln('9');
+    {$ENDIF}
+    if doClick then
+      W.Interact;
+    W.Free;
+  end;
+end;
+
+function R_ClanOptionsOpen(doClick: boolean = false): boolean;
+var W : TReflectWidget;
+begin
+  W.GetWidget(Widget_ClanOptions_Container, ClanOptions_Close);
+  result := W.NotNull;
+  if result then begin
+    {$IFDEF iDEBUG}
+      writeln('10');
+    {$ENDIF}
+    if doClick then
+      W.Interact;
+    W.Free;
+  end;
+end;
+
+function R_DepositMenuOpen(doClick: boolean = false): boolean;
+var W, C : TReflectWidget;
+begin
+  W.GetWidget(Widget_DepositMenu_Container, DepositMenu_Close);
+  result := W.NotNull;
+  if result then begin
+    {$IFDEF iDEBUG}
+      writeln('11');
+    {$ENDIF}
+    if doClick then begin
+      C.GetChild(W, DepositMenu_Close_Child);
+      C.Interact;
+      C.Free;
+    end;
+    W.Free;
+  end;
+end;
+
+function R_CollectMenuOpen(doClick: boolean = false): boolean;
+var W, C : TReflectWidget;
+begin
+  W.GetWidget(Widget_CollectMenu_Container, CollectMenu_Close);
+  result := W.NotNull;
+  if result then begin
+    {$IFDEF iDEBUG}
+      writeln('12');
+    {$ENDIF}
+    if doClick then begin
+      C.GetChild(W, CollectMenu_Close_Child);
+      C.Interact;
+      C.Free;
+    end;
+    W.Free;
+  end;
+end;
+
+function R_GEHistMenuOpen(doClick: boolean = false): boolean;
+var W, C : TReflectWidget;
+begin
+  W.GetWidget(Widget_GEHistMenu_Container, GEHistMenu_Close);
+  result := W.NotNull;
+  if result then begin
+    {$IFDEF iDEBUG}
+      writeln('13');
+    {$ENDIF}
+    if doClick then begin
+      C.GetChild(W, GEHistMenu_Close_Child);
+      C.Interact;
+      C.Free;
+    end;
+    W.Free;
+  end;
+end;
+
+function R_TradeScreenOpen(doClick: boolean = false): boolean;
+var W, C : TReflectWidget;
+    _B : TBox;
+begin
+  W.GetWidget(Widget_TradeScreen_Container, TradeScreen_Close);
+  result := W.NotNull;
+  if result then begin
+    {$IFDEF iDEBUG}
+      writeln('14');
+    {$ENDIF}
+    _B := W.GetBounds;
+    result := (_B.X1 > 0);
+    if result then begin
+      if doClick then begin
+        C.GetChild(W, TradeScreen_Close_Child);
+        C.Interact;
+        C.Free;
+      end;
+    end;
+    W.Free;
+  end;
+end;
+
+function R_PinSettingsOpen(doClick: boolean = false): boolean;
+var W, C : TReflectWidget;
+begin
+  W.GetWidget(Widget_PinSettings_Container, PinSettings_Close);
+  result := W.NotNull;
+  if result then begin
+    {$IFDEF iDEBUG}
+      writeln('15');
+    {$ENDIF}
+    if doClick then begin
+      C.GetChild(W, PinSettings_Close_Child);
+      C.Interact;
+      C.Free;
+    end;
+    W.Free;
+  end;
+end;
+
+function R_XPMenuOpen(doClick: boolean = false): boolean;
+var W, C : TReflectWidget;
+begin
+  W.GetWidget(Widget_XPMenu_Container, XPMenu_Close);
+  result := W.NotNull;
+  if result then begin
+    {$IFDEF iDEBUG}
+      writeln('16');
+    {$ENDIF}
+    if doClick then begin
+      C.GetChild(W, XPMenu_Close_Child);
+      C.Interact;
+      C.Free;
+    end;
+    W.Free;
+  end;
+end;
+
+function R_GESetsMenuOpen(doClick: boolean = false): boolean;
+var W, C : TReflectWidget;
+begin
+  W.GetWidget(Widget_GESetsMenu_Container, GESetsMenu_Close);
+  result := W.NotNull;
+  if result then begin
+    {$IFDEF iDEBUG}
+      writeln('17');
+    {$ENDIF}
+    if doClick then begin
+      C.GetChild(W, GESetsMenu_Close_Child);
+      C.Interact;
+      C.Free;
+    end;
+    W.Free;
+  end;
+end;
+
+function R_PollMenuOpen(doClick: boolean = false): boolean;
+var W, C : TReflectWidget;
+begin
+  W.GetWidget(Widget_PollMenu_Container, PollMenu_Close);
+  result := W.NotNull;
+  if result then begin
+    {$IFDEF iDEBUG}
+      writeln('18');
+    {$ENDIF}
+    if doClick then begin
+      C.GetChild(W, PollMenu_Close_Child);
+      C.Interact;
+      C.Free;
+    end;
+    W.Free;
+  end;
+end;
+
+function R_GEMenuOpen(doClick: boolean = false): boolean;
+var W, C : TReflectWidget;
+begin
+  W.GetWidget(Widget_GEMenu_Container, GEMenu_Close);
+  result := W.NotNull;
+  if result then begin
+    {$IFDEF iDEBUG}
+      writeln('19');
+    {$ENDIF}
+    if doClick then begin
+      C.GetChild(W, GEMenu_Close_Child);
+      C.Interact;
+      C.Free;
+    end;
+    W.Free;
+  end;
+end;
+
+function R_SellMenuOpen(doClick: boolean = false): boolean;
+var W, C : TReflectWidget;
+begin
+  W.GetWidget(Widget_ShopMenu_Container, ShopMenu_Close);
+  result := W.NotNull;
+  if result then begin
+    {$IFDEF iDEBUG}
+      writeln('20');
+    {$ENDIF}
+    if doClick then begin
+      C.GetChild(W, ShopMenu_Close_Child);
+      C.Interact;
+      C.Free;
+    end;
+    W.Free;
+  end;
+end;
+
+function R_AdvancedOptionsOpen(doClick: boolean = false): boolean;
+var W, C : TReflectWidget;
+begin
+  W.GetWidget(Widget_AdvancedOptions_Container, AdvancedOptions_Close);
+  result := W.NotNull;
+  if result then begin
+    {$IFDEF iDEBUG}
+      writeln('21');
+    {$ENDIF}
+    if doClick then begin
+      C.GetChild(W, AdvancedOptions_Close_Child);
+      C.Interact;
+      C.Free;
+    end;
+    W.Free;
+  end;
+end;
+
+function R_PriceCheckOpen(doClick: boolean = false): boolean;
+var W, C : TReflectWidget;
+begin
+  W.GetWidget(Widget_PriceCheck_Container, PriceCheck_Close);
+  result := W.NotNull;
+  if result then begin
+    {$IFDEF iDEBUG}
+      writeln('22');
+    {$ENDIF}
+    if doClick then begin
+      C.GetChild(W, PriceCheck_Close_Child);
+      C.Interact;
+      C.Free;
+    end;
+    W.Free;
+  end;
+end;
+
+function R_KeyBindOpen(doClick: boolean = false): boolean;
+var W, C : TReflectWidget;
+begin
+  W.GetWidget(Widget_KeyBind_Container, KeyBind_Close);
+  result := W.NotNull;
+  if result then begin
+    {$IFDEF iDEBUG}
+      writeln('23');
+    {$ENDIF}
+    if doClick then begin
+      C.GetChild(W, KeyBind_Close_Child);
+      C.Interact;
+      C.Free;
+    end;
+    W.Free;
+  end;
+end;
+
+function R_BondMenuOpen(doClick: boolean = false): boolean;
+var W, C : TReflectWidget;
+begin
+  W.GetWidget(Widget_BondMenu_Container, BondMenu_Close);
+  result := W.NotNull;
+  if result then begin
+    {$IFDEF iDEBUG}
+      writeln('24');
+    {$ENDIF}
+    if doClick then begin
+      C.GetChild(W, BondMenu_Close_Child);
+      C.Interact;
+      C.Free;
+    end;
+    W.Free;
+  end;
+end;
+
+function R_GameBugOpen(doClick: boolean = false): boolean;
+var W, C : TReflectWidget;
+begin
+  W.GetWidget(Widget_GameBug_Container, GameBug_Close);
+  result := W.NotNull;
+  if result then begin
+    {$IFDEF iDEBUG}
+      writeln('26');
+    {$ENDIF}
+    if doClick then begin
+      C.GetChild(W, GameBug_Close_Child);
+      C.Interact;
+      C.Free;
+    end;
+    W.Free;
+  end;
+end;
+
+function R_ZeahOpen(doClick: boolean = false): boolean;
+var W, C : TReflectWidget;
+begin
+  W.GetWidget(Widget_Zeah_Container, Zeah_Close);
+  result := W.NotNull;
+  if result then begin
+    {$IFDEF iDEBUG}
+      writeln('27');
+    {$ENDIF}
+    if doClick then begin
+      C.GetChild(W, Zeah_Close_Child);
+      C.Interact;
+      C.Free;
+    end;
+    W.Free;
+  end;
+end;
+
+function R_TeleotherOpen(doClick: boolean = false): boolean;
+var W : TReflectWidget;
+begin
+  W.GetWidget(Widget_Teleother_Container, Teleother_Close);
+  result := W.NotNull;
+  if result then begin
+    {$IFDEF iDEBUG}
+      writeln('28');
+    {$ENDIF}
+    if doClick then
+      W.Interact;
+    W.Free;
+  end;
+end;
+
+function R_fallyBankOpen(doClick: boolean = false): boolean;
+var W : TReflectWidget;
+begin
+  W.GetWidget(Widget_fallyBank_Container, fallyBank_Close);
+  result := W.NotNull;
+  if result then begin
+    {$IFDEF iDEBUG}
+      writeln('29');
+    {$ENDIF}
+    if doClick then
+      W.Interact;
+    W.Free;
+  end;
+end;
+
+procedure R_closeAllMenus;
+begin
+  {$IFDEF iDEBUG}
+    if Reflect.Bank.IsOpen or Reflect.Bank.isPinOpen then
+      writeln('25');
+  {$ENDIF}
+  if Reflect.Bank.IsOpen or Reflect.Bank.isPinOpen or R_BondMenuOpen(false) or R_PriceCheckOpen(false) or R_AdvancedOptionsOpen(false) or
+  R_HouseOptionsOpen(false) or R_KeptMenuOpen(false) or R_ReportMenuOpen(false) or R_EquipMenuOpen(false) or R_QuestMenuOpen(false) or
+  R_StatMenuOpen(false) or R_ClanOptionsOpen(false) or R_SellMenuOpen(false) or R_DepositMenuOpen(false) or
+  R_GEMenuOpen(false) or R_PollMenuOpen(false) or R_TradeScreenOpen(false) or R_GESetsMenuOpen(false) or
+  R_GEHistMenuOpen(false) or R_CollectMenuOpen(false) or R_TradeConfOpen(false) or R_LobbyOpen(false) or
+  R_KeyBindOpen(false) or R_XPMenuOpen(false) or R_PinSettingsOpen(false) or R_GameBugOpen(false) or R_ZeahOpen(false)
+  or R_fallyBankOpen(false) then begin
+    updateScreen('Closing interface');
+    if ((Reflect.Bank.IsOpen or Reflect.Bank.isPinOpen) and Reflect.Bank.Close) or R_BondMenuOpen(true) or R_PriceCheckOpen(true) or R_AdvancedOptionsOpen(true) or
+    R_HouseOptionsOpen(true) or R_KeptMenuOpen(true) or R_ReportMenuOpen(true) or R_EquipMenuOpen(true) or R_QuestMenuOpen(true) or
+    R_StatMenuOpen(true) or R_ClanOptionsOpen(true) or R_SellMenuOpen(true) or R_DepositMenuOpen(true) or
+    R_GEMenuOpen(true) or R_PollMenuOpen(true) or R_TradeScreenOpen(true) or R_GESetsMenuOpen(true) or
+    R_GEHistMenuOpen(true) or R_CollectMenuOpen(true) or R_TradeConfOpen(true) or R_LobbyOpen(true) or
+    R_KeyBindOpen(true) or R_XPMenuOpen(true) or R_PinSettingsOpen(true) or R_GameBugOpen(true) or R_ZeahOpen(true)
+    or R_fallyBankOpen(true) then
+      updateScreen('Closed interface');
+  end;
+end;
+
+function ExpFromLevel(Level: integer): integer;   //thanks tehq!
+begin
+  Result := (round((Level / 4) + (75 * pow(2, (Level / 7)))));
+end;
+
+function LevelFromExp(Experience: integer): integer;  //thanks tehq!
+var
+  CurrentExp, n: integer;
+begin
+  for n := 1 to 120 do
+  begin
+    if CurrentExp < Experience then
+      CurrentExp := round((1 / 4) *((n + (300 * pow(2, n / 7))))) + CurrentExp
+    else
+      break;
+    Result := n;
+  end;
+end;
+
+function statExpToGoal(CurrentLevel, EndLevel: integer): integer;   //thanks tehq!
+var
+  i: integer;
+begin
+  for i := CurrentLevel to EndLevel - 1 do
+    Result := ExpFromLevel(i) + Result;
+end;
+
+function varExpToGoal(Experience, EndLevel: integer): integer;   //thanks tehq!
+var
+  CurrentLevel, NextLevel, i: integer;
+begin
+  CurrentLevel := LevelFromExp(Experience);
+  NextLevel := statExpToGoal(1, CurrentLevel + 1);
+  Result := NextLevel - Experience;
+  for i := CurrentLevel + 1 to EndLevel - 1 do
+    incEx(Result, ExpFromLevel(i));
+end;
+
+Procedure TMufasaBitmap.DrawClippedText(Text, Font: String; Position: TPoint; shadow: boolean; Colour: TColor = clRed);
+var
+  W, H: Integer;
+  TPA: Array of TPoint;
+Begin
+  TPA := TPAFromText(Text, Font, W, H);
+  OffsetTPA(TPA, Position);
+  if shadow then begin
+    OffsetTPA(TPA, Point(1, 1));
+    Self.DrawTPA(TPA, clBlack+1);
+    OffsetTPA(TPA, Point(-1, -1));
+  end;
+  Self.DrawTPA(TPA, Colour);
+End;
+
+Procedure TMufasaBitmap.DrawEllipse(Center: TPoint; XRadius, YRadius: Integer; Colour: TColor = clRed; Fill: Boolean = False);
+var
+  TPA: Array of TPoint;
+Begin
+  TPA := TPAFromEllipse(Center.X, Center.Y, XRadius, YRadius);
+  If (Fill) then FillEllipse(TPA);
+  Self.DrawTPA(TPA, Colour);
+End;
+
+function R_TileOnMS(Tile : TPoint; var OutputPoint : TPoint; x : integer = 0; y : integer = 0; z : integer = 0):boolean;
+var tempB : TBox;
+begin
+  OutputPoint := TReflectionTiles.TileToMS(Tile, x, y, z);
+  tempB := intToBox(MSX1, MSY1, MSX2, MSY2);
+  result := PointInBox(OutputPoint, tempB);
+end;
+
+function R_TileOnMM(Tile : TPoint; var OutputPoint : TPoint):boolean;
+var tempB : TBox;
+begin
+  OutputPoint := TReflectionTiles.TileToMM(Tile);
+  tempB := intToBox(MmX1, MmY1, MmX2, MmY2);
+  result := PointInBox(OutputPoint, tempB);
+end;
+
+procedure R_TryMakeTileOnMS(Tile:TPOint;x : integer = 0; y : integer = 0; z : integer = 0);
+var t:TReflectTimer;
+    _tile : TPoint;
+begin
+  if not R_TileOnMS(tile, _Tile, x, y, z) and (TReflectionTiles.DistanceFromTile(Tile) <= 25) then begin
+    TReflectionTiles.RotateCameraToTile(tile);
+    t.Restart;
+    keyDown(VK_Down);
+    while(t.ElapsedTime < 2500) and not R_TileOnMS(tile, _Tile, x, y, z) do
+      sleepScript(50);
+    keyUp(VK_Down);
+  end;
+end;
+
+procedure fastClick(button: Integer);
+var
+  x, y: integer;
+begin
+  getMousePos(x, y);
+  holdMouse(x, y, button);
+
+  Wait(RandomRange(50, 100));
+
+  getMousePos(x, y);
+  releaseMouse(x, y, button);
+end;
+
+function chooseOptionMultiFast(Option: string): Boolean;
+var
+  Index, MenuX, MenuY, MenuWidth, XOff, YOff,x ,y: Integer;
+  Options: TStringArray;
+  Left: Boolean;
+begin
+  Options := Reflect.Text.GetMenuOptions;
+  if not Reflect.Text.IsMenuOpen then
+    Exit;
+  Index := Reflect.Text.GetMenuIndex(Option, Options);
+  MenuX := Reflect.Smart.GetFieldInt(0, Client_MenuX) + 4;
+  MenuY := Reflect.Smart.GetFieldInt(0, Client_MenuY) + 4;
+  MenuWidth := Reflect.Smart.GetFieldInt(0, Client_MenuWidth);
+  XOff := RandomRange(4, MenuWidth - 4);
+  YOff := RandomRange(20, 25) + (Index * 15);
+  if (MenuX + (MenuWidth div 2) > 765) then
+    Left := True;
+  if (MenuX - (MenuWidth div 2) < 0) then
+    Left := False;
+  if (Index = -1) then
+  begin
+    GetMousePos(MenuX, MenuY);
+    if Left then
+      Reflect.Mouse.Move(Point(
+        MenuX - 30 - MenuWidth + Random(10), MenuY + RandomRange(-2, 2)), 2, 2)
+    else
+      Reflect.Mouse.Move(Point(
+        MenuX + 30 + MenuWidth + Random(10), MenuY + RandomRange(-2, 2)), 2, 2);
+    Exit;
+  end;
+  GetMousePos(x, y);
+  MoveMouse(x, randomRange((MenuY+YOff)-2, (MenuY+YOff)+2));
+  fastClick(Mouse_Left);
+  Result := True;
+end;
+
+function R_isDoingAnimation(animationIDs:array of integer;time:integer):boolean;
+var _time:treflecttimer;
+begin
+  _time.restart;
+  while (_time.Elapsedtime < time) and ReflectPlayer.isLoggedIn do begin
+     if(InIntArray(animationIDs, ReflectPlayer.GetAnimation)) then
+     begin
+       result := true;
+       exit;
+     end;
+     sleepScript(50);
+  end;
+end;
+
+procedure doProggy;
+var w, h, bmp, graphic : integer;
+begin
+  graphic := Reflect.Smart.Graphics.ToBitmap(false);
+  getClientDimensions(w, h);
+  bmp := bitmapFromClient(0, 0, w, h);
+  SetTransparentColor(graphic, 0);
+  fastDrawTransparent(0, 0, graphic, bmp);
+  saveBitmap(bmp, ProggieLocation);
+  daLogger.Status('Saved Proggy to: '+ProggieLocation, []);
+  FreeBitmap(bmp);
+end;
+
+function findAndSetTarget(TitlePrefix: String; SetAsTarget: Boolean): Boolean;
+var
+  T : TSysProcArr;
+  I : Integer;
+begin
+  T := GetProcesses;
+  for I := High(T) downto 0 do
+    if Pos(TitlePrefix, T[I].Title) <> 0 then
+    begin
+      Result := True;
+      if SetAsTarget then SetTarget(T[I]);
+      Exit;
+    end;
+end;
+
+function isKeyDownReal(_key:Word):boolean;
+var
+  KMTarget, ITarget: Integer;
+begin
+  if not IsTargetValid() then daLogger.Error('Target invalid', []);
+  KMTarget := GetKeyMouseTarget;
+  ITarget := GetImageTarget;
+  if not findAndSetTarget('SMART', True) then
+    findAndSetTarget('Old', True);
+
+  result := isKeyDown(_key);
+
+  FreeTarget(GetImageTarget);
+  SetKeyMouseTarget(KMTarget);
+  SetImageTarget(ITarget);
+end;
+
+function R_MSToTile(TP:TPoint;dist:integer=10):TPoint;
+var _x, _y, i: integer;
+    tiles, realTiles : TPointArray;
+    myTile : TPoint;
+    found : boolean;
+begin
+  myTile := TReflectionTiles.GetGlobalTile;
+  for _x:=(-dist) to dist do
+    for _y:=(-dist) to dist do begin
+      inc(i);
+      setLength(tiles, i);
+      setLength(realTiles, i);
+      tiles[i-1] := TReflectionTiles.TileToMS(Point(myTile.x+_x, myTile.y+_y), 0, 0, 0);
+      realTiles[i-1] := Point(myTile.x+_x, myTile.y+_y);
+    end;
+
+  for i:=0 to high(tiles) do
+    if not found or (distance(TP.X, TP.Y, tiles[i].X, tiles[i].Y) < distance(TP.X, TP.Y, myTile.X, myTile.Y)) then begin
+      myTile := tiles[i];
+      result := realTiles[i];
+      found := true;
+    end;
+end;
+
+function R_ToggleRun(turnOn : boolean):boolean;
+var W : TReflectWidget;
+    prev : boolean;
+    tim : TReflectTimer;
+begin
+  if (turnOn and not TReflectLocalPlayer.IsRunOn) or (not turnOn and TReflectLocalPlayer.IsRunOn) then begin
+    W.GetWidget(Widget_Orbs_Container, Orbs_RunToggle);
+    if W.NotNull then begin
+      prev := TReflectLocalPlayer.IsRunOn;
+      result := W.Interact;
+      W.Free;
+      tim.Restart;
+      while (prev = TReflectLocalPlayer.IsRunOn) and (tim.Elapsedtime < 2500) do
+        sleepScript(50);
+    end;
+  end;
+end;
+
+function R_QuickDeposit(action : string):boolean;
+var W : TReflectWidget;
+begin
+  if R_DepositMenuOpen then begin
+    if action = 'inv' then
+      W.GetWidget(Widget_DepositMenu_Container, DepositMenu_DepositInv)
+    else if action = 'equ' then
+      W.GetWidget(Widget_DepositMenu_Container, DepositMenu_DepositEqu)
+    else
+      W.GetWidget(Widget_DepositMenu_Container, DepositMenu_DepositLoot);
+  end else begin
+    if action = 'inv' then
+      W.GetWidget(WIDGET_Bank_Container, BankMenu_DepositInv)
+    else
+      W.GetWidget(WIDGET_Bank_Container, BankMenu_DepositEqu);
+  end;
+  if W.NotNull then begin
+    result := W.Interact;
+    W.Free;
+  end;
+end;
+
+Function GetUpText_WhiteColor: String;
+Begin
+  Result:=GetTextAt(8, 8, 0, 5, 4, 14541281, 55, 25, 'UpChars07');
+End;
+
+function slotActivated(i : integer):boolean;
+var TB:Tbox;
+    x,y : integer;
+begin
+  TB := TReflectionInventory.InvBox(i);
+  Result := findColor(x, y, 16777215, TB.x1, TB.y1, TB.x2, TB.y2);
+end;
+
+function anySlotActivated:boolean;
+var _string : string;
+    i : integer;
+begin
+  _string := GetUpText_WhiteColor;
+  if (pos('->', _string) <= 0) or (pos('Use', _string) <= 0) then
+    exit(false);
+
+  for i:=1 to 28 do
+    if slotActivated(i) then
+      exit(true);
+end;
+
+procedure FixActive;
+var tempBox:TBox;
+    i : integer;
+    upt : string;
+begin
+  upt := GetUpText_WhiteColor;
+  if (pos('->', upt) > 0) and (pos('Use', upt) > 0) then
+    for i:=1 to 28 do
+      if slotActivated(i) then begin
+        Reflect.Gametab.Open(Gametab_Inventory);
+        tempBox := TReflectionInventory.invBox(i);
+        Reflect.Mouse.Move(point(randomRange(tempBox.x1, tempBox.x2), randomRange(tempBox.y1, tempBox.y2)), 0, 0);
+        sleepScript(500+random(250));
+        Reflect.Mouse.Click(Mouse_left);
+        sleepScript(500+random(250));
+      end;
+end;
+
+function depositItemBox(Item: Integer): TBox;
+begin
+  Result.X1 := 132 + (Item - 1) mod 7 * 40;
+  Result.Y1 := 75 + (Item - 1) div 7 * 42;
+  Result.X2 := Result.X1 + 30;
+  Result.Y2 := Result.Y1 + 30;
+end;
+
+function itemInSlot(I: Integer): Boolean;
+var
+  X, Y: Integer;
+  TB: TBox;
+begin
+  if not inRange(I, 1, 28) then
+    Exit;
+  Reflect.Gametab.Open(Gametab_Inventory);
+
+  if R_DepositMenuOpen(false) then
+    TB := depositItemBox(I)
+  else
+    TB := TReflectionInventory.invBox(I);
+  result := findColor(x, y, 65536, TB.x1, TB.y1, TB.x2, TB.y2);
+end;
+
+function R_CountItems(IDs:Tintegerarray):integer;
+var i : integer;
+    _items : TReflectInvItemArray;
+begin
+  _items.GetAll;
+  for i:=0 to high(_items) do
+    if inIntArray(IDs, _items[i].GetID) then
+      result := result + _items[i].GetQuantity;
+end;
+
+function R_OpenBank(tile : TPoint):boolean;
+var RSTile : TPoint;
+    tim : treflecttimer;
+    doWait : boolean;
+begin
+  if R_TileOnMS(Tile, RSTile) then begin
+    Reflect.Mouse.Move(rsTile, 5, 5);
+    if Reflect.Text.IsUpTextMulti(['Bank B', 'Bank C', 'Deposit B']) then begin
+      fastClick(mouse_left);
+      doWait := true;
+    end else begin
+      fastClick(mouse_right);
+      sleepScript(50);
+      if Reflect.Text.OptionExists('Bank') then begin
+        doWait := true;
+        if Reflect.Text.OptionExists('Banker') then
+          Reflect.Text.ChooseOption('Bank B')
+        else
+          Reflect.Text.ChooseOption('Bank');
+      end else begin
+        if Reflect.Text.OptionExists('Deposit') then begin
+          doWait := true;
+          Reflect.Text.ChooseOption('Deposit');
+        end else begin
+          Reflect.Text.ChooseOption('Open');
+        end;
+      end;
+    end;
+
+    if doWait then begin
+      tim.Restart;
+      while not result and (tim.Elapsedtime < 2500) do begin
+        sleepScript(50);
+        result := (R_PinSettingsOpen or Reflect.Bank.IsOpen or Reflect.Bank.isPinOpen or R_DepositMenuOpen);
+      end;
+    end;
+  end;
+end;
+
+procedure exitMenu;
+var tim : TReflectTimer;
+    _x, _y : integer;
+begin
+  tim.Restart;
+  while TReflectionText.IsMenuOpen and (tim.Elapsedtime < 2500) do begin
+    getMousePos(_x, _y);
+    Reflect.Mouse.Move(Point(_x, _y-10), 5, 5);
+  end;
+end;
+
+function R_InteractTile(tile:Tpoint; action:string; x:integer = 0; y:integer = 0; z:integer = 0; doSecond:boolean=true):boolean;
+var RSTile : TPoint;
+    yaw : extended;
+    _x, _y, pitch : integer;
+begin
+  if R_TileOnMS(Tile, RSTile, x, y, z) then begin
+    getMousePos(_x, _y);
+    if not Reflect.Text.OptionExists(action) or (distance(_x, _y, rsTile.x, rsTile.y) > 5) then
+      Reflect.Mouse.Move(rsTile, 5, 5);
+    if(Reflect.Text.IsUpText(action)) then begin
+      FastClick(mouse_left);
+      {if not(action = 'Walk') then
+        result := didClick(true, 1000)
+      else
+        result := didClick(false, 1000);}
+      result := true;
+    end else begin
+      if Reflect.Text.OptionExists(action) then begin
+        FastClick(mouse_right);
+        result := Reflect.Text.ChooseOption(action);
+      end else begin
+        exitmenu;
+      end;
+      if not result and doSecond then begin
+        yaw := Reflect.Compass.AngleDeg;
+        pitch := round((Reflect.Compass.GetPitch - 128) / 25.5);
+        Reflect.Compass.Make('rand');
+        Reflect.Compass.MakePitch(9);
+        if R_TileOnMS(Tile, RSTile, x, y, z) then begin
+          Reflect.Mouse.Move(rsTile, 5, 5);
+          if(Reflect.Text.IsUpText(action)) then begin
+            FastClick(mouse_left);
+            result := true;
+          end else begin
+            if Reflect.Text.OptionExists(action) then begin
+              FastClick(mouse_right);
+              result := Reflect.Text.ChooseOption(action);
+            end else begin
+              exitmenu;
+            end;
+          end;
+        end;
+        Reflect.Compass.Make(yaw);
+        Reflect.Compass.MakePitch(pitch);
+      end;
+    end;
+  end;
+end;
+
+function R_InteractNPC(IDs:TIntegerArray; action:string; isFree:boolean; x:integer = 0; y:integer = 0; z:integer = 50):boolean;
+var RsTile, npcTile : TPoint;
+    i : integer;
+    _npcs : TReflectNPCArray;
+begin
+  _npcs.GetAll;
+  for i:=0 to high(_npcs) do begin
+    npcTile := _npcs[i].GetTile;
+    if inIntArray(IDs, _npcs[i].GetId) and ((not(_npcs[i].IsUnderAttack) and ((_npcs[i].GetInteractingIndex <= 0) or (_npcs[i].GetInteractingIndex = me_indice))) or not isFree) then begin
+      if not R_TileOnMS(npcTile, RSTile, x, y, z) then begin
+        ReflectPlayer.BlindWalkMM(npcTile, 5);
+        ReflectPlayer.FFlag(2+randomRange(-2, 2));
+        sleepScript(random(1500));
+      end;
+
+      result := R_InteractTile(npcTile, action, x, y, z, false);
+      exit;
+    end;
+  end;
+end;
+
+function R_TryInteractNPC(IDs:TIntegerArray; action:string; isFree:boolean; tries:integer; x:integer = 0; y:integer = 0; z:integer = 50):boolean;
+var i : integer;
+begin
+  i := 0;
+  result := false;
+  while (i<tries) and not result and ReflectPlayer.isLoggedIn do begin
+    result := R_InteractNPC(IDs, action, isFree, x, y, z);
+    inc(i);
+  end;
+end;
+
+function TReflectDoor.Open(wantOut: boolean): boolean;
+function openDaDoor(daDoor:TReflectDoor):boolean;
+var tP : TPoint;
+    tObj : TReflectObject;
+begin
+  tObj.GetAt(ObjBoundary, daDoor.Tile);
+  if inIntArray(daDoor.IDs, tObj.GetID) then begin
+    if not R_TileOnMS(daDoor.Tile, tP, daDoor.Offset[0], daDoor.Offset[1], daDoor.Offset[2]) then
+      ReflectPlayer.BlindWalkMM(daDoor.Tile, 1);
+    updateScreen('Opening door.');
+    result := R_InteractTile(daDoor.Tile, 'Open', daDoor.Offset[0], daDoor.Offset[1], daDoor.Offset[2]);
+    ReflectPlayer.FFlag(0, 2500+random(500));
+    sleepScript(1500+random(1000));
+  end else begin
+    if not Reflect.Tiles.NearTile(daDoor.Tile, 25) then
+      ReflectPlayer.BlindWalkMM(daDoor.Tile, 1);
+  end;
+end;
+begin
+  if wantOut then begin
+    if Reflect.Tiles.InPolygon(Self.TileEncompass) then begin
+      result := openDaDoor(self);
+    end;
+  end else begin
+    if not Reflect.Tiles.InPolygon(Self.TileEncompass) then begin
+      result := openDaDoor(self);
+    end;
+  end;
+end;
+
+procedure updateAllRefVars;
+begin
+  updateScreen('Updating ref vars');
+  ReflectPlayer.Create;
+  me_name := ReflectPlayer._GetName;
+  me_indice := ReflectPlayer.GetPlayerIndex;
+end;
+
+function GenerateRandomString:string;
+var letters : tstringarray;
+    i, leng : integer;
+begin
+  letters := [' ','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z','''','"','!','@','#','?','$','^','&','*','(',')','-', '_','=','+','0','1','2','3','4','5','6','7','8','9','{','}','|','/','.',',','<','>',';',':','\'];
+  leng := random(30);
+  result := '';
+  for i:=0 to leng do begin
+    result:=result+letters[random(length(letters))];
+  end;
+end;
+
+function GenerateRandomString2:string;
+var letters : tstringarray;
+    i, leng : integer;
+begin
+  letters := [' ','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'];
+  leng := random(30);
+  result := '';
+  for i:=0 to leng do begin
+    result:=result+letters[random(length(letters))];
+  end;
+end;
+
+function GenerateRandomString3:string;
+var letters : tstringarray;
+    i, leng : integer;
+begin
+  letters := ['a', 'w', 's', 'd', ' '];
+  leng := random(30);
+  result := '';
+  for i:=0 to leng do begin
+    result:=result+letters[random(length(letters))];
+  end;
+end;
+
+procedure doBreakCheck;
+begin
+end;
+
+function getNearPlayersAmount:integer;
+var _players : TReflectPlayerArray;
+    i : integer;
+    tempP : TPoint;
+begin
+  _players.GetAll;
+  for i:=0 to high(_players) do begin
+    if R_TileOnMS(_players[i].GetTile, tempP, 0, 0, 50) then begin
+      inc(result);
+    end;
+  end;
+end;
+
+procedure doAntibanTalk;
+var _string:tstringarray;
+    i, maxS, people : integer;
+begin
+  people := getNearPlayersAmount-1;
+  if (people <= 0) then
+    exit;
+
+  if (chatTimers[high(chatTimers)].Elapsedtime < chatTimeOften) then
+    exit;
+
+  chatTimers[high(chatTimers)].Restart;
+
+  maxS := 130;
+  {$IFDEF CHOPPER}
+    maxS := 160;
+  {$ENDIF}
+  {$IFDEF FISHER}
+    maxS := 152;
+  {$ENDIF}
+  {$IFDEF FIREMAKER}
+    maxS := 152;
+  {$ENDIF}
+  {$IFDEF MINER}
+    maxS := 152;
+  {$ENDIF}
+  {$IFDEF COOKER}
+    maxS := 152;
+  {$ENDIF}
+  case random(maxS) of
+    0:_string:=['am i muted?'];
+    1:_string:=['wtf'];
+    2:_string:=['ok'];
+    3:_string:=['hi'];
+    4:_string:=['anyone there'];
+    5:_string:=['w00t'];
+    6:_string:=['woot'];
+    7:_string:=['wewt'];
+    8:_string:=['u there?'];
+    9:_string:=['lagggg?'];
+    10:_string:=['hello'];
+    11:_string:=['hello?'];
+    12:_string:=['hi?'];
+    13:_string:=['wtf?'];
+    14:_string:=['lol'];
+    15:_string:=['lol?'];
+    16:_string:=['anyone there?'];
+    17:_string:=['any1 there'];
+    18:_string:=['any1 there?'];
+    19:_string:=['you there'];
+    20:_string:=['u there'];
+    21:_string:=['you there?'];
+    22:_string:=['l'];
+    23:_string:=['l00l'];
+    24:_string:=['l0l'];
+    25:_string:=['l000l'];
+    26:_string:=['am i muted'];
+    27:_string:=['yo'];
+    28:_string:=['sup'];
+    29:_string:=['sup?'];
+    30:_string:=['boring'];
+    31:_string:=['this is boring'];
+    32:_string:=['anyone here'];
+    33:_string:=['anyone here?'];
+    34:_string:=['any1 here'];
+    35:_string:=['any1 here?'];
+    36:_string:=['bot'];
+    37:_string:=['bot?'];
+    38:_string:=['bots'];
+    39:_string:=['bots?'];
+    40:_string:=['loool'];
+    41:_string:=['lool'];
+    42:_string:=[':)'];
+    43:_string:=['=)'];
+    44:_string:=['yes'];
+    45:_string:=['yes!'];
+    46:_string:=['gf'];
+    47:_string:=['gg'];
+    48:_string:=['rekt'];
+    49:_string:=['ayy lmao'];
+    50:_string:=['ayyy lmao'];
+    51:_string:=['ayyyy lmao'];
+    52:_string:=['how'];
+    53:_string:=['how?'];
+    54:_string:=['k'];
+    55:_string:=['ok?'];
+    56:_string:=['k?'];
+    57:_string:=[' '];
+    58:_string:=['a q p','     W'];
+    59:_string:=['stfu'];
+    60:_string:=['stfu?'];
+    61:_string:=['how cum'];
+    62:_string:=['how cum?'];
+    63:_string:=['how com'];
+    64:_string:=['how com?'];
+    65:_string:=['how come?'];
+    66:_string:=['how come'];
+    67:_string:=['a q p','    W'];
+    68:_string:=['a q p','      W'];
+    69:_string:=['|\/\/\/|','|______|'];
+    70:_string:=['|\/\/\/|','|_____|'];
+    71:_string:=['|\/\/\/|','|_______|'];
+    72:_string:=['no'];
+    73:_string:=['no?'];
+    74:_string:=['wat'];
+    75:_string:=['wat?'];
+    76:_string:=['what'];
+    77:_string:=['what?'];
+    78:_string:=['wut'];
+    79:_string:=['wut?'];
+    80:_string:=['lolwat'];
+    81:_string:=['lol wat'];
+    82:_string:=['lolwut'];
+    83:_string:=['lol wut'];
+    84:_string:=['im bored'];
+    85:_string:=['i''m bored'];
+    86:_string:=['i"m bored'];
+    87:_string:=['help'];
+    88:_string:=['help?'];
+    89:_string:=['umm'];
+    90:_string:=['hmm'];
+    91:_string:=['uh'];
+    92:_string:=['huh'];
+    93:_string:=[GenerateRandomString];
+    94:_string:=['u w0t m8'];
+    95:_string:=['u wot m8'];
+    96:_string:=['u w0t m8?'];
+    97:_string:=['u wot m8?'];
+    98:_string:=[GenerateRandomString2];
+    99:_string:=[GenerateRandomString3];
+    100:_string:=[GenerateRandomString];
+    101:_string:=[intToStr(random(10))];
+    102:_string:=[intToStr(random(100))];
+    103:_string:=['ha'];
+    104:_string:=['haha'];
+    105:_string:=['hahaha'];
+    106:_string:=['no u'];
+    107:_string:=['no you'];
+    108:_string:=['n00b'];
+    109:_string:=['noob'];
+    110:_string:=['n00bs'];
+    111:_string:=['noobs'];
+    112:_string:=['added'];
+    113:_string:=['add me'];
+    114:_string:=['add me?'];
+    115:_string:=['reported'];
+    116:_string:=['ignored'];
+    117:_string:=['***'];
+    118:_string:=['****'];
+    119:_string:=['*****'];
+    120:_string:=['******'];
+    121:_string:=['wth'];
+    122:_string:=['wth?'];
+    123:_string:=['lag'];
+    124:_string:=['lagg'];
+    125:_string:=['lag?'];
+    126:_string:=['lagg?'];
+    127:_string:=['laggg?'];
+    128:_string:=['laggg'];
+    129:_string:=['lagggg'];
+    {$IFDEF CHOPPER}
+      130:_string:=['woodcut lvl'];
+      131:_string:=['woodcut level'];
+      132:_string:=['woodcut level?'];
+      133:_string:=['woodcutting lvl'];
+      134:_string:=['woodcutting lvl?'];
+      135:_string:=['woodcutting level'];
+      136:_string:=['woodcutting level?'];
+      137:_string:=['woodcuttin lvl'];
+      138:_string:=['woodcuttin lvl?'];
+      139:_string:=['woodcuttin level'];
+      140:_string:=['woodcuttin level?'];
+      141:_string:=['woodcuttin lvls'];
+      142:_string:=['woodcuttin lvls?'];
+      143:_string:=['woodcuttin levels'];
+      144:_string:=['woodcuttin levels?'];
+      145:_string:=['woodcut lvls'];
+      146:_string:=['woodcut levels'];
+      147:_string:=['woodcut levels?'];
+      148:_string:=['woodcutting lvls'];
+      149:_string:=['woodcutting lvls?'];
+      150:_string:=['woodcutting levels'];
+      151:_string:=['woodcutting levels?'];
+      152:_string:=['wc lvl'];
+      153:_string:=['wc lvls'];
+      154:_string:=['wc lvl?'];
+      155:_string:=['wc lvls?'];
+      156:_string:=['wc level'];
+      157:_string:=['wc levels'];
+      158:_string:=['wc level?'];
+      159:_string:=['wc levels?'];
+    {$ENDIF}
+    {$IFDEF FISHER}
+      130:_string:=['fishin lvl'];
+      131:_string:=['fishin lvl?'];
+      132:_string:=['fishin level'];
+      133:_string:=['fishin level?'];
+      134:_string:=['fishin lvls'];
+      135:_string:=['fishin lvls?'];
+      136:_string:=['fishin levels'];
+      137:_string:=['fishin levels?'];
+      138:_string:=['fish lvl'];
+      139:_string:=['fish level'];
+      140:_string:=['fish level?'];
+      141:_string:=['fishing lvl'];
+      142:_string:=['fishing lvl?'];
+      143:_string:=['fishing level'];
+      144:_string:=['fishing level?'];
+      145:_string:=['fish lvls'];
+      146:_string:=['fish levels'];
+      147:_string:=['fish levels?'];
+      148:_string:=['fishing lvls'];
+      149:_string:=['fishing lvls?'];
+      150:_string:=['fishing levels'];
+      151:_string:=['fishing levels?'];
+    {$ENDIF}
+    {$IFDEF FIREMAKER}
+      130:_string:=['firemakin lvl'];
+      131:_string:=['firemakin lvl?'];
+      132:_string:=['firemakin level'];
+      133:_string:=['firemakin level?'];
+      134:_string:=['firemakin lvls'];
+      135:_string:=['firemakin lvls?'];
+      136:_string:=['firemakin levels'];
+      137:_string:=['firemakin levels?'];
+      138:_string:=['fire levels'];
+      139:_string:=['fire levels?'];
+      140:_string:=['firemaking lvls'];
+      141:_string:=['firemaking lvls?'];
+      142:_string:=['firemaking levels'];
+      143:_string:=['firemaking levels?'];
+      144:_string:=['fire lvl'];
+      145:_string:=['fire level'];
+      146:_string:=['fire level?'];
+      147:_string:=['firemaking lvl'];
+      148:_string:=['firemaking lvl?'];
+      149:_string:=['firemaking level'];
+      150:_string:=['firemaking level?'];
+      151:_string:=['fire lvls'];
+    {$ENDIF}
+    {$IFDEF MINER}
+      130:_string:=['minin lvl'];
+      131:_string:=['minin lvl?'];
+      132:_string:=['minin level'];
+      133:_string:=['minin level?'];
+      134:_string:=['minin lvls'];
+      135:_string:=['minin lvls?'];
+      136:_string:=['minin levels'];
+      137:_string:=['minin levels?'];
+      138:_string:=['mine levels'];
+      139:_string:=['mine levels?'];
+      140:_string:=['mining lvls'];
+      141:_string:=['mining lvls?'];
+      142:_string:=['mining levels'];
+      143:_string:=['mining levels?'];
+      144:_string:=['mine lvls'];
+      145:_string:=['mine lvl'];
+      146:_string:=['mine level'];
+      147:_string:=['mine level?'];
+      148:_string:=['mining lvl'];
+      149:_string:=['mining lvl?'];
+      150:_string:=['mining level'];
+      151:_string:=['mining level?'];
+    {$ENDIF}
+    {$IFDEF COOKER}
+      130:_string:=['cookin lvl'];
+      131:_string:=['cookin lvl?'];
+      132:_string:=['cookin level'];
+      133:_string:=['cookin level?'];
+      134:_string:=['cookin lvls'];
+      135:_string:=['cookin lvls?'];
+      136:_string:=['cookin levels'];
+      137:_string:=['cookin levels?'];
+      138:_string:=['cook levels'];
+      139:_string:=['cook levels?'];
+      140:_string:=['cooking lvls'];
+      141:_string:=['cooking lvls?'];
+      142:_string:=['cooking levels'];
+      143:_string:=['cooking levels?'];
+      144:_string:=['cook lvls'];
+      145:_string:=['cook lvl'];
+      146:_string:=['cook level'];
+      147:_string:=['cook level?'];
+      148:_string:=['cooking lvl'];
+      149:_string:=['cooking lvl?'];
+      150:_string:=['cooking level'];
+      151:_string:=['cooking level?'];
+    {$ENDIF}
+  end;
+  daLogger.Status('Saying: '''+toStr(_string)+''' outloud too '+intToStr(people)+' people.', []);
+  for i:=0 to high(_string) do
+    if useAutoResponder then
+      TReflectionKeyboard.TypeSend(_string[i], true);
+end;
+
+procedure doConversation(_strings:TStringArray);
+var tim : TReflectTimer;
+    newArray : TStringArray;
+begin
+  newArray := _strings;
+  setLength(newArray, length(newArray) + 1);
+  newArray[high(newArray)] := 'Click here to continue';
+
+  tim.Restart;
+  while (tim.Elapsedtime < 2500) do begin
+    if TReflectionChat.NpcChooseOption(newArray) then
+      tim.Restart;
+    sleepScript(1000+random(500));
+  end;
+end;
+
+procedure dismissAllRandoms;
+var i, j, lampSkill:integer;
+    _npcs:TReflectNPCArray;
+    _item : TReflectInvItem;
+    name : string;
+    tile : TPOint;
+    w : TReflectWidget;
+    tb : TBox;
+begin
+  //3 att 4 str 5 range 6 magic 7 def
+  //8 hp 9 pray 10 agile 11 herb 12 theiv 13 craft
+  //14 rc 22 slay 23 farm 15 mine 16 smith 17 fish
+  //18 cook 19 fm 20 wc 21 fletch 24 con 25 hunt
+  lampSkill := 18;
+  {$IFDEF CHOPPER}
+    lampSkill := 20;
+  {$ENDIF}
+  {$IFDEF FISHER}
+    lampSkill := 17;
+  {$ENDIF}
+  {$IFDEF FIREMAKER}
+    lampSkill := 19;
+  {$ENDIF}
+  {$IFDEF MINER}
+    lampSkill := 15;
+  {$ENDIF}
+  {$IFDEF COOKER}
+    lampSkill := 18;
+  {$ENDIF}
+  for i:=0 to high(rewardIDs) do begin
+    if _item.Find(rewardIDs[i]) then begin
+      Reflect.Gametab.Open(Gametab_Inventory);
+      updateScreen('Solving lamp.');
+      daLogger.Status('Solving lamp...', []);
+      tb := _item.getBox;
+      Reflect.Mouse.Move(tb, mouse_left);
+      sleepScript(1000+random(500));
+      W.GetWidget(widget_lamp_container, lampSkill);
+      if W.NotNull then begin
+        W.Interact;
+        W.Free;
+        W.GetWidget(widget_lamp_container, lamp_confirm);
+        if W.NotNull then begin
+          W.Interact;
+          W.Free;
+        end;
+      end;
+      sleepScript(1000+random(500));
+    end;
+  end;
+  _npcs.GetAll;
+  for i:=0 to high(_npcs) do begin
+    if (_npcs[i].getInteractingIndex = me_indice) then begin
+      for j:=0 to high(randomsStrings) do begin
+        name := _npcs[i].getname;
+        if (pos(randomsStrings[j], lowercase(name)) > 0) then begin
+          tile := _npcs[i].getTile;
+          if useFakeWaitTime and wasWorking then begin
+            updateScreen('Doing fake ''antiban'' wait.');
+            sleepScript(1000+random(7500));
+          end;
+          wasWorking := false;
+          if randomsStrings[j] = 'genie' then begin
+            updateScreen('Talking to: '+name);
+            if R_InteractTile(tile, 'Talk', 0, 0, 50) then begin
+              sleepScript(1000+random(1000));
+              doConversation([]);
+              daLogger.Status('Talked to random: '+name, []);
+            end;
+          end else begin
+            updateScreen('Dismissing: '+name);
+            if R_InteractTile(tile, 'Dismiss', 0, 0, 50) then begin
+              sleepScript(1000+random(1000));
+              daLogger.Status('Dismissed random: '+name, []);
+            end;
+          end;
+          exit;
+        end;
+      end;
+    end;
+  end;
+end;
+
+procedure doAnAnti;
+var maxS: integer;
+begin
+  Reflect.MouseSpeed := randomRange(15, 30);
+  updateScreen('Performing antiban...');
+  maxS := 18;
+  {$IFDEF CHOPPER}
+    maxS := 19;
+  {$ENDIF}
+  {$IFDEF FISHER}
+    maxS := 19;
+  {$ENDIF}
+  {$IFDEF FIREMAKER}
+    maxS := 19;
+  {$ENDIF}
+  {$IFDEF MINER}
+    maxS := 19;
+  {$ENDIF}
+  {$IFDEF COOKER}
+    maxS := 19;
+  {$ENDIF}
+  case random(maxS) of
+    0:TReflectionAntiban.RandomRClick;
+    1:hoverSkill(-1);
+    2:TReflectionAntiban.PickUpMouse;
+    3:TReflectionAntiban.SleepAndMoveMouse(random(2500));
+    4:TReflectionAntiban.RandomMovement;
+    5:TReflectionAntiban.CompassMovement(0, 360, false);
+    6:TReflectionAntiban.HumanRandomMouse;
+    7:TReflectionAntiban.ExamineInv;
+    8:TReflectionAntiban.RandomFKeys(false);
+    9:TReflectionAntiban.RandomTab(false);
+    10:TReflectionAntiban.BoredHuman;
+    11:TReflectionAntiban.RandomTab(true);
+    12:TReflectionAntiban.MMouseOffClient('rand');
+    13:TReflectionAntiban.MMouseOffClient('top');
+    14:TReflectionAntiban.MMouseOffClient('bottom');
+    15:TReflectionAntiban.MMouseOffClient('left');
+    16:TReflectionAntiban.MMouseOffClient('right');
+    17:doAntibanTalk;
+    {$IFDEF CHOPPER}
+      18:hoverSkill(Skill_Woodcutting);
+    {$ENDIF}
+    {$IFDEF FISHER}
+      18:hoverSkill(Skill_Fishing);
+    {$ENDIF}
+    {$IFDEF FIREMAKER}
+      18:hoverSkill(Skill_Firemaking);
+    {$ENDIF}
+    {$IFDEF MINER}
+      18:hoverSkill(Skill_Mining);
+    {$ENDIF}
+    {$IFDEF COOKER}
+      18:hoverSkill(Skill_Cooking);
+    {$ENDIF}
+  end;
+end;
+
+procedure doAntiban;
+var i : integer;
+begin
+  if checkForLevelTimer.Elapsedtime > checkForLevelOften then begin
+    if R_DidLevelUp or R_DidLevelUpExtra then begin
+      if useFakeWaitTime and wasWorking then begin
+        updateScreen('Doing fake ''antiban'' wait.');
+        sleepScript(1000+random(7500));
+      end;
+      wasWorking := false;
+      updateScreen('Clicking level up!');
+      R_DidLevelUp(true);
+      R_DidLevelUpExtra(true);
+    end;
+    checkForLevelTimer.Restart;
+  end;
+
+  i:=random(AntiAmount);
+  case i of
+    1..10:doAnAnti;
+    else begin
+      {$IFDEF iDEBUG}
+        writeln(tim3.Elapsedtime, ' ', i);
+      {$ENDIF}
+    end;
+  end;
+  {$IFDEF iDEBUG}
+    tim3.Restart;
+  {$ENDIF}
+end;
+
+function getChat_think(msg : string; var sendType : integer; tempBool : boolean): string;
+var i, l, k, j, tempNum : integer;
+    checkStrings : TStringArray;
+begin
+  sendType := -1;
+
+  checkStrings := commonHelloStrings;
+  for i:=0 to high(checkStrings) do
+    if (checkStrings[i] = lowercase(msg)) then begin
+      checkStrings := ['hey', 'hi', 'hello', 'sup'];
+      {for i:=0 to high(howStrings) do
+        for h:=0 to high(areStrings) do
+          for j:=0 to high(youStrings) do
+            for k:=0 to high(questionStrings) do begin
+              setLength(checkStrings, length(checkStrings)+1);
+              checkStrings[high(checkStrings)] := howStrings[i]+' '+areStrings[h]+' '+youStrings[j]+questionStrings[k];
+            end;
+      for i:=0 to high(howStrings) do
+        for h:=0 to high(areStrings) do
+          for j:=0 to high(youStrings) do
+            for k:=0 to high(doingStrings) do
+              for l:=0 to high(questionStrings) do begin
+                setLength(checkStrings, length(checkStrings)+1);
+                checkStrings[high(checkStrings)] := howStrings[i]+' '+areStrings[h]+' '+youStrings[j]+' '+doingStrings[k]+questionStrings[l];
+              end;
+      for l:=0 to high(questionStrings) do
+        for i:=0 to high(whatStrings) do begin
+          setLength(checkStrings, length(checkStrings)+1);
+          checkStrings[high(checkStrings)] := whatStrings[i]+' up'+questionStrings[l];
+        end;
+      for j:=0 to high(puncStrings) do
+        for i:=0 to high(hiStrings) do begin
+          setLength(checkStrings, length(checkStrings)+1);
+          checkStrings[high(checkStrings)] := hiStrings[i]+puncStrings[j];
+        end;
+      for j:=0 to high(puncStrings) do
+        for i:=0 to high(heyStrings) do begin
+          setLength(checkStrings, length(checkStrings)+1);
+          checkStrings[high(checkStrings)] := heyStrings[i]+puncStrings[j];
+        end;
+      for i:=0 to high(questionStrings) do begin
+        setLength(checkStrings, length(checkStrings)+1);
+        checkStrings[high(checkStrings)] := 'sup'+questionStrings[i];
+      end;
+      for j:=0 to high(puncStrings) do
+        for i:=0 to high(helloStrings) do begin
+          setLength(checkStrings, length(checkStrings)+1);
+          checkStrings[high(checkStrings)] := helloStrings[i]+puncStrings[j];
+        end;    }
+      sendType := 0;
+      exit(checkStrings[random(length(checkStrings))]);
+    end;
+
+  checkStrings := GetWordsEx(lowercase(msg), 'abcdefghijklmnopqrstuvwxyz0123456789-''');
+  for i:=0 to high(botStrings) do
+    for k:=0 to high(checkStrings) do
+      if(botStrings[i] = checkStrings[k]) then begin
+        checkStrings := ['no', 'lol', '?'];
+        {for i:=0 to high(questionStrings) do begin
+          setLength(checkStrings, length(checkStrings)+1);
+          checkStrings[high(checkStrings)] := 'no'+questionStrings[i];
+        end;
+        for i:=0 to high(puncStrings) do begin
+          setLength(checkStrings, length(checkStrings)+1);
+          checkStrings[high(checkStrings)] := 'nope'+puncStrings[i];
+        end;
+        for i:=0 to high(puncStrings) do begin
+          setLength(checkStrings, length(checkStrings)+1);
+          checkStrings[high(checkStrings)] := 'nah'+puncStrings[i];
+        end;
+        for i:=0 to high(puncStrings) do begin
+          setLength(checkStrings, length(checkStrings)+1);
+          checkStrings[high(checkStrings)] := 'nop'+puncStrings[i];
+        end;
+        for i:=0 to high(puncStrings) do begin
+          setLength(checkStrings, length(checkStrings)+1);
+          checkStrings[high(checkStrings)] := 'no'+puncStrings[i];
+        end;
+        for l:=0 to high(puncStrings) do
+          for i:=0 to high(youStrings) do begin
+            setLength(checkStrings, length(checkStrings)+1);
+            checkStrings[high(checkStrings)] := 'says '+youStrings[i]+puncStrings[l];
+          end;
+        for l:=0 to high(puncStrings) do
+          for i:=0 to high(youStrings) do begin
+            setLength(checkStrings, length(checkStrings)+1);
+            checkStrings[high(checkStrings)] := 'no '+youStrings[i]+puncStrings[l];
+          end;
+        for j:=0 to high(puncStrings) do
+          for i:=0 to high(imStrings) do
+            for l:=0 to high(botStrings) do begin
+              setLength(checkStrings, length(checkStrings)+1);
+              checkStrings[high(checkStrings)] := imStrings[i]+' not a '+botStrings[l]+puncStrings[j];
+            end;
+        for i:=1 to high(questionStrings) do begin
+          setLength(checkStrings, length(checkStrings)+1);
+          checkStrings[high(checkStrings)] := questionStrings[i];
+        end;}
+
+        sendType := 1;
+        exit(checkStrings[random(length(checkStrings))]);
+      end;
+
+  for i:=0 to high(lolStrings) do
+    for l:=0 to high(checkStrings) do
+      if (lolStrings[i] = checkStrings[l]) then begin
+        checkStrings := ['lol', 'l0l', 'lel', 'lool'];
+        {for i:=0 to high(questionStrings) do begin
+          setLength(checkStrings, length(checkStrings)+1);
+          checkStrings[high(checkStrings)] := questionStrings[i];
+        end;
+        for i:=0 to high(questionStrings) do begin
+          setLength(checkStrings, length(checkStrings)+1);
+          checkStrings[high(checkStrings)] := 'huh'+questionStrings[i];
+        end;
+        for i:=0 to high(questionStrings) do
+          for l:=0 to high(whatStrings) do begin
+            setLength(checkStrings, length(checkStrings)+1);
+            checkStrings[high(checkStrings)] := whatStrings[l]+' so funny'+questionStrings[i];
+          end;
+        for j:=0 to high(areStrings) do
+          for k:=0 to high(youStrings) do
+            for i:=0 to high(questionStrings) do
+              for l:=0 to high(whyStrings) do begin
+                setLength(checkStrings, length(checkStrings)+1);
+                checkStrings[high(checkStrings)] := whyStrings[l]+' '+areStrings[j]+' '+youStrings[k]+' laughing'+questionStrings[i];
+              end;   }
+
+        sendType := 3;
+        exit(checkStrings[random(length(checkStrings))]);
+      end;
+
+  for k:=0 to high(SkillStringsArray) do
+    for i:=0 to high(levelStrings) do
+      for j:=0 to high(SkillStringsArray[k]) do
+        if (pos(levelStrings[i], lowercase(msg)) > 0) and (pos(SkillStringsArray[k][j], lowercase(msg)) > 0) then begin
+          tempNum := TReflectLocalPlayer.GetMaxSkillLevel(k);
+          checkStrings := [intToStr(tempNum)];
+          {for j:=0 to high(puncStrings) do begin
+            setLength(checkStrings, length(checkStrings)+1);
+            checkStrings[high(checkStrings)] := intToStr(tempNum)+puncStrings[j];
+          end;
+          for j:=0 to high(puncStrings) do
+            for i:=0 to high(levelStrings) do
+              for l:=0 to high(SkillStringsArray[k]) do begin
+                setLength(checkStrings, length(checkStrings)+1);
+                checkStrings[high(checkStrings)] := 'my '+SkillStringsArray[k][l]+' '+levelStrings[i]+' is '+intToStr(tempNum)+puncStrings[j];
+              end;
+          for j:=0 to high(puncStrings) do
+            for l:=0 to high(itsStrings) do begin
+              setLength(checkStrings, length(checkStrings)+1);
+              checkStrings[high(checkStrings)] := itsStrings[l]+' '+intToStr(tempNum)+puncStrings[j];
+            end;
+          for i:=0 to high(puncStrings) do
+            for h:=0 to high(whyStrings) do
+              for j:=0 to high(puncStrings) do
+                for l:=0 to high(itsStrings) do begin
+                  setLength(checkStrings, length(checkStrings)+1);
+                  checkStrings[high(checkStrings)] := whyStrings[h]+puncStrings[i]+' '+itsStrings[l]+' '+intToStr(tempNum)+puncStrings[j];
+                end;      }
+
+          sendType := 2;
+          exit(checkStrings[random(length(checkStrings))]);
+        end;
+
+  for i:=0 to high(levelStrings) do
+    if (pos(levelStrings[i], lowercase(msg)) > 0) then begin
+      checkStrings := ['?'];
+      {for i:=1 to high(questionStrings) do begin
+        setLength(checkStrings, length(checkStrings)+1);
+        checkStrings[high(checkStrings)] := questionStrings[i];
+      end;
+      for i:=0 to high(whatStrings) do
+        for h:=0 to high(levelStrings) do
+          for j:=0 to high(questionStrings) do begin
+            setLength(checkStrings, length(checkStrings)+1);
+            checkStrings[high(checkStrings)] := levelStrings[h]+' in '+whatStrings[i]+questionStrings[j];
+          end;
+      for i:=0 to high(questionStrings) do begin
+        setLength(checkStrings, length(checkStrings)+1);
+        checkStrings[high(checkStrings)] := 'huh'+questionStrings[i];
+      end;
+      for h:=0 to high(levelStrings) do
+        for j:=0 to high(questionStrings) do begin
+          setLength(checkStrings, length(checkStrings)+1);
+          checkStrings[high(checkStrings)] := levelStrings[h]+questionStrings[j];
+        end;
+      for i:=0 to high(whatStrings) do
+        for h:=0 to high(levelStrings) do
+          for j:=0 to high(questionStrings) do begin
+            setLength(checkStrings, length(checkStrings)+1);
+            checkStrings[high(checkStrings)] := whatStrings[i]+' '+levelStrings[h]+questionStrings[j];
+          end;  }
+
+      sendType := 4;
+      exit(checkStrings[random(length(checkStrings))]);
+    end;
+
+  for i:=0 to high(niceStrings) do
+    for k:=0 to high(checkStrings) do
+      if (niceStrings[i] = checkStrings[k]) then begin
+        checkStrings := ['thx', 'thanks', 'ty'];
+        {for h:=0 to high(puncStrings) do
+          for j:=0 to high(thanksStrings) do begin
+            setLength(checkStrings, length(checkStrings)+1);
+            checkStrings[high(checkStrings)] := thanksStrings[j]+puncStrings[h];
+          end;  }
+
+        sendType := 5;
+        exit(checkStrings[random(length(checkStrings))]);
+      end;
+
+  if (pos(lowercase(me_name), lowercase(msg)) > 0) or tempBool then begin
+    checkStrings := ['wat', 'what?', 'wat?', '?', 'what'];
+    sendType := 6;
+    exit(checkStrings[random(length(checkStrings))]);
+  end;
+end;
+
+function getClosePeopleTexts(var tBool : Boolean):TStringArray;
+var _players : TReflectPlayerArray;
+    i, j : integer;
+    tempP : TPoint;
+    name : string;
+begin
+  _players.GetAll;
+  for i:=0 to high(_players) do begin
+    name := _players[i].GetName;
+    if (pos('mod ', lowercase(name)) > 0) then begin
+      daLogger.Status('FOUND JMOD '+name+', LOGGING OUT!', []);
+      updateScreen('FOUND JMOD '+name+', LOGGING OUT!');
+      ReflectPlayer.LogOut;
+      sleepScript(100000+random(50000));
+      exit;
+    end;
+    if (name <> me_name) and R_TileOnMS(_players[i].GetTile, tempP, 0, 0, 50) then begin
+      inc(j);
+      setLength(result, j);
+      result[j-1] := _players[i].GetSpokenText;
+    end;
+    if (_players[i].GetInteractingIndex = me_indice) then
+      tBool := true;
+  end;
+end;
+
+procedure doHandleTexts(texts : TStringArray; tempBool : Boolean);
+var i, sendType : integer;
+    theString, newString : string;
+begin
+  for i:=0 to high(texts) do
+    if (texts[i] <> '') or tempBool then begin
+      theString := getChat_think(texts[i], sendType, tempBool);
+      if (sendType > -1) then begin
+        if ((chatTimers[2].Elapsedtime < chatTimeOften) and (chatTimers[sendType].Elapsedtime > chatTimeOften) and (sendType = 5)) or ((chatTimers[sendType].Elapsedtime > chatTimeOften) and (sendType <> 5)) then begin
+          newString := '';
+          if pos('%', texts[i]) <= 0 then
+            newString := texts[i];
+          daLogger.Status('Responding to: '''+newString+''' with: '''+theString+'''', []);
+          newString := '';
+          if length(texts[i]) < 50 then
+            newString := texts[i];
+          updateScreen('Responding to: '''+newString+''' with: '''+theString+'''');
+          chatTimers[sendType].Restart;
+          sleepScript(1000+random(5000));
+          if useAutoResponder then
+            TReflectionKeyboard.typeSend(theString, true);
+          sleepScript(random(750));
+        end;
+        if (sendType = 6) then
+          playSound(SoundString);
+      end;
+    end;
+end;
+
+procedure randomHandler;
+var extraBool : boolean;
+    strings : TStringArray;
+begin
+  if dismissAllTimer.Elapsedtime > dismissAllOften then begin
+    dismissAllRandoms;
+    dismissAllTimer.Restart;
+  end;
+  doAntiban;
+  if closeAllTimer.Elapsedtime > closeAllOften then begin
+    R_closeAllMenus;
+    closeAllTimer.Restart;
+  end;
+  if lookForChatTimer.Elapsedtime > lookForChatOften then begin
+    strings := getClosePeopleTexts(extraBool);
+    doHandleTexts(strings, extraBool);
+    lookForChatTimer.Restart;
+  end;
+  if updateAllTimer.Elapsedtime > updateAllOften then begin
+    updateAllRefVars;
+    updateAllTimer.Restart;
+  end;
+end;
+
+procedure doFUpdate;     //thanks shuttleu
+var NetworkVersion : extended;
+    FileNew : string;
+    ThisFile : integer;
+begin
+  try
+    NetworkVersion := strToFloat(between('fVersion = ', ';', fscript));
+  except
+    begin
+      daLogger.Error('Failed get update version.', []);
+      exit;
+    end;
+  end;
+  daLogger.Status('ineedbot''s functions:  Local Version: '+floatToStr(fVersion)+'  Network Version: '+floatToStr(NetworkVersion), []);
+  if((fVersion < NetworkVersion) or forceUpdate)then begin
+    FileNew := ScriptPath + '[Reflection] ineedbot''s functions.simba';
+    ThisFile := Rewritefile(FileNew, true);
+    try
+        WriteFileString(ThisFile, fScript);
+      except
+        begin
+          daLogger.Error('Failed writing to: '+FileNew, []);
+          CloseFile(ThisFile);
+          exit;
+        end;
+      end;
+      CloseFile(ThisFile);
+      daLogger.Status('Successfully downloaded new functions to '+FileNew+'. Please rerun this script.', []);
+      daLogger.Status('Whats new fScript: '+between('fWhatsNew = ''', ''';', fScript), []);
+  end else begin
+    if(fVersion = NetworkVersion)then begin
+    end else begin
+    end;
+  end;
+end;
+
+procedure setupAutoChat;
+var i, h, l : integer;
+    tempString : string;
+
+    woodcuttingStrings, fishingStrings, mageStrings, rangedStrings, prayerStrings, hpStrings, defenceStrings,
+    strengthStrings, attackStrings, miningStrings, hunterStrings, slayerStrings, herbStrings, fletchingStrings, runecraftingStrings, cookingStrings, firemakingStrings, itsStrings,
+    agilityStrings, thievingStrings, smithingStrings, craftingStrings, combatStrings, totalStrings, constructionStrings, farmingStrings : TStringArray;
+begin
+  setLength(chatTimers, 8);
+  for i:=0 to high(chatTimers) do begin
+    chatTimers[i].Restart;
+    chatTimers[i].StartTime := -1;
+  end;
+
+  youStrings := ['you', 'u'];
+  whatStrings := ['what', 'whats', 'what''s', 'wat', 'wats', 'wat''s', 'wut', 'wuts', 'wut''s', 'w0t', 'w0ts', 'w0t''s', 'wot', 'wots', 'wot''s'];
+  howStrings := ['how', 'how''s', 'hows'];
+  thanksStrings := ['thanks', 'thx', 'ty'];
+  doingStrings := ['doing', 'doin'];
+  areStrings := ['r', 'are'];
+  thatStrings := ['dat', 'that', 'tht', 'dats', 'thats', 'thts', 'that''s', 'dat''s', 'tht''s'];
+  imStrings := ['im', 'i''m', 'i am'];
+  puncStrings := ['', ',', '.'];
+  whyStrings := ['why', 'y'];
+  itsStrings := ['its', 'it''s', 'it is'];
+  dontStrings := ['dont', 'don''t', 'do not'];
+  levelStrings := ['lvl', 'level', 'lvel', 'levl', 'lvs'];
+  woodcuttingStrings := ['wood', 'woodcutting', 'woodcuttin', 'wc', 'woodcut', 'woodcutin', 'woodcuting'];
+  fishingStrings := ['fish', 'fishin', 'fishing', '<gt><lt><gt>', '<lt><gt><lt>'];
+  miningStrings := ['mine', 'mining', 'minin'];
+  attackStrings := ['att', 'attack', 'atk', 'attck', 'attk'];
+  strengthStrings := ['str', 'strength'];
+  defenceStrings := ['def', 'defence'];
+  hpStrings := ['hp', 'health', 'hitpoints'];
+  prayerStrings := ['pray', 'prayer'];
+  rangedStrings := ['range', 'ranger', 'ranged'];
+  mageStrings := ['mage', 'magic', 'splash'];
+  hunterStrings := ['hunt', 'hunter'];
+  slayerStrings := ['slay', 'slayer'];
+  herbStrings := ['herb', 'herblore'];
+  fletchingStrings := ['fletch', 'fletching', 'fletchin'];
+  runecraftingStrings := ['rc', 'runecraft', 'runecrafting', 'runecraftin', 'rune craft', 'rune craftin', 'rune crafting', 'r c'];
+  cookingStrings := ['cook', 'cookin', 'cooking'];
+  firemakingStrings := ['fm', 'fire', 'firemaking', 'fire making', 'fire makin', 'firemakin', 'f m'];
+  agilityStrings := ['agility', 'agile', 'agil'];
+  thievingStrings := ['theiving', 'theivin', 'theiv'];
+  smithingStrings := ['smith', 'smithing', 'smithin'];
+  craftingStrings := ['craft', 'craftin', 'crafting'];
+  combatStrings := ['cmb', 'combat'];
+  totalStrings := ['total'];
+  constructionStrings := ['con', 'const', 'construction'];
+  farmingStrings := ['farm', 'farming', 'farmin'];
+  botStrings := ['bot', 'botters', 'b0tters', 'botting', 'b0tting', 'bots', 'b0ts', 'b0t', 'robot', 'botting', 'bottin', 'macro', 'macroing', 'macroin', 'auto', 'autoing', 'autoin', 'botter', 'b0tter', 'macroer', 'autoer'];
+  niceStrings := ['awesome'];
+  for i:=0 to 10 do begin
+    tempString := '';
+    for h:=0 to i do
+      tempString := tempString + 'c';
+
+    setLength(niceStrings, length(niceStrings)+1);
+    niceStrings[high(niceStrings)] := 'ni'+tempString+'e';
+  end;
+  for i:=0 to 10 do begin
+    tempString := '';
+    for h:=0 to i do
+      tempString := tempString + 'o';
+
+    setLength(niceStrings, length(niceStrings)+1);
+    niceStrings[high(niceStrings)] := 'co'+tempString+'l';
+  end;
+  for i:=0 to 10 do begin
+    tempString := '';
+    for h:=0 to i do
+      tempString := tempString + 'e';
+
+    setLength(niceStrings, length(niceStrings)+1);
+    niceStrings[high(niceStrings)] := 'swe'+tempString+'t';
+  end;
+  questionStrings := [''];
+  for i:=0 to 10 do begin
+    tempString := '';
+    for h:=0 to i do
+      tempString := tempString + '?';
+
+    setLength(questionStrings, length(questionStrings)+1);
+    questionStrings[high(questionStrings)] := tempString;
+  end;
+  hiStrings := ['hiya'];
+  for i:=0 to 10 do begin
+    tempString := '';
+    for h:=0 to i do
+      tempString := tempString + 'i';
+
+    setLength(hiStrings, length(hiStrings)+1);
+    hiStrings[high(hiStrings)] := 'h'+tempString;
+  end;
+  helloStrings := [];
+  for i:=0 to 10 do begin
+    tempString := '';
+    for h:=0 to i do
+      tempString := tempString + 'o';
+
+    setLength(helloStrings, length(helloStrings)+1);
+    helloStrings[high(helloStrings)] := 'hell'+tempString;
+  end;
+  heyStrings := [];
+  for i:=0 to 10 do begin
+    tempString := '';
+    for h:=0 to i do
+      tempString := tempString + 'y';
+
+    setLength(heyStrings, length(heyStrings)+1);
+    heyStrings[high(heyStrings)] := 'he'+tempString;
+  end;
+  for i:=0 to 10 do begin
+    tempString := '';
+    for h:=0 to i do
+      tempString := tempString + 'y';
+
+    setLength(heyStrings, length(heyStrings)+1);
+    heyStrings[high(heyStrings)] := 'e'+tempString;
+  end;
+  for i:=0 to 10 do begin
+    tempString := '';
+    for h:=0 to i do
+      tempString := tempString + 'y';
+
+    setLength(heyStrings, length(heyStrings)+1);
+    heyStrings[high(heyStrings)] := 'a'+tempString;
+  end;
+  lolStrings := [];
+  for i:=0 to 10 do begin
+    tempString := '';
+    for h:=0 to i do
+      tempString := tempString + 'o';
+
+    setLength(lolStrings, length(lolStrings)+1);
+    lolStrings[high(lolStrings)] := 'l'+tempString+'l';
+  end;
+  for i:=0 to 10 do begin
+    tempString := '';
+    for h:=0 to i do
+      tempString := tempString + '0';
+
+    setLength(lolStrings, length(lolStrings)+1);
+    lolStrings[high(lolStrings)] := 'l'+tempString+'l';
+  end;
+  for i:=0 to 10 do begin
+    tempString := '';
+    for h:=0 to i do
+      tempString := tempString + 'e';
+
+    setLength(lolStrings, length(lolStrings)+1);
+    lolStrings[high(lolStrings)] := 'l'+tempString+'l';
+  end;
+  for i:=0 to 10 do begin
+    tempString := '';
+    for h:=0 to i do
+      tempString := tempString + 'u';
+
+    setLength(lolStrings, length(lolStrings)+1);
+    lolStrings[high(lolStrings)] := 'l'+tempString+'l';
+  end;
+  for i:=0 to 10 do begin
+    tempString := '';
+    for h:=0 to i do
+      tempString := tempString + 'o';
+
+    setLength(lolStrings, length(lolStrings)+1);
+    lolStrings[high(lolStrings)] := 'lma'+tempString;
+  end;
+  for i:=0 to 10 do begin
+    tempString := '';
+    for h:=0 to i do
+      tempString := tempString + 'o';
+
+    setLength(lolStrings, length(lolStrings)+1);
+    lolStrings[high(lolStrings)] := 'lmfa'+tempString;
+  end;
+  for i:=0 to 10 do begin
+    tempString := '';
+    for h:=0 to i do
+      tempString := tempString + 'o';
+
+    setLength(lolStrings, length(lolStrings)+1);
+    lolStrings[high(lolStrings)] := 'roflma'+tempString;
+  end;
+  for i:=0 to 10 do begin
+    tempString := '';
+    for h:=0 to i do
+      tempString := tempString + 'l';
+
+    setLength(lolStrings, length(lolStrings)+1);
+    lolStrings[high(lolStrings)] := 'rof'+tempString;
+  end;
+  for i:=0 to 10 do begin
+    tempString := '';
+    for h:=0 to i do
+      tempString := tempString + 'e';
+
+    setLength(lolStrings, length(lolStrings)+1);
+    lolStrings[high(lolStrings)] := 'k'+tempString+'k';
+  end;
+  for i:=0 to 10 do begin
+    tempString := '';
+    for h:=0 to i do
+      tempString := tempString + 'l';
+
+    setLength(lolStrings, length(lolStrings)+1);
+    lolStrings[high(lolStrings)] := tempString;
+  end;
+
+  setLength(SkillStringsArray, 25);
+  SkillStringsArray[SKILL_WOODCUTTING] := woodcuttingStrings;
+  SkillStringsArray[SKILL_FISHING] := fishingStrings;
+  SkillStringsArray[SKILL_MINING] := miningStrings;
+  SkillStringsArray[SKILL_HUNTER] := hunterStrings;
+  SkillStringsArray[SKILL_HERBLORE] := herbStrings;
+  SkillStringsArray[SKILL_SLAYER] := slayerStrings;
+  SkillStringsArray[24] := totalStrings;
+  SkillStringsArray[23] := combatStrings;
+  SkillStringsArray[SKILL_FLETCHING] := fletchingStrings;
+  SkillStringsArray[SKILL_COOKING] := cookingStrings;
+  SkillStringsArray[SKILL_FIREMAKING] := firemakingStrings;
+  SkillStringsArray[SKILL_FARMING] := farmingStrings;
+  SkillStringsArray[SKILL_ATTACK] := attackStrings;
+  SkillStringsArray[SKILL_STRENGTH] := strengthStrings;
+  SkillStringsArray[SKILL_DEFENCE] := defenceStrings;
+  SkillStringsArray[SKILL_HITPOINTS] := hpStrings;
+  SkillStringsArray[SKILL_MAGIC] := mageStrings;
+  SkillStringsArray[SKILL_PRAYER] := prayerStrings;
+  SkillStringsArray[SKILL_RANGE] := rangedStrings;
+  SkillStringsArray[SKILL_CONSTRUCTION] := constructionStrings;
+  SkillStringsArray[SKILL_RUNECRAFTING] := runecraftingStrings;
+  SkillStringsArray[SKILL_CRAFTING] := craftingStrings;
+  SkillStringsArray[SKILL_SMITHING] := smithingStrings;
+  SkillStringsArray[SKILL_AGILITY] := agilityStrings;
+  SkillStringsArray[SKILL_THIEVING] := thievingStrings;
+
+  commonHelloStrings := [];
+  for l:=0 to high(questionStrings) do
+    for i:=0 to high(whatStrings) do begin
+      setLength(commonHelloStrings, length(commonHelloStrings)+1);
+      commonHelloStrings[high(commonHelloStrings)] := whatStrings[i]+' up'+questionStrings[l];
+    end;
+  for l:=0 to high(questionStrings) do
+    for i:=0 to high(hiStrings) do begin
+      setLength(commonHelloStrings, length(commonHelloStrings)+1);
+      commonHelloStrings[high(commonHelloStrings)] := hiStrings[i]+questionStrings[l];
+    end;
+  for l:=0 to high(questionStrings) do
+    for i:=0 to high(helloStrings) do begin
+      setLength(commonHelloStrings, length(commonHelloStrings)+1);
+      commonHelloStrings[high(commonHelloStrings)] := helloStrings[i]+questionStrings[l];
+    end;
+  for l:=0 to high(questionStrings) do
+    for i:=0 to high(heyStrings) do begin
+      setLength(commonHelloStrings, length(commonHelloStrings)+1);
+      commonHelloStrings[high(commonHelloStrings)] := heyStrings[i]+questionStrings[l];
+    end;
+  for i:=0 to high(questionStrings) do begin
+    setLength(commonHelloStrings, length(commonHelloStrings)+1);
+    commonHelloStrings[high(commonHelloStrings)] := 'sup'+questionStrings[i];
+  end;
+end;
+
+procedure setupINeedFuncs;
+begin
+  doFUpdate;
+
+  setupAutoChat;
+
+  randomsStrings := ['molly', 'niles', 'miles', 'giles', 'sandwich lady',
+  'drunken dwarf', 'genie', 'highwayman', 'dr jekyll', 'cap''n hand', 'security guard',
+  'rick turpentine', 'mysterious old man', 'frog', 'null', 'mime', 'sergeant damien', 'freaky forester',
+  'postie pete', 'tilt', 'flippa', 'leo', 'pillory guard', 'evil bob', 'dunce', 'capt'' arnav', 'bee keeper'];
+
+  rewardIDs := [2528];
+
+  closeAllTimer.Restart;
+  checkForLevelTimer.Restart;
+  dismissAllTimer.Restart;
+  lookForChatTimer.Restart;
+  {$IFDEF iDEBUG}
+    tim3.Restart;
+  {$ENDIF}
+  updateAllTimer.Restart;
+  updateScreenTimer.Restart;
+end;

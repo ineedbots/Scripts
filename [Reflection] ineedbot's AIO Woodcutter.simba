@@ -1,0 +1,3843 @@
+program newLapeCutter;
+{$DEFINE SMART}
+{$DEFINE CHOPPER}
+{$i Reflection/Reflection.Simba}
+{$i [Reflection] ineedbot's functions.simba}
+
+const Version = 4.0;
+      whatsNew = 'Rewrite.';
+
+      PicturePage = 'http://pastebin.com/raw/mJtA7u8d';
+      ScriptPage = 'http://pastebin.com/raw/F1FAurL5';
+      ForumPage = 'https://villavu.com/forum/showthread.php?t=100300';
+
+//Feel free to use code, GIVE CREDIT WHERE DUE! -ineedbot
+
+type R_TTreeObject = record Tile, TileOffset : TPoint; AliveObjectID, DeadObjectID : tintegerarray; Name:string; Index:integer; Tim:TReflectTimer; Offset:array[0..2] of integer; end;
+     R_TTreeObjectArray = array of R_TTreeObject;
+
+function R_MakeTTreeObject(Loc:TPoint;_AliveObjectID,_DeadObjectID:tintegerarray;_name:string;_index:integer;_offset:array[0..2] of integer = [0, 0, 0]; _TileOffset : TPoint = Point(0, 0)):R_TTreeObject;
+begin
+  with Result do begin
+    Tile := Loc;
+    AliveObjectID := _AliveObjectID;
+    DeadObjectID := _DeadObjectID;
+    Name := _name;
+    Index := _index;
+    Tim.Restart;
+    Tim.StartTime := -1;
+    Offset := _offset;
+    TileOffset := _TileOffset;
+  end;
+end;
+
+function R_MakeNullTTreeObject:R_TTreeObject;
+begin
+  result := R_MakeTTreeObject(Point(-1, -1), [-1], [-1], '', -1, [-1, -1, -1], Point(-1, -1));
+end;
+
+function R_IsValidTTreeObject(tree:R_TTreeObject):boolean;
+begin
+  result := false;
+  if not(tree.Tile.x = -1) and not(tree.Tile.y = -1) then
+    result := true;
+end;
+
+function R_getClosestTTreeObject(_array:R_TTreeObjectArray):R_TTreeObject;
+var i:integer;
+begin
+  result := R_MakeNullTTreeObject;
+  for i:=0 to high(_array) do begin
+    if(R_IsValidTTreeObject(result))then begin
+      if(TReflectionTiles.DistanceFromTile(_array[i].tile) < TReflectionTiles.DistanceFromTile(result.tile))then begin
+        result := _array[i];
+      end;
+    end else begin
+      result := _array[i];
+    end;
+  end;
+end;
+
+function R_getAliveTTreeObjects(_array:R_TTreeObjectArray):R_TTreeObjectArray;
+var i, j:integer;
+    TempObject:TReflectObject;
+begin
+  for i:=0 to high(_array) do begin
+    TempObject.GetAt(ObjGame, _array[i].Tile);
+    if inIntArray(_array[i].AliveObjectID, TempObject.getID)then begin
+      inc(j);
+      SetLength(result, j);
+      result[high(result)] := _array[i];
+    end;
+  end;
+  if(high(result) < 0)then
+    result := [R_MakeNullTTreeObject];
+end;
+
+function R_getClosestAliveTTreeObject(_array:R_TTreeObjectArray):R_TTreeObject;
+var i:integer;
+    TempObject:TReflectObject;
+begin
+  result := R_MakeNullTTreeObject;
+  for i:=0 to high(_array) do begin
+    TempObject.GetAt(ObjGame, _array[i].Tile);
+    if inIntArray(_array[i].AliveObjectID, TempObject.getID)then begin
+      if(R_IsValidTTreeObject(result))then begin
+        if(TReflectionTiles.DistanceFromTile(_array[i].tile) < TReflectionTiles.DistanceFromTile(result.tile))then begin
+          result := _array[i];
+        end;
+      end else begin
+        result := _array[i];
+      end;
+    end;
+  end;
+end;
+
+function R_getClosestDeadTTreeObject(_array:R_TTreeObjectArray):R_TTreeObject;
+var i:integer;
+    TempObject:TReflectObject;
+begin
+  result := R_MakeNullTTreeObject;
+  for i:=0 to high(_array) do begin
+    TempObject.GetAt(ObjGame, _array[i].Tile);
+    if inIntArray(_array[i].DeadObjectID, TempObject.getID)then begin
+      if(R_IsValidTTreeObject(result))then begin
+        if(TReflectionTiles.DistanceFromTile(_array[i].tile) < TReflectionTiles.DistanceFromTile(result.tile))then begin
+          result := _array[i];
+        end;
+      end else begin
+        result := _array[i];
+      end;
+    end;
+  end;
+end;
+
+function R_getTTreeObjectWithIndex(_index:integer; _array:R_TTreeObjectArray):R_TTreeObject;
+var i:integer;
+begin
+  result := R_MakeNullTTreeObject;
+  for i:=0 to high(_array) do begin
+    if(_array[i].Index = _index)then begin
+      result := _array[i];
+      exit;
+    end;
+  end;
+end;
+
+function R_getTTreeObjectLeastTime(_array:R_TTreeObjectArray):R_TTreeObject;
+var i:integer;
+begin
+  result := R_MakeNullTTreeObject;
+  for i:=0 to high(_array) do begin
+    if (_array[i].Tim.StartTime <> -1) then begin
+      if not R_IsValidTTreeObject(result) then begin
+        result := _array[i];
+      end else begin
+        if (_array[i].Tim.Elapsedtime > result.Tim.Elapsedtime) then
+          result := _array[i];
+      end;
+    end;
+  end;
+end;
+
+function R_isAliveTTreeObject(TTree:R_TTreeObject):boolean;
+var TempObject : TReflectObject;
+begin
+  TempObject.GetAt(ObjGame, TTree.Tile);
+  result := false;
+  if inIntArray(TTree.AliveObjectID, TempObject.getID)then begin
+    result := true;
+  end;
+end;
+
+function R_isDeadTTreeObject(TTree:R_TTreeObject):boolean;
+var TempObject : TReflectObject;
+begin
+  TempObject.GetAt(ObjGame, TTree.Tile);
+  result := false;
+  if inIntArray(TTree.DeadObjectID, TempObject.getID)then begin
+    result := true;
+  end;
+end;
+
+function R_getNextTTreeObject(_array:R_TTreeObjectArray; PTree:R_TTreeObject):R_TTreeObject;
+var CurrentTree : R_TTreeObject;
+begin
+  CurrentTree := R_getClosestTTreeObject(_array);
+  result := CurrentTree;
+
+  if (high(_array) < 1) or not R_IsValidTTreeObject(PTree) then
+    exit;
+
+  if(CurrentTree.Index < PTree.Index) or (CurrentTree.Index = high(_array)) then begin
+    result := R_getTTreeObjectWithIndex(CurrentTree.Index-1, _array);
+  end else begin
+    result := R_getTTreeObjectWithIndex(CurrentTree.Index+1, _array);
+  end;
+end;
+
+function R_ConvertTRSObjectToR_TTreeObject(_Tile:Tpoint;ID:integer):R_TTreeObject;
+begin
+  with Result do begin
+    Tile := _Tile;
+    Name := '';
+    DeadObjectID := [0];
+    AliveObjectID := [ID];
+    Index := 0;
+    Tim.Restart;
+    Tim.StartTime := -1;
+    if inIntArray([1276, 1278, 7480, 7422, 7424, 7482], ID) then
+      OffSet := [50, 50, 200]
+    else if inIntArray([1286, 1282], ID) then
+      OffSet := [0, 0, 100]
+    else if inIntArray([7417], ID) then
+      OffSet := [100, 100, 200]
+    else
+      OffSet := [0, 0, 200];
+    TileOffset := Point(0, 0);
+  end;
+end;
+
+type workedLog = record
+     chopped, ID, price : integer;
+end;
+
+var WorldList, TradingSticksIDs, GreeGreeIDs, ChopAnimationIDs, KnifeIDs, TinderIDs, FireIDs, FireAnimIDs, AxeIDs, customIDs1, customIDs2, CoinsIDs, ShaftIDs, FletchAnimationIDs, NestIDs : TIntegerArray;
+    pathToTree, pathToBank, bankLocations, FireTiles, endFireTiles, treeLocations, bankOffset, customTPA1, customTPA2, customTpa3, customTPA4 : TPointArray;
+    gItemOften, distanceCheck, statsProfit, statsFletchXP, statsFireXp, StartFireXP, playNum, statsWoodXP, tim2, job, AmountAmount, RunAmount, Nests, StartWoodXP, StartWoodLevel, StartFletchXP, LastXPXPCheck, nullInt, updateScreenOften, cpuLoadWait, cpuLoadOften : integer;
+    LastXPCheck, tim, gItemTim : TReflectTimer;
+    fletchPoint : TPoint;
+    PreviousTree, currentTree : R_TTreeObject;
+    LocationLogs : array of workedLog;
+    LocationTreeObjects : R_TTreeObjectArray;
+    LocationDoorObjects : array of TReflectDoor;
+    dropOnly, progChopping, useBreaks, started, loading, saving, MouseKeys, UseSpec, disableBank, canBank, fletch, useStats, firemake : boolean;
+    sdrop, script, runDirection, sgitemt, sbreak, sbrfor, sbfor, sbin, sbrin, swait, schat, scriptstatus, jobString, sname, spass, spin, samount, sloc, swood, santi, srun, sworld, sspec, sbank, smouse, ssound, schatt, swaitt, swaito, supdatet, sscreent, slchatt, slevelt, scloset, sdismisst : string;
+    graphicOpti : TMufasaBitmap;
+    statsServer : TStats;
+    DsgnForm, DsgnForm2, DsgnForm3:TForm;
+    UsernameBox,PasswordBox,PinBox,AntibanBox,RunBox,AmountBox,WorldBox,LocalBox,NetworkBox,playBox,bIn, brIn, bFor, brFor, soundBox, chatTimeBox, screenTimeBox, waitOftenBox, waitTimeBox, dismissTimeBox, updateTimeBox, levelTimeBox, closeTimeBox, lookChatTimeBox, gItemTimeBox: TEdit;
+    Image: TImage;
+    UpdateButton,PlayButton,LoadButton,SaveButton,Q3Box,brakebutton,extraButton: TButton;
+    SpecBox,BankBox,MousekeysBox,chatBox,waitBox,brakebox,dropBox: TCheckBox;
+    LocationBox,WoodBox: TComboBox;
+    bmp0: TBitmap;
+    Label1, Label2, label3, Label4, Label5, Label6, Label7, label8, Label9, Label10, Label11, Label12, label13, Label14, Label15, Label16, Label17, Label18: TLabel;
+
+procedure doUpdate;     //thanks shuttleu
+var NetworkVersion : extended;
+    FileNew : string;
+    ThisFile : integer;
+begin
+  try
+    NetworkVersion := strToFloat(between('Version = ', ';', script));
+  except
+    begin
+      daLogger.Error('Failed get update version.', []);
+      exit;
+    end;
+  end;
+  daLogger.Status('ineedbot''s Woodcutter:  Local Version: '+FloatToStr(Version)+'  Network Version: '+FloatToStr(NetworkVersion), []);
+  if(Version < NetworkVersion) or forceUpdate then begin
+    FileNew := ScriptPath + '[AL][Reflection] ineedbot''s AIO Woodcutter.simba';
+    ThisFile := Rewritefile(FileNew, true);
+    try
+        WriteFileString(ThisFile, script);
+      except
+        begin
+          daLogger.Error('Failed writing to: '+FileNew, []);
+          CloseFile(ThisFile);
+          exit;
+        end;
+      end;
+      CloseFile(ThisFile);
+      daLogger.Status('Successfully downloaded new script to '+FileNew+'. Please reopen this script.', []);
+      daLogger.Status('Whats new script: '+between('whatsNew = ''', ''';', Script), []);
+      TerminateScript;
+  end else begin
+    if(Version = NetworkVersion)then begin
+    end else begin
+    end;
+  end;
+end;
+
+procedure _OnChange2;
+begin
+  woodBox.Clear;
+  woodBox.setText('Type of tree');
+  case LocationBox.getItemIndex of
+    0:begin      //draynor
+      woodBox.AddItem('Oaks', nil);
+      woodBox.AddItem('Willows', nil);
+      woodBox.AddItem('Yews', nil);
+    end;
+    1:begin   //seers
+      woodBox.AddItem('Willows', nil);
+      woodBox.AddItem('Maples', nil);
+      woodBox.AddItem('Yews', nil);
+      woodBox.AddItem('Magics', nil);
+      woodBox.AddItem('Magics (2)', nil);
+      woodBox.AddItem('Oaks', nil);
+    end;
+    2:begin   //catherby
+      woodBox.AddItem('Willows', nil);
+      woodBox.AddItem('Yews', nil);
+    end;
+    3:begin     //varrock
+      woodBox.AddItem('Oaks (west)', nil);
+      woodBox.AddItem('Yews (palace)', nil);
+      woodBox.AddItem('Oaks (east)', nil);
+      woodBox.AddItem('Yews (pray)', nil);
+      woodBox.AddItem('Yews (east)', nil);
+    end;
+    4:begin      //Falador
+      woodBox.AddItem('Oaks', nil);
+      woodBox.AddItem('Yews', nil);
+    end;
+    5:begin   //Rimmington
+      woodBox.AddItem('Willows (p.s.)', nil);
+      woodBox.AddItem('Yews', nil);
+      woodBox.AddItem('Willows (sell)', nil);
+      woodBox.AddItem('Yews (sell)', nil);
+      woodBox.AddItem('Yews (p.s.)', nil);
+    end;
+    6:begin   //tree gnome village
+      woodBox.AddItem('Yews', nil);
+      woodBox.AddItem('Yews (2)', nil);
+    end;
+    7:begin   //lumbridge
+      woodBox.AddItem('Oaks (sell)', nil);
+      woodBox.AddItem('Yews', nil);
+      woodBox.AddItem('Willows (sell)', nil);
+      woodBox.AddItem('Yews (sell)', nil);
+      woodBox.AddItem('North Willows', nil);
+      woodBox.AddItem('West Willows', nil);
+      woodBox.AddItem('West Willows(2)', nil);
+      woodBox.AddItem('Progressive Chopping', nil);
+    end;
+    8:begin   //edgeville
+      woodBox.AddItem('Willows', nil);
+      woodBox.AddItem('Yews', nil);
+    end;
+    9:begin     //powerchop
+      woodBox.AddItem('Normal Trees', nil);
+      woodBox.AddItem('Oaks', nil);
+      woodBox.AddItem('Willows', nil);
+    end;
+    10:begin     //barb
+      woodBox.AddItem('Willows', nil);
+    end;
+    11:begin     //deul
+      woodBox.AddItem('Magics', nil);
+    end;
+    12:begin     //ape
+      woodBox.AddItem('Teaks', nil);
+    end;
+    13:begin     //castle
+      woodBox.AddItem('Teaks', nil);
+    end;
+    14:begin     //two bai
+      woodBox.AddItem('Teaks', nil);
+      woodBox.AddItem('Teaks(2)', nil);
+      woodBox.AddItem('Mahogany', nil);
+    end;
+  end;
+end;
+
+procedure OnChange(Sender: TObject);
+{$IFNDEF CODEINSIGHT}
+native;
+{$ENDIF}
+begin
+  _OnChange2;
+end;
+
+procedure YourClickProcedure(Sender: TObject);
+{$IFNDEF CODEINSIGHT}
+native;
+{$ENDIF}
+begin
+  case sender of
+    brakeButton:begin
+      DsgnForm2.ShowModal();
+    end;
+    extraButton:begin
+      DsgnForm3.ShowModal();
+    end;
+    UpdateButton:begin
+      forceUpdate := true;
+      started := true;
+      DsgnForm.Close;
+    end;
+    PlayButton:begin
+      started := true;
+      DsgnForm.Close;
+    end;
+    LoadButton:begin
+      loading := true;
+      DsgnForm.Close;
+    end;
+    SaveButton:begin
+      sname := Usernamebox.Gettext;
+      swait := tostr(waitbox.getstate);
+      spass := Passwordbox.gettext;
+      spin := pinbox.gettext;
+      samount := amountbox.gettext;
+      swood := tostr(woodbox.getitemindex);
+      sloc := tostr(locationbox.getitemindex);
+      santi := antibanbox.gettext;
+      srun := runbox.gettext;
+      sworld := worldbox.gettext;
+      sbank := tostr(bankbox.getstate);
+      smouse := tostr(mousekeysbox.getstate);
+      schat := tostr(chatbox.getstate);
+      sspec := tostr(specbox.getstate);
+      sbreak := tostr(brakebox.getstate);
+      sbfor := bFor.gettext;
+      sbrfor := brFor.gettext;
+      sbin := bin.gettext;
+      sbrin := brin.gettext;
+      ssound := soundBox.getText;
+      sdismisst := dismissTimeBox.getText;
+      slchatt := lookChatTimeBox.getText;
+      schatt := chatTimeBox.getText;
+      supdatet := updateTimeBox.getText;
+      sscreent := screenTimeBox.getText;
+      slevelt := levelTimeBox.getTExt;
+      swaitt := waitTimeBox.getText;
+      swaito := waitOftenBox.getText;
+      scloset := closeTimeBox.getTExt;
+      sgitemt := gItemTimeBox.getTExt;
+      sdrop := tostr(dropBox.getstate);
+      saving := true;
+      DsgnForm.Close;
+     end;
+    Q3Box:begin
+      openWebPage(ForumPage);
+    end;
+  end;
+end;
+
+procedure OnlyPostiveNumbers(Sender: TObject; var Key:Char);
+{$IFNDEF CODEINSIGHT}
+native;
+{$ENDIF}
+begin
+  case toStr(key) of
+    #8, '0'..'9':begin
+    end;
+    else begin
+      Key := #0;
+    end;
+  end;
+end;
+
+procedure OnlyNumbers(Sender: TObject; var Key: Char);
+{$IFNDEF CODEINSIGHT}
+native;
+{$ENDIF}
+var _sender : TEdit;
+begin
+  _sender := sender;
+  case toStr(key) of
+    #8, '0'..'9', '-':begin
+      if(toStr(key) = '-')then begin
+        if(_sender.getSelStart <> 0)then begin
+          Key := #0;
+        end;
+      end;
+    end;
+    else begin
+      Key := #0;
+    end;
+  end;
+end;
+
+procedure OnlyPostiveNumbers2(Sender: TObject; var Key:Char);
+{$IFNDEF CODEINSIGHT}
+native;
+{$ENDIF}
+begin
+  case toStr(key) of
+    #8, ',', '0'..'9':begin
+    end;
+    else begin
+      Key := #0;
+    end;
+  end;
+end;
+
+procedure NoKeys(Sender: TObject; var Key: Char);
+{$IFNDEF CODEINSIGHT}
+native;
+{$ENDIF}
+begin
+  Key := #0;
+end;
+
+procedure breakCheck;
+begin
+  brakeButton.setEnabled(toStr(brakeBox.getState) = 'cbChecked');
+end;
+
+procedure brakeHandle(Sender: TObject);
+{$IFNDEF CODEINSIGHT}
+native;
+{$ENDIF}
+begin
+  breakCheck;
+end;
+
+procedure InitForm;
+var TempFont : TFont;
+begin
+ DsgnForm.init(nil);
+  with DsgnForm do
+    begin
+      setCaption('ineedbot''s AIO Woodcutter v' + toStr(Version)+'('+floatToStr(fversion)+')');
+      setBorderStyle(bsSingle);
+      SetPosition(poScreenCenter);
+      setWidth(512);
+      setHeight(333);
+  end;
+  Image.init(DsgnForm);
+  with Image do
+    begin
+      setParent(DsgnForm);
+      setLeft(0);
+      setTop(0);
+      setWidth(512);
+      setHeight(333);
+      setPicture(bmp0);
+  end;
+ UsernameBox.init(DsgnForm);
+  with UsernameBox do
+    begin
+      setParent(DsgnForm);
+      setText('Username or eMail');
+      setLeft(3);
+      setTop(37);
+      setWidth(257);
+      setHeight(23);
+  end;
+ PasswordBox.init(DsgnForm);
+  with PasswordBox do
+    begin
+      setParent(DsgnForm);
+      setText('Password');
+      setLeft(270);
+      setTop(37);
+      setWidth(234);
+      setHeight(23);
+      setPasswordChar('*');
+      setMaxLength(20);
+  end;
+ PinBox.init(DsgnForm);
+  with PinBox do
+    begin
+      setParent(DsgnForm);
+      setText('');
+      setLeft(47);
+      setTop(82);
+      setWidth(80);
+      setHeight(23);
+      setMaxLength(4);
+      setPasswordChar('*');
+      setONKEYPRESS(OnlyPostiveNumbers);
+  end;
+  WorldBox.init(DsgnForm);
+  with WorldBox do
+    begin
+      setParent(DsgnForm);
+      setText('');
+      setLeft(67);
+      setTop(116);
+      setWidth(80);
+      setHeight(23);
+      setONKEYPRESS(OnlyPostiveNumbers2);
+      setMaxLength(25);
+  end;
+  RunBox.init(DsgnForm);
+  with RunBox do
+    begin
+      setParent(DsgnForm);
+      setText('50');
+      setLeft(118);
+      setTop(152);
+      setWidth(80);
+      setHeight(23);
+      setONKEYPRESS(onlyPostiveNumbers);
+      setMaxLength(3);
+  end;
+ AmountBox.init(DsgnForm);
+  with AmountBox do
+    begin
+      setParent(DsgnForm);
+      setText('-1');
+      setLeft(167);
+      setTop(188);
+      setWidth(80);
+      setHeight(23);
+      setONKEYPRESS(OnlyNumbers);
+      setMaxLength(6);
+  end;
+  Q3Box.init(DsgnForm);
+  with Q3Box do
+    begin
+      setParent(DsgnForm);
+      setCaption('?');
+      setLeft(257);
+      setTop(187);
+      setWidth(32);
+      setHeight(25);
+      setOnClick(YourClickProcedure);
+  end;
+  AntibanBox.init(DsgnForm);
+  with AntibanBox do
+    begin
+      setParent(DsgnForm);
+      setText('2000');
+      setLeft(134);
+      setTop(227);
+      setWidth(80);
+      setHeight(23);
+      setONKEYPRESS(OnlyPostiveNumbers);
+      setMaxLength(6);
+  end;
+  TempFont.Init;
+  TempFont.setColor(16776960);
+  waitBox.init(DsgnForm);
+  with waitBox do
+    begin
+      setParent(DsgnForm);
+      setCaption('Use waits between chopping?');
+      setState(0);
+      setLeft(17);
+      setTop(250);
+      //setFont(tempFont);
+  end;
+  chatBox.init(DsgnForm);
+  with chatBox do
+    begin
+      setParent(DsgnForm);
+      setCaption('autoResponder?');
+      setState(0);
+      setLeft(200);
+      setTop(250);
+      //setFont(tempFont);
+  end;
+  SpecBox.init(DsgnForm);
+  with SpecBox do
+    begin
+      setParent(DsgnForm);
+      setCaption('Dragon axe spec?');
+      setState(0);
+      setLeft(17);
+      setTop(275);
+      //setFont(tempFont);
+  end;
+  MousekeysBox.init(DsgnForm);
+  with MousekeysBox do
+    begin
+      setParent(DsgnForm);
+      setCaption('Mouse keys?');
+      setState(0);
+      setLeft(211);
+      setTop(275);
+      //setFont(tempFont);
+  end;
+ BankBox.init(DsgnForm);
+  with BankBox do
+    begin
+      setParent(DsgnForm);
+      setCaption('Force Disable Bank?');
+      setState(0);
+      setLeft(343);
+      setTop(275);
+      //setFont(tempFont);
+  end;
+  brakeBox.init(DsgnForm);
+  with brakeBox do
+    begin
+      setParent(DsgnForm);
+      setCaption('');
+      setState(0);
+      setLeft(310);
+      setTop(250);
+      setOnChange(brakeHandle);
+  end;
+  brakeButton.init(DsgnForm);
+  with brakeButton do
+    begin
+      setParent(DsgnForm);
+      setCaption('BreakHandler');
+      setLeft(325);
+      setTop(250);
+      setWidth(75);
+      setHeight(25);
+      setOnClick(YourClickProcedure);
+      setEnabled(false);
+  end;
+  extraButton.init(DsgnForm);
+  with extraButton do
+    begin
+      setParent(DsgnForm);
+      setCaption('Extra');
+      setLeft(415);
+      setTop(250);
+      setWidth(65);
+      setHeight(25);
+      setOnClick(YourClickProcedure);
+  end;
+  PlayBox.init(DsgnForm);
+  with PlayBox do
+    begin
+      setParent(DsgnForm);
+      setText('0');
+      setLeft(250);
+      setTop(305);
+      setWidth(40);
+      setHeight(23);
+      setONKEYPRESS(OnlyPostiveNumbers);
+  end;
+  LoadButton.init(DsgnForm);
+  with LoadButton do
+    begin
+      setParent(DsgnForm);
+      setCaption('Load');
+      setLeft(8);
+      setTop(305);
+      setWidth(75);
+      setHeight(25);
+      setOnClick(YourClickProcedure);
+  end;
+ SaveButton.init(DsgnForm);
+  with SaveButton do
+    begin
+      setParent(DsgnForm);
+      setCaption('Save');
+      setLeft(89);
+      setTop(305);
+      setWidth(75);
+      setHeight(25);
+      setOnClick(YourClickProcedure);
+  end;
+  PlayButton.init(DsgnForm);
+  with PlayButton do
+    begin
+      setParent(DsgnForm);
+      setCaption('Play');
+      setLeft(436);
+      setTop(305);
+      setWidth(75);
+      setHeight(25);
+      setOnClick(YourClickProcedure);
+  end;
+ LocalBox.init(DsgnForm);
+  with LocalBox do
+    begin
+      setParent(DsgnForm);
+      setText(floattoStr(version)+'('+floattoStr(fVersion)+')');
+      setLeft(375);
+      setTop(85);
+      setWidth(65);
+      setHeight(23);
+      setONKEYPRESS(NoKeys);
+  end;
+ Label1.init(DsgnForm);
+  with Label1 do
+    begin
+      setParent(DsgnForm);
+      setCaption('Local Version:');
+      setLeft(294);
+      setTop(85);
+      setFont(tempFont);
+  end;
+ Label2.init(DsgnForm);
+  with Label2 do
+    begin
+      setParent(DsgnForm);
+      setCaption('Network Version:');
+      setLeft(270);
+      setTop(120);
+      setFont(tempFont);
+  end;
+ NetworkBox.init(DsgnForm);
+  with NetworkBox do
+    begin
+      setParent(DsgnForm);
+      setText(between('Version = ', ';', script)+'('+between('fVersion = ', ';', fscript)+')');
+      setLeft(375);
+      setTop(120);
+      setWidth(65);
+      setHeight(23);
+      setONKEYPRESS(NoKeys);
+  end;
+ UpdateButton.init(DsgnForm);
+  with UpdateButton do
+    begin
+      setParent(DsgnForm);
+      setCaption('Update');
+      setLeft(445);
+      setTop(100);
+      setWidth(65);
+      setHeight(25);
+      setOnClick(YourClickProcedure);
+  end;
+  Label3.init(DsgnForm);
+  TempFont.setColor(16776960);
+  with Label3 do
+    begin
+      setParent(DsgnForm);
+      setCaption('Player number:');
+      setLeft(165);
+      setTop(305);
+      setWidth(42);
+      setHeight(16);
+      setFont(tempFont);
+  end;
+  LocationBox.init(DsgnForm);
+  with LocationBox do
+    begin
+      setParent(DsgnForm);
+      setLeft(205);
+      setTop(4);
+      setWidth(150);
+      setHeight(23);
+      setText('Location');
+      setONKEYPRESS(NoKeys);
+      setOnExit(OnChange);
+      AddItem('Draynor', nil);
+      AddItem('Seers', nil);
+      AddItem('Catherby', nil);
+      AddItem('Varrock', nil);
+      AddItem('Falador', nil);
+      AddItem('Rimmington', nil);
+      AddItem('Gnome Stronghold', nil);
+      AddItem('Lumbridge', nil);
+      AddItem('Edgeville', nil);
+      AddItem('Powerchop', nil);
+      AddItem('Barb. Assault', nil);
+      AddItem('Duel Arena', nil);
+      AddItem('Ape Atoll', nil);
+      AddItem('Castle Wars', nil);
+      AddItem('Tai Bwo Wannai', nil);
+  end;
+ WoodBox.init(DsgnForm);
+  with WoodBox do
+    begin
+      setParent(DsgnForm);
+      setLeft(360);
+      setTop(4);
+      setWidth(150);
+      setHeight(23);
+      setText('Type of tree');
+      setONKEYPRESS(NoKeys);
+  end;
+
+  DsgnForm2.init(nil);
+  with DsgnForm2 do
+    begin
+      setCaption('Break Handler');
+      setBorderStyle(bsSingle);
+      SetPosition(poScreenCenter);
+      setWidth(255);
+      setHeight(120);
+  end;
+  TempFont.setColor(0);
+  Label4.init(DsgnForm2);
+  with Label4 do
+    begin
+      setParent(DsgnForm2);
+      setCaption('Break after/every/within:');
+      setLeft(5);
+      setTop(5);
+      setFont(tempFont);
+  end;
+  Label5.init(DsgnForm2);
+  with Label5 do
+    begin
+      setParent(DsgnForm2);
+      setCaption('Random:');
+      setLeft(5);
+      setTop(30);
+      setFont(tempFont);
+  end;
+  Label6.init(DsgnForm2);
+  with Label6 do
+    begin
+      setParent(DsgnForm2);
+      setCaption('Break for:');
+      setLeft(5);
+      setTop(65);
+      setFont(tempFont);
+  end;
+  Label7.init(DsgnForm2);
+  with Label7 do
+    begin
+      setParent(DsgnForm2);
+      setCaption('Random:');
+      setLeft(5);
+      setTop(90);
+      setFont(tempFont);
+  end;
+  bIn.init(DsgnForm2);
+  with bIn do
+    begin
+      setParent(DsgnForm2);
+      setText('90');
+      setLeft(150);
+      setTop(2);
+      setWidth(100);
+      setHeight(23);
+      setONKEYPRESS(OnlyPostiveNumbers);
+      setMaxLength(9);
+  end;
+  brIn.init(DsgnForm2);
+  with brIn do
+    begin
+      setParent(DsgnForm2);
+      setText('30');
+      setLeft(150);
+      setTop(30);
+      setWidth(100);
+      setHeight(23);
+      setONKEYPRESS(OnlyPostiveNumbers);
+      setMaxLength(9);
+  end;
+  bFor.init(DsgnForm2);
+  with bFor do
+    begin
+      setParent(DsgnForm2);
+      setText('10');
+      setLeft(150);
+      setTop(67);
+      setWidth(100);
+      setHeight(23);
+      setONKEYPRESS(OnlyPostiveNumbers);
+      setMaxLength(9);
+  end;
+  brFor.init(DsgnForm2);
+  with brFor do
+    begin
+      setParent(DsgnForm2);
+      setText('5');
+      setLeft(150);
+      setTop(92);
+      setWidth(100);
+      setHeight(23);
+      setONKEYPRESS(OnlyPostiveNumbers);
+      setMaxLength(9);
+  end;
+
+  DsgnForm3.init(nil);
+  with DsgnForm3 do
+    begin
+      setCaption('Extras');
+      setBorderStyle(bsSingle);
+      SetPosition(poScreenCenter);
+      setWidth(255);
+      setHeight(300);
+  end;
+  Label8.init(DsgnForm3);
+  with Label8 do
+    begin
+      setParent(DsgnForm3);
+      setCaption('Sound:');
+      setLeft(5);
+      setTop(5);
+      setFont(tempFont);
+  end;
+  soundBox.init(DsgnForm3);
+  with soundBox do
+    begin
+      setParent(DsgnForm3);
+      setText('C:\Windows\Media\Windows Notify Messaging.wav');
+      setLeft(150);
+      setTop(5);
+      setWidth(100);
+      setHeight(23);
+  end;
+  Label9.init(DsgnForm3);
+  with Label9 do
+    begin
+      setParent(DsgnForm3);
+      setCaption('Chat time often:');
+      setLeft(5);
+      setTop(30);
+      setFont(tempFont);
+  end;
+  chatTimeBox.init(DsgnForm3);
+  with chatTimeBox do
+    begin
+      setParent(DsgnForm3);
+      setText('200000');
+      setLeft(150);
+      setTop(30);
+      setWidth(100);
+      setHeight(23);
+      setONKEYPRESS(OnlyNumbers);
+      setMaxLength(9);
+  end;
+  Label10.init(DsgnForm3);
+  with Label10 do
+    begin
+      setParent(DsgnForm3);
+      setCaption('Screen time often:');
+      setLeft(5);
+      setTop(55);
+      setFont(tempFont);
+  end;
+  screenTimeBox.init(DsgnForm3);
+  with screenTimeBox do
+    begin
+      setParent(DsgnForm3);
+      setText('1000');
+      setLeft(150);
+      setTop(55);
+      setWidth(100);
+      setHeight(23);
+      setONKEYPRESS(OnlyNumbers);
+      setMaxLength(9);
+  end;
+  Label11.init(DsgnForm3);
+  with Label11 do
+    begin
+      setParent(DsgnForm3);
+      setCaption('Wait time:');
+      setLeft(5);
+      setTop(80);
+      setFont(tempFont);
+  end;
+  waitTimeBox.init(DsgnForm3);
+  with waitTimeBox do
+    begin
+      setParent(DsgnForm3);
+      setText('-1');
+      setLeft(150);
+      setTop(80);
+      setWidth(100);
+      setHeight(23);
+      setONKEYPRESS(OnlyNumbers);
+      setMaxLength(9);
+  end;
+  Label12.init(DsgnForm3);
+  with Label12 do
+    begin
+      setParent(DsgnForm3);
+      setCaption('Wait often:');
+      setLeft(5);
+      setTop(105);
+      setFont(tempFont);
+  end;
+  waitOftenBox.init(DsgnForm3);
+  with waitOftenBox do
+    begin
+      setParent(DsgnForm3);
+      setText('250');
+      setLeft(150);
+      setTop(105);
+      setWidth(100);
+      setHeight(23);
+      setONKEYPRESS(OnlyPostiveNumbers);
+      setMaxLength(9);
+  end;
+  Label13.init(DsgnForm3);
+  with Label13 do
+    begin
+      setParent(DsgnForm3);
+      setCaption('Dismiss time:');
+      setLeft(5);
+      setTop(130);
+      setFont(tempFont);
+  end;
+  dismissTimeBox.init(DsgnForm3);
+  with dismissTimeBox do
+    begin
+      setParent(DsgnForm3);
+      setText('10000');
+      setLeft(150);
+      setTop(130);
+      setWidth(100);
+      setHeight(23);
+      setONKEYPRESS(OnlyNumbers);
+      setMaxLength(9);
+  end;
+  Label14.init(DsgnForm3);
+  with Label14 do
+    begin
+      setParent(DsgnForm3);
+      setCaption('Update time:');
+      setLeft(5);
+      setTop(155);
+      setFont(tempFont);
+  end;
+  updateTimeBox.init(DsgnForm3);
+  with updateTimeBox do
+    begin
+      setParent(DsgnForm3);
+      setText('45000');
+      setLeft(150);
+      setTop(155);
+      setWidth(100);
+      setHeight(23);
+      setONKEYPRESS(OnlyNumbers);
+      setMaxLength(9);
+  end;
+  Label15.init(DsgnForm3);
+  with Label15 do
+    begin
+      setParent(DsgnForm3);
+      setCaption('Level up time:');
+      setLeft(5);
+      setTop(180);
+      setFont(tempFont);
+  end;
+  levelTimeBox.init(DsgnForm3);
+  with levelTimeBox do
+    begin
+      setParent(DsgnForm3);
+      setText('2500');
+      setLeft(150);
+      setTop(180);
+      setWidth(100);
+      setHeight(23);
+      setONKEYPRESS(OnlyNumbers);
+      setMaxLength(9);
+  end;
+  Label16.init(DsgnForm3);
+  with Label16 do
+    begin
+      setParent(DsgnForm3);
+      setCaption('Close stuff time:');
+      setLeft(5);
+      setTop(205);
+      setFont(tempFont);
+  end;
+  closeTimeBox.init(DsgnForm3);
+  with closeTimeBox do
+    begin
+      setParent(DsgnForm3);
+      setText('10000');
+      setLeft(150);
+      setTop(205);
+      setWidth(100);
+      setHeight(23);
+      setONKEYPRESS(OnlyNumbers);
+      setMaxLength(9);
+  end;
+  Label17.init(DsgnForm3);
+  with Label17 do
+    begin
+      setParent(DsgnForm3);
+      setCaption('Look for chat time:');
+      setLeft(5);
+      setTop(230);
+      setFont(tempFont);
+  end;
+  lookChatTimeBox.init(DsgnForm3);
+  with lookChatTimeBox do
+    begin
+      setParent(DsgnForm3);
+      setText('2000');
+      setLeft(150);
+      setTop(230);
+      setWidth(100);
+      setHeight(23);
+      setONKEYPRESS(OnlyNumbers);
+      setMaxLength(9);
+  end;
+  Label18.init(DsgnForm3);
+  with Label18 do
+    begin
+      setParent(DsgnForm3);
+      setCaption('Look for nest time:');
+      setLeft(5);
+      setTop(255);
+      setFont(tempFont);
+  end;
+  gItemTimeBox.init(DsgnForm3);
+  with gItemTimeBox do
+    begin
+      setParent(DsgnForm3);
+      setText('5000');
+      setLeft(150);
+      setTop(255);
+      setWidth(100);
+      setHeight(23);
+      setONKEYPRESS(OnlyNumbers);
+      setMaxLength(9);
+  end;
+  dropBox.init(DsgnForm3);
+  with dropBox do
+    begin
+      setParent(DsgnForm3);
+      setCaption('Drop only?');
+      setState(0);
+      setLeft(5);
+      setTop(280);
+      //setFont(tempFont);
+  end;
+  TempFont.Free;
+end;
+
+procedure ShowFormModal();
+{$IFNDEF CODEINSIGHT}
+native;
+{$ENDIF}
+var i, breakIn, breakInRandom, breakForRandom, breakFor : integer;
+    strings : TStringArray;
+begin
+  InitForm;
+
+  if loading or saving then begin
+    saving := false;
+    loading := false;
+    usernamebox.setText(sname);
+    passwordbox.setText(spass);
+    pinbox.setText(spin);
+    worldbox.setText(sworld);
+    runbox.setText(srun);
+    antibanbox.setText(santi);
+    amountbox.setText(samount);
+    if (Length(sloc) > 0) then
+      locationbox.setItemIndex(StrToInt(sloc))
+    else
+      locationbox.setItemIndex(0);
+    _OnChange2;
+    if (Length(swood) > 0) then
+      woodbox.setItemIndex(StrToInt(swood))
+    else
+      woodbox.setItemIndex(0);
+    if(sspec = 'cbUnchecked')then begin
+      specbox.setState(0);
+    end else begin
+      specbox.setState(1);
+    end;
+    if(sbank = 'cbUnchecked')then begin
+      bankbox.setState(0);
+    end else begin
+      bankbox.setState(1);
+    end;
+    if(smouse = 'cbUnchecked')then begin
+      mousekeysbox.setState(0);
+    end else begin
+      mousekeysbox.setState(1);
+    end;
+    if(schat = 'cbUnchecked')then begin
+      chatbox.setState(0);
+    end else begin
+      chatbox.setState(1);
+    end;
+    if(swait = 'cbUnchecked')then begin
+      waitbox.setState(0);
+    end else begin
+      waitbox.setState(1);
+    end;
+    if(sbreak = 'cbUnchecked')then begin
+      brakebox.setState(0);
+    end else begin
+      brakebox.setState(1);
+    end;
+    breakCheck;
+    bin.setText(sbin);
+    brin.setText(sbrin);
+    bfor.setText(sbfor);
+    brfor.setText(sbrfor);
+
+    soundBox.setText(ssound);
+    closeTimeBox.setText(scloset);
+    waitOftenBox.setText(swaito);
+    waitTimeBox.setText(swaitt);
+    levelTimeBox.setText(slevelt);
+    screenTimeBox.setText(sscreent);
+    updateTimeBox.setText(supdatet);
+    chatTimeBox.setText(schatt);
+    lookChatTimeBox.setText(slchatt);
+    dismissTimeBox.setText(sdismisst);
+    gItemTimeBox.setText(sgitemt);
+
+    if(sdrop = 'cbUnchecked')then begin
+      dropBox.setState(0);
+    end else begin
+      dropBOx.setState(1);
+    end;
+
+    playbox.setText(tostr(playNum));
+  end;
+
+  DsgnForm.showModal();
+
+  ReflectPlayer.Username := UsernameBox.getText;
+  ReflectPlayer.Password := PasswordBox.getText;
+  ReflectPlayer.Pin := PinBox.getText;
+
+  ReflectPlayer.Active := true;
+
+  SMARTShowConsole := false;
+  case random(8) of
+    0:SMARTUserAgent := 'Mozilla/5.0 (Windows NT 6.3; WOW64; rv:36.0) Gecko/20100101 Firefox/36.0';
+    1:SMARTUserAgent := 'Mozilla/5.0 (Windows NT 6.3; WOW64; rv:39.0) Gecko/20100101 Firefox/39.0';
+    2:SMARTUserAgent := 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:36.0) Gecko/20100101 Firefox/36.0';
+    3:SMARTUserAgent := 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:39.0) Gecko/20100101 Firefox/39.0';
+    4:SMARTUserAgent := 'Mozilla/5.0 (Windows NT 6.3; WOW64; rv:37.0) Gecko/20100101 Firefox/37.0';
+    5:SMARTUserAgent := 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:37.0) Gecko/20100101 Firefox/37.0';
+    6:SMARTUserAgent := 'Mozilla/5.0 (Windows NT 6.3; WOW64; rv:38.0) Gecko/20100101 Firefox/38.0';
+    7:SMARTUserAgent := 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:38.0) Gecko/20100101 Firefox/38.0';
+  end;
+
+  strings := GetWordsEx(WorldBox.getText, '1234567890');
+  if (length(strings) > 0) then
+    World := StrToInt(Strings[0]);
+
+  setLength(WorldList, length(strings));
+  for i := 0 to high(strings) do
+    WorldList[i] := StrToInt(strings[i]);
+
+  MouseKeys := (toStr(MouseKeysBox.getState) = 'cbChecked');
+  UseSpec := (toStr(SpecBox.getState) = 'cbChecked');
+  DisableBank := (toStr(BankBox.getState) = 'cbChecked');
+  useAutoResponder := (toStr(ChatBox.getState) = 'cbChecked');
+  useBreaks := (toStr(brakeBox.getState) = 'cbChecked');
+  useFakeWaitTime := (toStr(WaitBox.getState) = 'cbChecked');
+  dropOnly := (toStr(dropBox.getState) = 'cbChecked');
+
+  if (Length(closeTimeBox.getText) > 0) then
+    closeAllOften := StrToInt(closeTimeBox.GetText)
+  else
+    closeAllOften := 0;
+  if (Length(dismissTimeBox.getText) > 0) then
+    dismissAllOften := StrToInt(dismissTimeBox.GetText)
+  else
+    dismissAllOften := 0;
+  if (Length(lookChatTimeBox.getText) > 0) then
+    lookForChatOften := StrToInt(lookChatTimeBox.GetText)
+  else
+    lookForChatOften := 0;
+  if (Length(levelTimeBox.getText) > 0) then
+    checkForLevelOften := StrToInt(levelTimeBox.GetText)
+  else
+    checkForLevelOften := 0;
+  if (Length(chatTimeBox.getText) > 0) then
+    chatTimeOften := StrToInt(chatTimeBox.GetText)
+  else
+    chatTimeOften := 0;
+  if (Length(updateTimeBox.getText) > 0) then
+    updateAllOften := StrToInt(updateTimeBox.GetText)
+  else
+    updateAllOften := 0;
+  if (Length(waitOftenBox.getText) > 0) then
+    cpuLoadOften := StrToInt(waitOftenBox.GetText)
+  else
+    cpuLoadOften := 0;
+  if (Length(waitTimeBox.getText) > 0) then
+    cpuLoadWait := StrToInt(waitTimeBox.GetText)
+  else
+    cpuLoadWait := 0;
+  if (Length(screenTimeBox.getText) > 0) then
+    updateScreenOften := StrToInt(screenTimeBox.GetText)
+  else
+    updateScreenOften := 0;
+  if (Length(gItemTimeBox.getText) > 0) then
+    gItemOften := StrToInt(gItemTimeBox.GetText)
+  else
+    gItemOften := 0;
+
+  if (Length(RunBox.getText) > 0) then
+    RunAmount := StrToInt(RunBox.getText)
+  else
+    RunAmount := 0;
+  if (Length(AmountBox.getText) > 0) then
+    AmountAmount := StrToInt(AmountBox.getText)
+  else
+    AmountAmount := 0;
+  if (Length(AntiBanBox.getText) > 0) then
+    AntiAmount := StrToInt(AntiBanBox.getText)
+  else
+    AntiAmount := 0;
+  if (Length(playBox.getText) > 0) then
+    playNum := StrToInt(playBox.getText)
+  else
+    playNum := 0;
+
+  if (Length(bin.getText) > 0) then
+    breakIn := StrToInt(bin.getText)
+  else
+    breakIn := 0;
+  if (Length(brin.getText) > 0) then
+    breakInRandom := StrToInt(brin.getText)
+  else
+    breakInRandom := 0;
+  if (Length(bfor.getText) > 0) then
+    breakFor := StrToInt(bfor.getText)
+  else
+    breakFor := 0;
+  if (Length(brfor.getText) > 0) then
+    breakForRandom := StrToInt(brfor.getText)
+  else
+    breakForRandom := 0;
+
+  case LocationBox.getItemIndex of
+    0:begin //draynor
+      case WoodBox.getItemIndex of
+        0:Job:=0;  //oak
+        1:Job:=1;  // willow
+        2:Job:=2;  //  yew
+      end;
+    end;
+    1:begin //seers
+      case WoodBox.getItemIndex of
+        0:Job:=3;  // will
+        1:Job:=4;  //   mapl
+        2:Job:=5;  //     yew
+        3:Job:=6;  //      mage
+        4:Job:=7;  //          mag
+        5:Job:=28;  //          oak
+      end;
+    end;
+    2:begin //cath
+      case WoodBox.getItemIndex of
+        0:Job:=8;  //  will
+        1:Job:=9;  //      yew
+      end;
+    end;
+    3:begin //varr
+      case WoodBox.getItemIndex of
+        0:Job:=10;  //   oak west
+        1:Job:=11;  //    yew palc
+        2:Job:=30;  //   oak east
+        3:Job:=29;  //    yew pray
+        4:Job:=31;  //   yew east
+      end;
+    end;
+    4:begin //fala
+      case WoodBox.getItemIndex of
+        0:Job:=12;  //  oak
+        1:Job:=13;  //   yew
+      end;
+    end;
+    5:begin // rimm
+      case WoodBox.getItemIndex of
+        0:Job:=14;  // will ps
+        1:Job:=15;  //     yew
+        2:Job:=36;  // will sell
+        3:Job:=26;  //     yew sell
+        4:Job:=32;  // yew ps
+      end;
+    end;
+    6:begin //tree g
+      case WoodBox.getItemIndex of
+        0:Job:=16;  //  yew
+        1:Job:=34;  //  yew 2
+      end;
+    end;
+    7:begin //lumb
+      case WoodBox.getItemIndex of
+        0:Job:=18;  //    oak sell
+        1:Job:=19;  //            yew
+        2:Job:=35;  //    will sell
+        3:Job:=27;  //            yew sell
+        4:Job:=37;  //  wnorth willow
+        5:Job:=38;  //   wwill
+        6:Job:=39;  //    wwill2
+        7:Job:=41;  //    prog chop
+      end;
+    end;
+    8:begin // edge
+      case WoodBox.getItemIndex of
+        0:Job:=20;  //     will
+        1:Job:=21;  //       yew
+      end;
+    end;
+    9:begin //      power
+      case WoodBox.getItemIndex of
+        0:Job:=22;  //   tree
+        1:Job:=23;  //       oak
+        2:Job:=24;  //          willow
+      end;
+    end;
+    10:begin //      barb
+      case WoodBox.getItemIndex of
+        0:Job:=33;  //   will
+      end;
+    end;
+    11:begin //      deul
+      case WoodBox.getItemIndex of
+        0:Job:=25;  //   mag
+      end;
+    end;
+    12:begin //      ape
+      case WoodBox.getItemIndex of
+        0:Job:=40;  //   teak
+      end;
+    end;
+    13:begin //      castle wars
+      case WoodBox.getItemIndex of
+        0:Job:=42;  //   teak
+      end;
+    end;
+    14:begin //      two baw
+      case WoodBox.getItemIndex of
+        0:Job:=43;  //   teak
+        1:Job:=44;  //   teak 2
+        2:Job:=45;  //   mah
+      end;
+    end;
+  end;
+
+  breakInTimer.restart;
+
+  SoundString := SoundBox.getText;
+
+  DsgnForm.Free;
+  DsgnForm2.Free;
+  DsgnForm3.Free;
+end;
+
+procedure safeShowModal;
+var PictureString : string;
+    bmp1:integer;
+begin
+  daLogger.Init('Script', TReflectLoggerLevel.Status);
+
+  try
+    PictureString := GetPage(PicturePage);
+  except
+    begin
+      daLogger.Error('Failed to get picture string from: '+PicturePage, []);
+    end;
+  end;
+  bmp1 := BitmapFromString(512, 333, PictureString);
+  bmp0.Init;
+  bmp0 := GetMufasaBitmap(bmp1).ToTBitmap;
+  freeBitmap(bmp1);
+
+  try
+    script := GetPage(scriptPage);
+  except
+    begin
+      daLogger.Error('Failed to get script from: '+scriptPage,[]);
+    end;
+  end;
+  try
+    fScript := GetPage(fscriptPage);
+  except
+    begin
+      daLogger.Error('Failed to get fscript from: '+fscriptPage,[]);
+    end;
+  end;
+
+   forceUpdate := false;
+   started := false;
+   saving := false;
+   loading := false;
+   job := -1;
+   playNum := 0;
+
+   PictureString := scriptPath+'ineedbot''s AIO Woodcutter user details.ini';
+
+   sync(showFormModal);
+   while saving or loading do begin
+    if saving then begin
+      writeini('wait', intToStr(playNum), swait, PictureString);
+      writeini('chat', intToStr(playNum), schat, PictureString);
+      writeini('name', intToStr(playNum), sname, PictureString);
+      writeini('pass', intToStr(playNum), spass, PictureString);
+      writeini('pin', intToStr(playNum), spin, PictureString);
+      writeini('world', intToStr(playNum), sworld, PictureString);
+      writeini('amount', intToStr(playNum), samount, PictureString);
+      writeini('run', intToStr(playNum), srun, PictureString);
+      writeini('anti', intToStr(playNum), santi, PictureString);
+      writeini('wood', intToStr(playNum), swood, PictureString);
+      writeini('loc', intToStr(playNum), sloc, PictureString);
+      writeini('mouse', intToStr(playNum), smouse, PictureString);
+      writeini('spec', intToStr(playNum), sspec, PictureString);
+      writeini('bank', intToStr(playNum), sbank, PictureString);
+      writeini('bfor', intToStr(playNum), sbfor, PictureString);
+      writeini('brfor', intToStr(playNum), sbrfor, PictureString);
+      writeini('bin', intToStr(playNum), sbin, PictureString);
+      writeini('brin', intToStr(playNum), sbrin, PictureString);
+      writeini('brake', intToStr(playNum), sbreak, PictureString);
+      writeini('sound', intToStr(playNum), ssound, PictureString);
+      writeini('dismisst', intToStr(playNum), sdismisst, PictureString);
+      writeini('lchatt', intToStr(playNum), slchatt, PictureString);
+      writeini('chatt', intToStr(playNum), schatt, PictureString);
+      writeini('updatet', intToStr(playNum), supdatet, PictureString);
+      writeini('screent', intToStr(playNum), sscreent, PictureString);
+      writeini('levelt', intToStr(playNum), slevelt, PictureString);
+      writeini('waitt', intToStr(playNum), swaitt, PictureString);
+      writeini('waito', intToStr(playNum), swaito, PictureString);
+      writeini('closet', intToStr(playNum), scloset, PictureString);
+      writeini('gitemt', intToStr(playNum), sgitemt, PictureString);
+      writeini('drop', intToStr(playNum), sdrop, PictureString);
+    end;
+    if (loading or saving) and FileExists(PictureString) then begin
+      schat := ReadINI('chat', intToStr(playNum), PictureString);
+      swait := ReadINI('wait', intToStr(playNum), PictureString);
+      sname := ReadINI('name', intToStr(playNum), PictureString);
+      spass := ReadINI('pass', intToStr(playNum), PictureString);
+      spin := ReadINI('pin', intToStr(playNum), PictureString);
+      sworld := ReadINI('world', intToStr(playNum), PictureString);
+      samount := ReadINI('amount', intToStr(playNum), PictureString);
+      srun := ReadINI('run', intToStr(playNum), PictureString);
+      santi := ReadINI('anti', intToStr(playNum), PictureString);
+      swood := ReadINI('wood', intToStr(playNum), PictureString);
+      sloc := ReadINI('loc', intToStr(playNum), PictureString);
+      smouse := ReadINI('mouse', intToStr(playNum), PictureString);
+      sspec := ReadINI('spec', intToStr(playNum), PictureString);
+      sbank := ReadINI('bank', intToStr(playNum), PictureString);
+      sbfor := ReadINI('bfor', intToStr(playNum), PictureString);
+      sbrfor := ReadINI('brfor', intToStr(playNum), PictureString);
+      sbin := ReadINI('bin', intToStr(playNum), PictureString);
+      sbrin := ReadINI('brin', intToStr(playNum), PictureString);
+      sbreak := ReadINI('brake', intToStr(playNum), PictureString);
+      ssound := ReadINI('sound', intToStr(playNum), PictureString);
+      sdismisst := ReadINI('dismisst', intToStr(playNum), PictureString);
+      slchatt := ReadINI('lchatt', intToStr(playNum), PictureString);
+      schatt := ReadINI('chatt', intToStr(playNum), PictureString);
+      supdatet := ReadINI('updatet', intToStr(playNum), PictureString);
+      sscreent := ReadINI('screent', intToStr(playNum), PictureString);
+      slevelt := ReadINI('levelt', intToStr(playNum), PictureString);
+      swaitt := ReadINI('waitt', intToStr(playNum), PictureString);
+      swaito := ReadINI('waito', intToStr(playNum), PictureString);
+      scloset := ReadINI('closet', intToStr(playNum), PictureString);
+      sgitemt := ReadINI('gitemt', intToStr(playNum), PictureString);
+      sdrop := ReadINI('drop', intToStr(playNum), PictureString);
+    end;
+    sync(showFormModal);
+  end;
+
+   bmp0.Free;
+end;
+
+procedure doUpdateScreen;
+var currentWoodXp, CurrentWoodLevel, currentFletchXp, currentFireXP, tempInt, i, tI, h: integer;
+    _items : TReflectInvItemArray;
+    _eitems : TReflectWornEquipmentArray;
+    tB : TBox;
+    tObj : TReflectObject;
+    RSTile : TPoint;
+    t_string : string;
+begin
+  graphicOpti.DrawClear(0);
+
+  currentWoodLevel := TReflectLocalPlayer.GetMaxSkillLevel(SKILL_WOODCUTTING);
+  currentFletchXP := TReflectLocalPlayer.GetSkillExp(SKILL_Fletching);
+  currentWoodXP := TReflectLocalPlayer.GetSkillExp(SKILL_WOODCUTTING);
+  currentFireXP := TReflectLocalPlayer.GetSkillExp(SKILL_FireMaking);
+
+  tI := TReflectionGametab.Current; //reflection's current tab takes 234 ms...
+  if tI = Gametab_Inventory then begin
+    _items.GetAll;
+    for i:=0 to high(_items) do begin
+      h := _items[i].getid;
+      if(inIntArray(AxeIDs, h))then begin
+        tB := _items[i].GetBox;
+        graphicOpti.DrawClippedText('Axe', 'upchars07', Point(tB.x1 - 5, tB.y1), true, 65280);
+      end else begin
+        if(inIntArray(KnifeIDs, h))then begin
+          tB := _items[i].GetBox;
+          graphicOpti.DrawClippedText('Knife', 'upchars07', Point(tB.x1 - 5, tB.y1), true, 65280);
+        end else begin
+          if(inIntArray(TinderIDs, h))then begin
+            tB := _items[i].GetBox;
+            graphicOpti.DrawClippedText('Tind.', 'upchars07', Point(tB.x1 - 5, tB.y1), true, 65280);
+          end else begin
+            if(inIntArray(CoinsIDs, h))then begin
+              tB := _items[i].GetBox;
+              graphicOpti.DrawClippedText('Coins', 'upchars07', Point(tB.x1 - 5, tB.y1), true, 65280);
+            end else begin
+              if(inIntArray(NestIDs, h))then begin
+                tB := _items[i].GetBox;
+                graphicOpti.DrawClippedText('Nest', 'upchars07', Point(tB.x1 - 5, tB.y1), true, 65280);
+              end else begin
+                if(inIntArray(ShaftIDs, h))then begin
+                  tB := _items[i].GetBox;
+                  graphicOpti.DrawClippedText('Shaft', 'upchars07', Point(tB.x1 - 5, tB.y1), true, 65280);
+                end else begin
+                  if(inIntArray(GreeGreeIds, h))then begin
+                    tB := _items[i].GetBox;
+                    graphicOpti.DrawClippedText('Gree', 'upchars07', Point(tB.x1 - 5, tB.y1), true, 65280);
+                  end else begin
+                    if(inIntArray(TradingSticksIds, h))then begin
+                      tB := _items[i].GetBox;
+                      graphicOpti.DrawClippedText('Sticks', 'upchars07', Point(tB.x1 - 5, tB.y1), true, 65280);
+                    end else begin
+                      for tI := 0 to high(LocationLogs) do
+                        if h = LocationLogs[tI].ID then begin
+                          tB := _items[i].GetBox;
+                          graphicOpti.DrawClippedText('Log', 'upchars07', Point(tB.x1 - 5, tB.y1), true, 65280);
+                        end;
+                    end;
+                  end;
+                end;
+              end;
+            end;
+          end;
+        end;
+      end;
+    end;
+  end else begin
+    if tI = Gametab_WornEquipment then begin
+      _eitems.GetAll; //takes a while to get aswell...
+      for i:=0 to high(_eitems) do begin
+        h := _eitems[i].ID; //also this needs to .getID
+        if(inIntArray(AxeIDs, h))then begin
+          tB := getEquippedItemBounds('weapon');
+          graphicOpti.DrawClippedText('Axe', 'upchars07', Point(tB.x1 - 5, tB.y1), true, 65280);
+        end;
+      end;
+    end;
+  end;
+  for i:=0 to high(BankLocations) do begin
+    if R_TileOnMM(BankLocations[i], RSTile) then begin
+      graphicOpti.DrawEllipse(RSTile, 5, 5, clBlue, false);
+      if R_TileOnMS(BankLocations[i], RSTile) then begin
+        graphicOpti.DrawClippedText('Bank', 'upchars07', RSTile, true, clBlue);
+      end;
+    end;
+  end;
+  for i:=0 to high(TreeLocations) do begin
+    if R_TileOnMM(TreeLocations[i], RSTile) then begin
+      graphicOpti.DrawEllipse(RSTile, 5, 5, clGreen, false);
+      if R_TileOnMS(TreeLocations[i], RSTile) then begin
+        graphicOpti.DrawClippedText('Trees', 'upchars07', RSTile, true, clGreen);
+      end;
+    end;
+  end;
+  for i:=0 to high(FireTiles) do begin
+    if R_TileOnMM(FireTiles[i], RSTile) then begin
+      graphicOpti.DrawEllipse(RSTile, 5, 5, clOrange, false);
+      if R_TileOnMS(FireTiles[i], RSTile) then begin
+        graphicOpti.DrawClippedText('Fire', 'upchars07', RSTile, true, clOrange);
+      end;
+    end;
+  end;
+  for i:=0 to high(LocationTreeObjects) do begin
+    tObj.GetAt(ObjGame, LocationTreeObjects[i].Tile);
+    h := tObj.GetId;
+    if inIntArray(LocationTreeObjects[i].AliveObjectID, h) then begin
+      t_string := 'Alive '+LocationTreeObjects[i].Name;
+      LocationTreeObjects[i].Tim.Restart;
+      LocationTreeObjects[i].Tim.StartTime := -1;
+    end else begin
+      if inIntArray(LocationTreeObjects[i].DeadObjectID, h) then begin
+        if (LocationTreeObjects[i].Tim.StartTime = -1) then
+          LocationTreeObjects[i].Tim.reStart;
+        t_string := 'Dead '+LocationTreeObjects[i].Name+'('+floatToStr(LocationTreeObjects[i].Tim.Elapsedtime / 1000)+')';
+      end else begin
+        if (LocationTreeObjects[i].Tim.StartTime = -1) then
+          LocationTreeObjects[i].Tim.reStart;
+        t_string := 'Unknown '+LocationTreeObjects[i].Name+' ID('+intToStr(h)+')';
+      end;
+    end;
+    if R_TileOnMM(LocationTreeObjects[i].Tile, RSTile) then begin
+      graphicOpti.DrawEllipse(RSTile, 5, 5, clAqua, false);
+      if R_TileOnMS(LocationTreeObjects[i].Tile, RSTile, LocationTreeObjects[i].Offset[0], LocationTreeObjects[i].Offset[1], LocationTreeObjects[i].Offset[2]) then begin
+        graphicOpti.DrawClippedText(t_string, 'upchars07', RSTile, true, clAqua);
+      end;
+    end;
+  end;
+
+  tempInt := 20;
+  graphicOpti.DrawClippedText('Status: '+scriptStatus, 'upchars07', Point(5, tempInt), true, 65280);
+  tempInt:=tempInt+15;
+  if ((currentWoodXP-startWoodXP) > 0) then begin
+    graphicOpti.DrawClippedText('Woodcutting XP gained: '+intToStr(currentWoodXP-startWoodXP)+'('+InttoStr(round(((CurrentWoodXP-StartWoodXP)*3600)/(GetTimeRunning/1000)))+'), level: '+intToStr(currentWoodLevel)+'('+InttoStr(CurrentWoodLevel-StartWoodLevel)+') TTL: '+TReflectionTime.msToTime(Round(varExpToGoal(CurrentWoodXP, CurrentWoodLevel+1)/(((CurrentWoodXP-startWoodXP))/GetTimeRunning)), Time_Bare), 'upchars07', Point(5, tempInt), true, 65280);
+    tempInt:=tempInt+15;
+  end;
+  if ((currentFletchXP-startFletchXP) > 0) then begin
+    graphicOpti.DrawClippedText('Fletching XP gained: '+intToStr(currentFletchXP-startFletchXP)+'('+InttoStr(round(((CurrentFletchXP-StartFletchXP)*3600)/(GetTimeRunning/1000)))+')', 'upchars07', Point(5, tempInt), true, 65280);
+    tempInt:=tempInt+15;
+  end;
+  if ((currentFireXP-startFireXP) > 0) then begin
+    graphicOpti.DrawClippedText('Firemaking XP gained: '+intToStr(currentFireXP-startFireXP)+'('+InttoStr(round(((currentFireXP-startFireXP)*3600)/(GetTimeRunning/1000)))+')', 'upchars07', Point(5, tempInt), true, 65280);
+    tempInt:=tempInt+15;
+  end;
+  tI := 0;
+  for i:=0 to high(LocationLogs) do
+    tI := tI + LocationLogs[i].chopped;
+  if (tI > 0) then begin
+    graphicOpti.DrawClippedText('Chopped: '+intToStr(tI)+'('+InttoStr(round(((tI)*3600)/(GetTimeRunning/1000)))+'), nests: '+intToStr(nests), 'upchars07', Point(5, tempInt), true, 65280);
+    tempInt:=tempInt+15;
+    if canBank and not FireMake and not inIntArray([26,27,18,36,35], job) and not fletch then begin
+      tI := 0;
+      for i:=0 to high(LocationLogs) do
+        tI := tI + (LocationLogs[i].price*LocationLogs[i].chopped);
+      graphicOpti.DrawClippedText('Profit: '+intToStr(tI)+'('+InttoStr(round(((tI)*3600)/(GetTimeRunning/1000)))+')', 'upchars07', Point(5, tempInt), true, 65280);
+      tempInt:=tempInt+15;
+    end;
+  end;
+  graphicOpti.DrawClippedText('Current job: '+JobString+', bank:'+boolToStr(canBank)+', fletch:'+boolToStr(fletch)+', fire:'+boolToStr(firemake), 'upchars07', Point(5, tempInt), true, 65280);
+  tempInt:=tempInt+15;
+  graphicOpti.DrawClippedText('Ran for '+TReflectionTime.msToTime(getTimeRunning(), TIME_FORMAL)+'. Script version: '+floatToStr(version)+'('+floatToStr(fversion)+')', 'upchars07', Point(5, tempInt), true, 65280);
+
+  Reflect.Smart.Graphics.DrawBitmap(graphicOpti, Point(0, 0), true);
+end;
+
+procedure sleepScript(tim:integer);override;
+var _t : treflecttimer;
+begin
+  if cpuLoadWait < 0 then begin
+    sleep(tim);
+  end else begin
+    _t.restart;
+    while (_t.Elapsedtime < tim) do
+      sleep(cpuLoadWait);
+  end;
+end;
+
+procedure updateScreen(_string:string);override;
+begin
+  if (_string <> '') then
+    scriptStatus := _string;
+  sleepScript(cpuLoadOften);
+  if updateScreenTimer.Elapsedtime > updateScreenOften then begin
+    doUpdateScreen;
+    updateScreenTimer.restart;
+  end;
+end;
+
+procedure TReflectObjectArray.GetAll2(ObjType: TObjectType; Distance: Integer; Position: TPoint);
+var
+  Multi, BaseX, BaseY, X, Y, I, Count, Plane, HighX, HighY: integer;
+  Temp: TReflectObject;
+  ObjectHook, SceneHook: THook;
+begin
+  if not Reflect.Mem.IsNull(ckObject) then
+    Reflect.Mem.FreeObjects(ckObject, True);
+  Distance := Round(Distance / 2);
+  if HookCache[TCacheKey.ckRegion][0] = 0 then
+    Reflect.Mem.GetObject(ckNull, ckRegion, Client_Region, 0, 0);
+  BaseX := Reflect.Misc.BaseX;
+  BaseY := Reflect.Misc.BaseY;
+  Position := Point(Position.X - BaseX, Position.Y - BaseY);
+  Plane := Reflect.Tiles.GetPlane;
+  HighX := Position.X + Distance;
+  HighY := Position.Y + Distance;
+  if HighX > 103 then
+    HighX := 103;
+  if HighY > 103 then
+    HighY := 103;
+  SetLength(Self, 10817);
+  for X := Position.X - Distance to HighX do
+    for Y := Position.Y - Distance to HighY do
+    begin
+      Reflect.Mem.Get3DObject(ckRegion, ckSceneTile, Region_SceneTiles,
+        Count, 0, Plane, X, Y);
+      Temp._ObjType := ObjType;
+      Temp._GetObject(Count, Point(BaseX + X, BaseY + Y));
+      Inc(Count);
+      if Temp.Reference = 0 then
+        Continue;
+      Self[I] := Temp;
+      Inc(I);
+    end;
+    SetLength(Self, I);
+    Reflect.Mem.FreeObjects(ckSceneTile, Count);
+    Self.Sort;
+end;
+
+function apeAtollIsChopping(tree : R_TTreeObject):boolean;
+var invC, _id : integer;
+    tim : treflecttimer;
+    tObj : TReflectObject;
+begin
+  if job <> 40 then
+    exit;
+  tim.restart;
+  invC := Reflect.Inv.Count;
+  tObj.GetAt(ObjGame, tree.Tile);
+  _id := tObj.GetId;
+  while ReflectPlayer.IsLoggedIn and (tim.Elapsedtime < 5000) and (invC = Reflect.Inv.Count) and
+  not ReflectPlayer.IsUnderAttack and inIntArray(tree.AliveObjectID, _id) do begin
+    randomHandler;
+    UpdateScreen('Chopping tree...');
+    tObj.GetAt(ObjGame, tree.Tile);
+    _id := tObj.GetId;
+  end;
+  result := (invC <> Reflect.Inv.Count);
+end;
+
+function getLogIDs: TIntegerArray;
+var i : integer;
+begin
+  for i:=0 to high(LocationLogs) do begin
+    setLength(result, length(result)+1);
+    result[high(result)] := LocationLogs[i].ID;
+  end;
+end;
+
+function getActivatedSlot:integer;
+var i : integer;
+begin
+  result := -1;
+  for i:=1 to 28 do begin
+    if slotActivated(i) then begin
+      exit(i);
+    end;
+  end;
+end;
+
+function getActiveItemID:integer;
+var i, h : integer;
+    _items : TReflectInvItemArray;
+begin
+   _items.GetAll;
+   h := getActivatedSlot;
+
+   for i:=0 to high(_items) do
+      if (_items[i].GetInvSlot = h) then
+        exit(_items[i].GetID);
+end;
+
+function getGoodFireLaneIndices : TIntegerArray;
+var i, h : integer;
+    _obj : TReflectObject;
+    goodArray : boolean;
+begin
+  for i:=0 to high(FireTiles) do begin
+    goodArray := true;
+    for h:=endFireTiles[i].X to FireTiles[i].X do begin
+      _obj.GetAt(ObjGame, Point(h, FireTiles[i].Y));
+      if inIntArray(FireIDs, _obj.GetId) then
+        goodArray := false;
+    end;
+    if goodArray then begin
+      setLength(result, length(result)+1);
+      result[high(result)] := i;
+    end;
+  end;
+end;
+
+procedure progChop;
+var wclevel, i, coins : integer;
+    equ : string;
+    tP : TPoint;
+    tB : TBox;
+    _item : TReflectInvItem;
+    _items : TReflectInvItemArray;
+    _obj : TReflectObject;
+    foundAxe : boolean;
+    logIDs : TIntegerArray;
+begin
+  equ := R_GetEquipText;
+  wclevel := TReflectLocalPlayer.GetMaxSkillLevel(SKILL_WOODCUTTING);
+  logIDs := getLogIDs;
+  foundAxe := false;
+  coins := 0;
+  _items.GetAll;
+  for i:=0 to high(_items) do begin
+    if _items[i].GetName = 'Steel axe' then
+      foundAxe := true;
+    if inIntArray(CoinsIDs, _items[i].GetId) then
+      coins := _items[i].GetQuantity;
+  end;
+  if equ = 'Steel axe' then
+    foundAxe := true;
+
+  if (equ = 'Unarmed') and _item.Find('Bronze axe') then begin
+    Reflect.Gametab.Open(Gametab_Inventory);
+    Reflect.Mouse.Move(_item.getbox, mouse_left);
+    sleepScript(1000+random(1000));
+  end;
+  setLength(LocationDoorObjects, 2);
+  with LocationDoorObjects[1] do begin
+    IDs := [7122];
+    Tile := Point(3234, 3203);
+    Offset := [-62, 0, 100];
+    TileEncompass := [Point(3233, 3205), Point(3233, 3201), Point(3228, 3201), Point(3228, 3205)];
+  end;
+  if wclevel >= 6 then begin
+    if coins >= 208 then begin
+      if not foundAxe then begin
+        while ReflectPlayer.IsLoggedIn and not foundAxe and (coins >= 208) do begin
+          equ := R_GetEquipText;
+          foundAxe := false;
+          coins := 0;
+          _items.GetAll;
+          for i:=0 to high(_items) do begin
+            if _items[i].GetName = 'Steel axe' then
+              foundAxe := true;
+            if inIntArray(CoinsIDs, _items[i].GetId) then
+              coins := _items[i].GetQuantity;
+          end;
+          if equ = 'Steel axe' then
+            foundAxe := true;
+
+          updateScreen('Going to go buy axe.');
+          if Reflect.Inv.IsFull then begin
+            _items.GetAll;
+            for i:=0 to high(_items) do begin
+              if inIntArray(LogIDs, _items[i].GetId) then begin
+                Reflect.Gametab.Open(Gametab_Inventory);
+                Reflect.Mouse.Move(_items[i].getbox, mouse_right);
+                Reflect.Text.ChooseOption('Drop', 2500);
+                sleepScript(random(1000));
+                i := high(_items);
+              end;
+            end;
+          end;
+          LocationDoorObjects[1].Open(false);
+          if not R_SellMenuOpen then begin
+            updateScreen('Trading Bob.');
+            R_TryInteractNPC([505], 'Trade', false, 5, 0, 0, 50);
+            ReflectPlayer.FFlag(0, 5000+random(500));
+            sleepScript(random(1000));
+          end;
+          updateScreen('Buying axe.');
+          if R_SellMenuOpen then begin
+            Reflect.Mouse.Move(Point(235, 81), 5, 5, Mouse_right);
+            if Reflect.Text.ChooseOption('Buy 1') then
+              foundAxe := true;
+            sleepScript(1000+random(1000));
+            Reflect.Mouse.Move(Point(488, 43), 5, 5, Mouse_Left);
+            sleepScript(1000+random(1000));
+          end;
+        end;
+      end;
+    end;
+  end;
+  LocationDoorObjects[1].Open(true);
+  if wclevel >= 15 then begin
+    if wclevel >= 30 then begin
+      job := 35;
+      BankLocations := [Point(3212, 3246)];
+      bankOffset := [Point(0, 0)];
+      LocationTreeObjects := [R_MakeTTreeObject(Point(3234, 3238), [7480], [9711], 'Willow', 0, [0, 0, 200]), R_MakeTTreeObject(Point(3234, 3244), [7480], [9711], 'Willow', 1, [0, 0, 200])];
+      TreeLocations := [Point(3234, 3244)];
+      CanBank := not disableBank;
+      customIDs1 := [507, 506{general store guys}];
+      with LocationDoorObjects[0] do begin
+        IDs := [7129];
+        Tile := Point(3215, 3245);
+        Offset := [-62, 0, 100];
+        TileEncompass := [Point(3212, 3251), Point(3214, 3249), Point(3214, 3244), Point(3212, 3242), Point(3210, 3242), Point(3208, 3244), Point(3208, 3249), Point(3210, 3251)];
+      end;
+    end else begin
+      job := 18;
+      BankLocations := [Point(3212, 3246)];
+      bankOffset := [Point(0, 0)];
+      LocationTreeObjects := [R_MakeTTreeObject(Point(3204, 3247), [7417], [1356], 'Oak', 0, [0, 0, 200], Point(0, -2)), R_MakeTTreeObject(Point(3205, 3240), [7417], [1356], 'Oak', 1, [0, 0, 200], Point(0, 2))];
+      TreeLocations := [Point(3206, 3242)];
+      CanBank := not disableBank;
+      customIDs1 := [507, 506{general store guys}];
+      with LocationDoorObjects[0] do begin
+        IDs := [7129];
+        Tile := Point(3215, 3245);
+        Offset := [-62, 0, 100];
+        TileEncompass := [Point(3212, 3251), Point(3214, 3249), Point(3214, 3244), Point(3212, 3242), Point(3210, 3242), Point(3208, 3244), Point(3208, 3249), Point(3210, 3251)];
+      end;
+    end;
+  end else begin
+    job := 41;
+    TreeLocations := [Point(3171, 3233)];
+    customIDs1 := [1278, 1276, 1286, 1282];
+    distanceCheck := 26;
+    CanBank := false;
+    runDirection := 'n';
+  end;
+end;
+
+procedure setupScript;
+var i : integer;
+begin
+  graphicOpti.Init(Client.GetMBitmaps);
+  graphicOpti.SetSize(765, 503);
+  graphicOpti.SetTransparentColor(0);
+
+  AddOnTerminate('FreeDTMZ');
+
+  R_CloseAllMenus;
+  updateAllRefVars;
+  updateScreen('Setting up...');
+  useStats := true;
+  if useStats then
+    statsServer.Setup('6');
+
+  StartWoodXP := TReflectLocalPlayer.GetSkillExp(SKILL_WOODCUTTING);
+  StartWoodLevel := TReflectLocalPlayer.GetMaxSkillLevel(SKILL_WOODCUTTING);
+  StartFletchXP := TReflectLocalPlayer.GetSkillExp(SKILL_FLETCHING);
+  StartFireXP := TReflectLocalPlayer.GetSkillExp(SKILL_FIREMAKING);
+
+  LastXPXPCheck := StartWoodXP;
+  LastXPCheck.restart;
+  statsWoodXP := StartWoodXP;
+  statsFletchXP := StartFletchXP;
+  statsFireXp := StartFireXP;
+  statsProfit := 0;
+  tim.restart;
+  gItemTim.restart;
+  tim2 := 50000 + random(400000);
+
+  PreviousTree := R_MakeNullTTreeObject;
+  currentTree := R_MakeNullTTreeObject;
+
+  Nests := 0;
+
+  wasWorking := false;
+
+  ChopAnimationIDs := [879, 877, 875, 873, 871, 869, 867, 2846];
+  FletchAnimationIDs := [1248];
+  ShaftIDs := [52];
+  CoinsIDs := [995];
+  KnifeIDs := [946];
+  AxeIDs := [1351, 1349, 1357, 1359, 6739, 1355, 1361, 1353];
+  NestIDs := [5069, 5070, 5071, 5072, 5073, 5074, 7412, 11965];
+  TinderIDs := [590];
+  FireIDs := [26185, 2986, 9380];
+  FireAnimIDs := [733];
+  GreeGreeIDs := [4030, 4026, 4031, 4024];
+  TradingSticksIDs := [6306];
+
+  LocationLogs := [];
+  customIDs1 := [];
+  customIDs2 := [];
+  LocationDoorObjects := [];
+  jobString := '';
+  pathToTree := [];
+  pathToBank := [];
+  bankLocations := [];
+  bankOffset := []; //line up!
+  treeLocations := [];
+  customTPA1 := [];
+  customTPA2 := [];
+  customTPA3 := [];
+  customTPA4 := [];
+  canBank := false;
+  fletch := false;
+  fletchPoint := Point(-1, -1);
+  fireMake := false;
+  FireTiles := [];  //line up!
+  endFireTiles := [];
+  LocationTreeObjects := [R_MakeTTreeObject(Point(-1, -1), [-1], [-1], '', -1, [-1, -1, -1], Point(-1, -1))];
+  runDirection := '';
+
+  case job of
+    0:begin
+      LocationTreeObjects := [R_MakeTTreeObject(Point(3103, 3243), [7417], [1356], 'Oak', 0, [0, 0, 200])];
+      TreeLocations := [Point(3102, 3245)];
+      BankLocations := [Point(3091, 3245)];
+      bankOffset := [Point(0, 0)];
+      CanBank := true;
+      setLength(LocationLogs, 1);
+      LocationLogs[0].ID := 1521;
+      jobString := 'Draynor Oaks';
+    end;
+    1:begin
+      BankLocations := [Point(3091, 3245)];
+      bankOffset := [Point(0, 0)];
+      LocationTreeObjects := [R_MakeTTreeObject(Point(3084, 3237), [7482], [9471], 'Willow', 0, [0, 0, 200]), R_MakeTTreeObject(Point(3085, 3236), [7422], [9471], 'Willow', 1, [0, 0, 200]), R_MakeTTreeObject(Point(3088, 3235), [7480], [9711], 'Willow', 2, [0, 0, 200]), R_MakeTTreeObject(Point(3088, 3232), [7422], [9471], 'Willow', 3, [0, 0, 200]), R_MakeTTreeObject(Point(3088, 3228), [7424], [9471], 'Willow', 4, [0, 0, 200])];
+      PathToBank := [Point(3086, 3237), Point(3087, 3242), Point(3087, 3247), Point(3092, 3247), Point(3093, 3244)];
+      PathToTree := [Point(3093, 3244), Point(3089, 3247), Point(3087, 3242), Point(3086, 3237)];
+      TreeLocations := [Point(3086, 3237)];
+      setLength(LocationLogs, 1);
+      LocationLogs[0].ID := 1519;
+      CanBank := true;
+      jobString := 'Draynor Willows';
+      fireMake := true;
+      fireTiles := [Point(3102, 3237), Point(3102, 3238), Point(3102, 3239), Point(3111, 3235), Point(3108, 3234)];
+      endFireTiles := [Point(3085, 3237), Point(3085, 3238), Point(3080, 3239), Point(3090, 3235), Point(3090, 3234)];
+    end;
+    2:begin
+      BankLocations := [Point(3091, 3245)];
+      bankOffset := [Point(0, 0)];
+      LocationTreeObjects := [R_MakeTTreeObject(Point(3147, 3255), [7419], [9714], 'Yew', 0, [0, 0, 200]), R_MakeTTreeObject(Point(3152, 3231), [7419], [9714], 'Yew', 1, [0, 0, 200]), R_MakeTTreeObject(Point(3166, 3220), [7419], [9714], 'Yew', 2, [0, 0, 200]), R_MakeTTreeObject(Point(3185, 3227), [7419], [9714], 'Yew', 3, [0, 0, 200])];
+      PathToBank := [Point(3152, 3229), Point(3147, 3229), Point(3142, 3229), Point(3137, 3229), Point(3132, 3229), Point(3127, 3228), Point(3122, 3228), Point(3117, 3228), Point(3112, 3230), Point(3108, 3234), Point(3104, 3238), Point(3105, 3243), Point(3104, 3248), Point(3099, 3250), Point(3094, 3248), Point(3093, 3243)];
+      PathToTree := [Point(3093, 3244), Point(3096, 3249), Point(3101, 3250), Point(3105, 3246), Point(3105, 3241), Point(3105, 3236), Point(3109, 3233), Point(3113, 3230), Point(3118, 3228), Point(3123, 3228), Point(3128, 3228), Point(3133, 3228), Point(3138, 3228), Point(3143, 3228), Point(3148, 3229)];
+      TreeLocations := [Point(3152, 3231)];
+      setLength(LocationLogs, 1);
+      LocationLogs[0].ID := 1515;
+      CanBank := true;
+      jobString := 'Draynor Yews';
+    end;
+    3:begin
+      BankLocations := [Point(2727, 3494)];
+      bankOffset := [Point(0, 0)];
+      LocationTreeObjects := [R_MakeTTreeObject(Point(2719, 3506), [7480], [9711], 'Willow', 0, [0, 0, 200]), R_MakeTTreeObject(Point(2711, 3512), [7480], [9711], 'Willow', 1, [0, 0, 200]), R_MakeTTreeObject(Point(2709, 3511), [7480], [9711], 'Willow', 2, [0, 0, 200]), R_MakeTTreeObject(Point(2712, 3509), [7480], [9711], 'Willow', 3, [0, 0, 200]), R_MakeTTreeObject(Point(2708, 3514), [7480], [9711], 'Willow', 4, [0, 0, 200])];
+      TreeLocations := [Point(2711, 3510)];
+      setLength(LocationLogs, 1);
+      LocationLogs[0].ID := 1519;
+      CanBank := true;
+      jobString := 'Seers Willows';
+    end;
+    4:begin
+      BankLocations := [Point(2727, 3494)];
+      bankOffset := [Point(0, 0)];
+      LocationTreeObjects := [R_MakeTTreeObject(Point(2721, 3502), [7481], [9712], 'Maple', 0, [0, 0, 200]), R_MakeTTreeObject(Point(2727, 3502), [7481], [9712], 'Maple', 1, [0, 0, 200]), R_MakeTTreeObject(Point(2730, 3502), [7481], [9712], 'Maple', 2, [0, 0, 200]), R_MakeTTreeObject(Point(2732, 3500), [7481], [9712], 'Maple', 3, [0, 0, 200])];
+      PathToBank := [Point(2725, 3501), Point(2720, 3499), Point(2718, 3494), Point(2720, 3489), Point(2724, 3486), Point(2725, 3491)];
+      PathToTree := [Point(2725, 3491), Point(2725, 3486), Point(2720, 3489), Point(2718, 3494), Point(2721, 3499), Point(2726, 3499)];
+      TreeLocations := [Point(2728, 3500)];
+      setLength(LocationLogs, 1);
+      LocationLogs[0].ID := 1517;
+      CanBank := true;
+      jobString := 'Seers Maples';
+    end;
+    5:begin
+      BankLocations := [Point(2727, 3494)];
+      bankOffset := [Point(0, 0)];
+      LocationTreeObjects := [R_MakeTTreeObject(Point(2715, 3460), [7419], [9714], 'Yew', 0, [0, 0, 200]), R_MakeTTreeObject(Point(2706, 3460), [7419], [9714], 'Yew', 1, [0, 0, 200]), R_MakeTTreeObject(Point(2706, 3465), [7419], [9714], 'Yew', 2, [0, 0, 200])];
+      PathToBank := [Point(2714, 3462), Point(2718, 3465), Point(2719, 3470), Point(2723, 3474), Point(2725, 3479), Point(2724, 3484), Point(2725, 3489), Point(2725, 3491)];
+      PathToTree := [Point(2726, 3491), Point(2726, 3486), Point(2727, 3481), Point(2726, 3476), Point(2724, 3471), Point(2723, 3466), Point(2718, 3463), Point(2714, 3462)];
+      TreeLocations := [Point(2710, 3462)];
+      setLength(LocationLogs, 1);
+      LocationLogs[0].ID := 1515;
+      CanBank := true;
+      jobString := 'Seers Yews';
+    end;
+    6:begin
+      BankLocations := [Point(2727, 3494)];
+      bankOffset := [Point(0, 0)];
+      LocationTreeObjects := [R_MakeTTreeObject(Point(2692, 3425), [7483], [9713], 'Magic', 0, [0, 0, 200]), R_MakeTTreeObject(Point(2691, 3428), [7483], [9713], 'Magic', 1, [0, 0, 200]), R_MakeTTreeObject(Point(2696, 3424), [7483], [9713], 'Magic', 2, [0, 0, 200])];
+      PathToBank := [Point(2695, 3425), Point(2700, 3425), Point(2702, 3430), Point(2702, 3435), Point(2701, 3440), Point(2704, 3444), Point(2708, 3448), Point(2713, 3451), Point(2717, 3454), Point(2719, 3459), Point(2719, 3464), Point(2719, 3469), Point(2722, 3473), Point(2725, 3478), Point(2727, 3483), Point(2726, 3488), Point(2725, 3491)];
+      PathToTree := [Point(2726, 3490), Point(2726, 3485), Point(2727, 3480), Point(2727, 3475), Point(2727, 3470), Point(2728, 3465), Point(2727, 3460), Point(2725, 3455), Point(2721, 3452), Point(2721, 3447), Point(2719, 3442), Point(2714, 3440), Point(2713, 3435), Point(2711, 3430), Point(2707, 3426), Point(2702, 3425), Point(2697, 3425), Point(2693, 3424)];
+      TreeLocations := [Point(2693, 3425)];
+      setLength(LocationLogs, 1);
+      LocationLogs[0].ID := 1513;
+      CanBank := true;
+      jobString := 'Seers Magics';
+    end;
+    7:begin
+      BankLocations := [Point(2727, 3494)];
+      bankOffset := [Point(0, 0)];
+      LocationTreeObjects := [R_MakeTTreeObject(Point(2705, 3397), [7483], [9713], 'Magic', 0, [0, 0, 200]), R_MakeTTreeObject(Point(2705, 3399), [7483], [9713], 'Magic', 1, [0, 0, 200]), R_MakeTTreeObject(Point(2699, 3397), [7483], [9713], 'Magic', 2, [0, 0, 200]), R_MakeTTreeObject(Point(2699, 3399), [7483], [9713], 'Magic', 3, [0, 0, 200])];
+      PathToBank := [Point(2701, 3396), Point(2704, 3392), Point(2709, 3392), Point(2714, 3393), Point(2714, 3398), Point(2716, 3403), Point(2715, 3408), Point(2715, 3413), Point(2714, 3418), Point(2714, 3423), Point(2713, 3428), Point(2713, 3433), Point(2713, 3438), Point(2710, 3442), Point(2712, 3447), Point(2717, 3449), Point(2720, 3453), Point(2720, 3458), Point(2720, 3463), Point(2720, 3468), Point(2722, 3473), Point(2725, 3478), Point(2727, 3483), Point(2726, 3488), Point(2726, 3491)];
+      PathToTree := [Point(2725, 3491), Point(2726, 3486), Point(2727, 3481), Point(2726, 3476), Point(2724, 3471), Point(2723, 3466), Point(2723, 3461), Point(2719, 3457), Point(2716, 3453), Point(2713, 3448), Point(2710, 3444), Point(2710, 3439), Point(2711, 3434), Point(2713, 3429), Point(2713, 3424), Point(2713, 3419), Point(2715, 3414), Point(2715, 3409), Point(2716, 3404), Point(2716, 3399), Point(2715, 3394), Point(2710, 3393), Point(2705, 3392), Point(2701, 3395), Point(2702, 3397)];
+      TreeLocations := [Point(2700, 3397)];
+      setLength(LocationLogs, 1);
+      LocationLogs[0].ID := 1513;
+      CanBank := true;
+      jobString := 'Seers Magics (2)';
+    end;
+    8:begin
+      BankLocations := [Point(2809, 3442)];
+      bankOffset := [Point(0, -2)];
+      LocationTreeObjects := [R_MakeTTreeObject(Point(2786, 3430), [7480], [9711], 'Willow', 0, [0, 0, 200]), R_MakeTTreeObject(Point(2783, 3427), [7480], [9711], 'Willow', 1, [0, 0, 200]), R_MakeTTreeObject(Point(2781, 3428), [7480], [9711], 'Willow', 2, [0, 0, 200]), R_MakeTTreeObject(Point(2768, 3427), [7480], [9711], 'Willow', 3, [0, 0, 200]), R_MakeTTreeObject(Point(2771, 3428), [7480], [9711], 'Willow', 4, [0, 0, 200])];
+      TreeLocations := [Point(2783, 3428)];
+      setLength(LocationLogs, 1);
+      LocationLogs[0].ID = 1519;
+      CanBank := true;
+      jobString := 'Catherby Willows';
+    end;
+    9:begin
+      BankLocations := [Point(2809, 3442)];
+      bankOffset := [Point(0, -2)];
+      LocationTreeObjects := [R_MakeTTreeObject(Point(2758, 3434), [7419], [9714], 'Yew', 0, [0, 0, 200]), R_MakeTTreeObject(Point(2756, 3431), [7419], [9714], 'Yew', 1, [0, 0, 200]), R_MakeTTreeObject(Point(2761, 3432), [7419], [9714], 'Yew', 2, [0, 0, 200]), R_MakeTTreeObject(Point(2755, 3434), [7419], [9714], 'Yew', 3, [0, 0, 200]), R_MakeTTreeObject(Point(2760, 3428), [7419], [9714], 'Yew', 4, [0, 0, 200]), R_MakeTTreeObject(Point(2766, 3428), [7419], [9714], 'Yew', 5, [0, 0, 200])];
+      PathToBank := [Point(2760, 3430), Point(2765, 3430), Point(2770, 3431), Point(2775, 3433), Point(2780, 3435), Point(2785, 3432), Point(2790, 3432), Point(2795, 3433), Point(2800, 3433), Point(2805, 3433), Point(2808, 3437), Point(2809, 3439)];
+      PathToTree := [Point(2809, 3439), Point(2805, 3436), Point(2801, 3433), Point(2796, 3433), Point(2791, 3433), Point(2786, 3432), Point(2781, 3434), Point(2776, 3435), Point(2771, 3433), Point(2766, 3431), Point(2761, 3430), Point(2759, 3430)];
+      TreeLocations := [Point(2758, 3432)];
+      setLength(LocationLogs, 1);
+      LocationLogs[0].ID := 1515;
+      CanBank := true;
+      jobString := 'Catherby Yews';
+    end;
+    10:begin
+      BankLocations := [Point(3186, 3436)];
+      bankOffset := [Point(0, 0)];
+      LocationTreeObjects := [R_MakeTTreeObject(Point(3168, 3421), [7417], [1356], 'Oak', 0, [0, 0, 200]), R_MakeTTreeObject(Point(3166, 3412), [7417], [1356], 'Oak', 1, [0, 0, 200]), R_MakeTTreeObject(Point(3162, 3417), [7417], [1356], 'Oak', 2, [0, 0, 200])];
+      PathToBank := [Point(3170, 3422), Point(3174, 3425), Point(3178, 3428), Point(3182, 3432), Point(3184, 3436)];
+      PathToTree := [Point(3184, 3436), Point(3181, 3432), Point(3177, 3429), Point(3173, 3426), Point(3170, 3421), Point(3170, 3423)];
+      TreeLocations := [Point(3170, 3422)];
+      setLength(LocationLogs, 1);
+      LocationLogs[0].ID := 1521;
+      CanBank := true;
+      jobString := 'Varrock Oaks (west)';
+    end;
+    11:begin
+      BankLocations := [Point(3166, 3489)];
+      bankOffset := [Point(0, 0)];
+      LocationTreeObjects := [R_MakeTTreeObject(Point(3205, 3504), [7420], [9714], 'Yew', 0, [0, 0, 200]), R_MakeTTreeObject(Point(3209, 3500), [7420], [9714], 'Yew', 1, [0, 0, 200]), R_MakeTTreeObject(Point(3222, 3503), [7420], [9714], 'Yew', 2, [0, 0, 200])];
+      TreeLocations := [Point(3207, 3502)];
+      setLength(LocationLogs, 1);
+      LocationLogs[0].ID := 1515;
+      CanBank := true;
+      jobString := 'Varrock Yews (palace)';
+    end;
+    12:begin
+      BankLocations := [Point(3012, 3354)];
+      bankOffset := [Point(0, 0)];
+      LocationTreeObjects := [R_MakeTTreeObject(Point(3001, 3367), [7417], [1356], 'Oak', 0, [0, 0, 200])];
+      TreeLocations := [Point(3001, 3365)];
+      setLength(LocationLogs, 1);
+      LocationLogs[0].ID := 1521;
+      CanBank := true;
+      jobString := 'Falador Oaks';
+    end;
+    13:begin
+      BankLocations := [Point(3012, 3354)];
+      bankOffset := [Point(0, 0)];
+      LocationTreeObjects := [R_MakeTTreeObject(Point(2997, 3312), [7419], [9714], 'Yew', 0, [0, 0, 200]), R_MakeTTreeObject(Point(3020, 3316), [7419], [9714], 'Yew', 1, [0, 0, 200]), R_MakeTTreeObject(Point(3042, 3320), [7419], [9714], 'Yew', 2, [0, 0, 200])];
+      PathToBank := [Point(3006, 3317), Point(3006, 3322), Point(3006, 3327), Point(3006, 3332), Point(3006, 3337), Point(3006, 3342), Point(3006, 3347), Point(3006, 3352), Point(3006, 3357), Point(3011, 3359), Point(3013, 3357)];
+      PathToTree := [Point(3012, 3355), Point(3009, 3359), Point(3008, 3354), Point(3008, 3349), Point(3008, 3344), Point(3008, 3339), Point(3008, 3334), Point(3008, 3329), Point(3008, 3324), Point(3007, 3319), Point(3002, 3319), Point(2998, 3315), Point(2997, 3314)];
+      TreeLocations := [Point(2997, 3314)];
+      setLength(LocationLogs, 1);
+      LocationLogs[0].ID := 1515;
+      CanBank := true;
+      jobString := 'Falador Yews';
+    end;
+    14:begin
+      BankLocations := [Point(3045, 3234)];
+      bankOffset := [Point(0, 0)];
+      LocationTreeObjects := [R_MakeTTreeObject(Point(3057, 3255), [7480], [9711], 'Willow', 0, [0, 0, 200]), R_MakeTTreeObject(Point(3062, 3255), [7480], [9711], 'Willow', 1, [0, 0, 200]), R_MakeTTreeObject(Point(3063, 3253), [7480], [9711], 'Willow', 2, [0, 0, 200]), R_MakeTTreeObject(Point(3057, 3252), [7480], [9711], 'Willow', 3, [0, 0, 200])];
+      PathToBank := [Point(3059, 3252), Point(3054, 3252), Point(3052, 3247), Point(3047, 3246), Point(3042, 3245), Point(3042, 3240), Point(3042, 3235), Point(3045, 3235)];
+      PathToTree := [Point(3045, 3235), Point(3042, 3239), Point(3042, 3244), Point(3047, 3246), Point(3052, 3247), Point(3054, 3252), Point(3059, 3253)];
+      TreeLocations := [Point(3059, 3252)];
+      setLength(LocationLogs, 1);
+      LocationLogs[0].ID := 1519;
+      CanBank := true;
+      jobString := 'Port Sarim Willows';
+    end;
+    15:begin
+      BankLocations := [Point(3045, 3234)];
+      bankOffset := [Point(0, 0)];
+      LocationTreeObjects := [R_MakeTTreeObject(Point(2936, 3230), [7419], [9714], 'Yew', 0, [0, 0, 200]), R_MakeTTreeObject(Point(2941, 3233), [7419], [9714], 'Yew', 1, [0, 0, 200]), R_MakeTTreeObject(Point(2934, 3234), [7419], [9714], 'Yew', 2, [0, 0, 200]), R_MakeTTreeObject(Point(2935, 3226), [7419], [9714], 'Yew', 3, [0, 0, 200])];
+      PathToBank := [Point(2935, 3228), Point(2940, 3228), Point(2945, 3229), Point(2950, 3228), Point(2955, 3228), Point(2960, 3227), Point(2965, 3225), Point(2970, 3225), Point(2975, 3225), Point(2980, 3225), Point(2985, 3223), Point(2990, 3223), Point(2995, 3222), Point(3000, 3222), Point(3005, 3219), Point(3009, 3215), Point(3014, 3215), Point(3019, 3217), Point(3024, 3217), Point(3027, 3221), Point(3027, 3226), Point(3027, 3231), Point(3029, 3236), Point(3034, 3236), Point(3039, 3236), Point(3044, 3236), Point(3045, 3235)];
+      PathToTree := [Point(3045, 3235), Point(3040, 3236), Point(3035, 3236), Point(3030, 3236), Point(3028, 3231), Point(3028, 3226), Point(3028, 3221), Point(3024, 3218), Point(3019, 3218), Point(3014, 3216), Point(3009, 3215), Point(3004, 3215), Point(2999, 3214), Point(2994, 3214), Point(2989, 3213), Point(2984, 3213), Point(2979, 3211), Point(2975, 3214), Point(2971, 3217), Point(2966, 3217), Point(2961, 3217), Point(2956, 3217), Point(2951, 3219), Point(2946, 3220), Point(2943, 3224), Point(2939, 3228), Point(2938, 3229)];
+      TreeLocations := [Point(2938, 3229)];
+      setLength(LocationLogs, 1);
+      LocationLogs[0].ID := 1515;
+      CanBank := true;
+      jobString := 'Rimmington Yews';
+    end;
+    16:begin
+      LocationTreeObjects := [R_MakeTTreeObject(Point(2433, 3426), [7419], [9714], 'Yew', 2, [0, 0, 200]), R_MakeTTreeObject(Point(2439, 3436), [7419], [9714], 'Yew', 0, [0, 0, 200]), R_MakeTTreeObject(Point(2433, 3441), [7419], [9714], 'Yew', 1, [0, 0, 200])];
+      customTPA1 := [Point(2445, 3435){plane 0 stairs}, Point(2445, 3434){plane 1 stairs}];
+      BankLocations := [Point(2447, 3427)];
+      bankOffset := [Point(0, 0)];
+      TreeLocations := [Point(2441, 3435)];
+      canBank := true;
+      setLength(LocationLogs, 1);
+      LocationLogs[0].ID := 1515;
+      jobString := 'Gnome Yews';
+    end;
+    17:begin
+      //11764   2490 3414
+      //11764   2372 3426     gate closed 2380 3425
+      writeln('Gnome Magics are not yet completed.');
+    end;
+    18:begin
+      BankLocations := [Point(3212, 3246)];
+      bankOffset := [Point(0, 0)];
+      LocationTreeObjects := [R_MakeTTreeObject(Point(3204, 3247), [7417], [1356], 'Oak', 0, [0, 0, 200], Point(0, -2)), R_MakeTTreeObject(Point(3205, 3240), [7417], [1356], 'Oak', 1, [0, 0, 200], Point(0, 2))];
+      TreeLocations := [Point(3206, 3242)];
+      setLength(LocationLogs, 1);
+      LocationLogs[0].ID := 1521;
+      CanBank := true;
+      customIDs1 := [507, 506{general store guys}];
+      Fletch := true;
+      jobString := 'Lumbridge Oaks (sell)';
+      fletchPoint := Point(264, 413);
+      setLength(LocationDoorObjects, 1);
+      with LocationDoorObjects[0] do begin
+        IDs := [7129];
+        Tile := Point(3215, 3245);
+        Offset := [-62, 0, 100];
+        TileEncompass := [Point(3212, 3251), Point(3214, 3249), Point(3214, 3244), Point(3212, 3242), Point(3210, 3242), Point(3208, 3244), Point(3208, 3249), Point(3210, 3251)];
+      end;
+    end;
+    19:begin
+      BankLocations := [Point(3208, 3221)];
+      bankOffset := [Point(0, 0)];
+      LocationTreeObjects := [R_MakeTTreeObject(Point(3250, 3202), [7419], [9714], 'Yew', 0, [0, 0, 200])];
+      TreeLocations := [Point(3248, 3202)];
+      setLength(LocationLogs, 1);
+      LocationLogs[0].ID := 1515;
+      CanBank := true;
+      PathToBank := [Point(3248, 3202), Point(3243, 3201), Point(3238, 3201), Point(3236, 3206), Point(3236, 3211), Point(3234, 3216), Point(3229, 3218), Point(3224, 3218), Point(3219, 3218), Point(3215, 3215), Point(3214, 3210), Point(3209, 3210), Point(3206, 3209)];
+      PathToTree := [Point(3206, 3210), Point(3211, 3210), Point(3215, 3213), Point(3215, 3218), Point(3220, 3218), Point(3225, 3218), Point(3230, 3218), Point(3232, 3213), Point(3234, 3208), Point(3236, 3203), Point(3241, 3201), Point(3246, 3201), Point(3248, 3201)];
+      customTPA1 := [Point(3205, 3208){'Climb-'}];
+      jobString := 'Lumbridge Yews';
+    end;
+    20:begin
+      BankLocations := [Point(3095, 3491)];
+      bankOffset := [Point(0, 0)];
+      LocationTreeObjects := [R_MakeTTreeObject(Point(3113, 3495), [7480], [9711], 'Willow', 0, [0, 0, 200])];
+      TreeLocations := [Point(3112, 3495)];
+      setLength(LocationLogs, 1);
+      LocationLogs[0].ID := 1519;
+      CanBank := true;
+      jobString := 'Edgeville Willows';
+    end;
+    21:begin
+      BankLocations := [Point(3095, 3491)];
+      bankOffset := [Point(0, 0)];
+      LocationTreeObjects := [R_MakeTTreeObject(Point(3086, 3469), [7419], [9714], 'Yew', 0, [0, 0, 200], Point(0, 2)), R_MakeTTreeObject(Point(3086, 3481), [7419], [9714], 'Yew', 1, [0, 0, 200], Point(0, -2))];
+      PathToBank := [Point(3094, 3470), Point(3094, 3475), Point(3094, 3480), Point(3093, 3485), Point(3090, 3489), Point(3093, 3491)];
+      PathToTree := [Point(3093, 3491), Point(3090, 3487), Point(3093, 3483), Point(3093, 3478), Point(3094, 3473), Point(3093, 3470)];
+      TreeLocations := [Point(3087, 3471)];
+      setLength(LocationLogs, 1);
+      LocationLogs[0].ID := 1515;
+      CanBank := true;
+      jobString := 'Edgeville Yews';
+      setLength(LocationDoorObjects, 1);
+      with LocationDoorObjects[0] do begin
+        IDs := [7143];
+        Tile := Point(3091, 3470);
+        Offset := [62, 0, 100];
+        TileEncompass := [Point(3091, 3468), Point(3085, 3468), Point(3085, 3482), Point(3089, 3482), Point(3089, 3473), Point(3091, 3473)];
+      end;
+    end;
+    22:begin
+      customIDs1 := [1278, 1276, 1286, 1282, 2091, 2092];
+      setLength(LocationLogs, 1);
+      LocationLogs[0].ID := 1511;
+      Fletch := true;
+      jobString := 'Powerchop Normals';
+      fletchPoint := Point(79, 411);
+    end;
+    23:begin
+      customIDs1 := [7417];
+      setLength(LocationLogs, 1);
+      LocationLogs[0].ID := 1521;
+      Fletch := true;
+      jobString := 'Powerchop Oaks';
+      fletchPoint := Point(264, 413);
+    end;
+    24:begin
+      customIDs1 := [7480, 7422, 7482, 7424];
+      setLength(LocationLogs, 1);
+      LocationLogs[0].ID := 1519;
+      Fletch := true;
+      jobString := 'Powerchop Willows';
+      fletchPoint := Point(264, 413);
+    end;
+    25:begin
+      jobString := 'Duel Arena Magics';
+      BankLocations := [Point(3381, 3269)];
+      bankOffset := [Point(0, 0)];
+      canBank := true;
+      treeLocations := [Point(3369, 3312)];
+      setLength(LocationLogs, 1);
+      LocationLogs[0].ID := 1513;
+      LocationTreeObjects := [R_MakeTTreeObject(Point(3357, 3311), [11764], [9713], 'Magic', 0, [0, 0, 200]), R_MakeTTreeObject(Point(3369, 3312), [11764], [9713], 'Magic', 1, [0, 0, 200])];
+      pathToTree := [Point(3381, 3268), Point(3386, 3265), Point(3388, 3271), Point(3385, 3276), Point(3384, 3282), Point(3382, 3288), Point(3379, 3293), Point(3373, 3293), Point(3367, 3293), Point(3363, 3295)];
+      pathToBank := [Point(3363, 3295), Point(3369, 3293), Point(3375, 3293), Point(3379, 3289), Point(3382, 3284), Point(3382, 3278), Point(3385, 3273), Point(3385, 3267), Point(3382, 3269)]
+    end;
+    26:begin
+      jobString := 'Rimmington Yews (sell)';
+      BankLocations := [Point(2949, 3215)];
+      bankOffset := [Point(0, 0)];
+      LocationTreeObjects := [R_MakeTTreeObject(Point(2936, 3230), [7419], [9714], 'Yew', 0, [0, 0, 200]), R_MakeTTreeObject(Point(2941, 3233), [7419], [9714], 'Yew', 1, [0, 0, 200]), R_MakeTTreeObject(Point(2934, 3234), [7419], [9714], 'Yew', 2, [0, 0, 200]), R_MakeTTreeObject(Point(2935, 3226), [7419], [9714], 'Yew', 3, [0, 0, 200])];
+      TreeLocations := [Point(2938, 3229)];
+      setLength(LocationLogs, 1);
+      LocationLogs[0].ID := 1515;
+      CanBank := true;
+      customIDs1 := [516, 517];
+      Fletch := true;
+      fletchPoint := Point(264, 413);
+      setLength(LocationDoorObjects, 1);
+      with LocationDoorObjects[0] do begin
+        IDs := [7129];
+        Tile := Point(2951, 3214);
+        Offset := [-62, 0, 100];
+        TileEncompass := [Point(2949, 3218), Point(2950, 3217), Point(2950, 3212), Point(2949, 3211), Point(2946, 3211), Point(2946, 3218)];
+      end;
+    end;
+    27:begin
+      jobString := 'Lumbridge Yews (sell)';
+      BankLocations := [Point(3212, 3246)];
+      bankOffset := [Point(0, 0)];
+      LocationTreeObjects := [R_MakeTTreeObject(Point(3250, 3202), [7419], [9714], 'Yew', 0, [0, 0, 200])];
+      TreeLocations := [Point(3248, 3202)];
+      setLength(LocationLogs, 1);
+      LocationLogs[0].ID := 1515;
+      CanBank := true;
+      customIDs1 := [507, 506{general store guys}];
+      Fletch := true;
+      fletchPoint := Point(264, 413);
+      setLength(LocationDoorObjects, 1);
+      with LocationDoorObjects[0] do begin
+        IDs := [7129];
+        Tile := Point(3215, 3245);
+        Offset := [-62, 0, 100];
+        TileEncompass := [Point(3212, 3251), Point(3214, 3249), Point(3214, 3244), Point(3212, 3242), Point(3210, 3242), Point(3208, 3244), Point(3208, 3249), Point(3210, 3251)];
+      end;
+    end;
+    28:begin
+      jobString := 'Seers Oaks';
+      BankLocations := [Point(2727, 3494)];
+      bankOffset := [Point(0, 0)];
+      LocationTreeObjects := [R_MakeTTreeObject(Point(2731, 3485), [7417], [1356], 'Oak', 0, [0, 0, 200])];
+      TreeLocations := [Point(2731, 3485)];
+      setLength(LocationLogs, 1);
+      LocationLogs[0].ID := 1521;
+      CanBank := true;
+    end;
+    29:begin
+      jobString := 'Varrock East Yews (pray)';
+      bankLocations := [Point(3254, 3419)];
+      bankOffset := [Point(0, 0)];
+      TreeLocations := [Point(3249, 3473)];
+      canBank := true;
+      setLength(LocationLogs, 1);
+      LocationLogs[0].ID := 1515;
+      LocationTreeObjects := [R_MakeTTreeObject(Point(3249, 3473), [7420], [9714], 'Yew', 0, [0, 0, 200])];
+    end;
+    30:begin
+      jobString := 'Varrock East Oaks';
+      bankLocations := [Point(3254, 3419)];
+      bankOffset := [Point(0, 0)];
+      TreeLocations := [Point(3280, 3431)];
+      canBank := true;
+      setLength(LocationLogs, 1);
+      LocationLogs[0].ID := 1521;
+      LocationTreeObjects := [R_MakeTTreeObject(Point(3280, 3431), [7417], [1356], 'Oak', 0, [0, 0, 200]), R_MakeTTreeObject(Point(3282, 3425), [7417], [1356], 'Oak', 1, [0, 0, 200]), R_MakeTTreeObject(Point(3277, 3437), [7417], [1356], 'Oak', 2, [0, 0, 200])];
+    end;
+    31:begin
+      jobString := 'Varrock East Yews';
+      bankLocations := [Point(3254, 3419)];
+      bankOffset := [Point(0, 0)];
+      TreeLocations := [Point(3271, 3471)];
+      canBank := true;
+      setLength(LocationLogs, 1);
+      LocationLogs[0].ID := 1515;
+      LocationTreeObjects := [R_MakeTTreeObject(Point(3271, 3471), [7419], [9714], 'Yew', 0, [0, 0, 200]), R_MakeTTreeObject(Point(3267, 3494), [7419], [9714], 'Yew', 1, [0, 0, 200]), R_MakeTTreeObject(Point(3305, 3470), [7419], [9714], 'Yew', 2, [0, 0, 200])];
+    end;
+    32:begin
+      jobString := 'Port Sarim Yews';
+      BankLocations := [Point(3045, 3234)];
+      bankOffset := [Point(0, 0)];
+      LocationTreeObjects := [R_MakeTTreeObject(Point(3054, 3271), [7419], [9714], 'Yew', 0, [0, 0, 200])];
+      TreeLocations := [Point(3054, 3271)];
+      setLength(LocationLogs, 1);
+      LocationLogs[0].ID := 1515;
+      CanBank := true;
+    end;
+    33:begin
+      jobString := 'Barb. Assault Willows';
+      LocationTreeObjects := [R_MakeTTreeObject(Point(2517, 3598), [7480], [9711], 'Willow', 0, [0, 0, 200]), R_MakeTTreeObject(Point(2518, 3577), [7480], [9711], 'Willow', 1, [0, 0, 200]), R_MakeTTreeObject(Point(2517, 3579), [7480], [9711], 'Willow', 2, [0, 0, 200]), R_MakeTTreeObject(Point(2519, 3581), [7480], [9711], 'Willow', 3, [0, 0, 200]), R_MakeTTreeObject(Point(2517, 3582), [7480], [9711], 'Willow', 4, [0, 0, 200])];
+      treeLocations := [Point(2517, 3598)];
+      canBank := true;
+      setLength(LocationLogs, 1);
+      LocationLogs[0].ID := 1519;
+      bankLocations := [Point(2537, 3573)];
+      bankOffset := [Point(0, 0)];
+    end;
+    34:begin
+      jobString := 'Gnome Yews (2)';
+      LocationTreeObjects := [R_MakeTTreeObject(Point(2493, 3401), [7419], [9714], 'Yew', 2, [0, 0, 200]), R_MakeTTreeObject(Point(2494, 3395), [7419], [9714], 'Yew', 0, [0, 0, 200]), R_MakeTTreeObject(Point(2479, 3393), [7419], [9714], 'Yew', 1, [0, 0, 200]), R_MakeTTreeObject(Point(2489, 3394), [7419], [9714], 'Yew', 3, [0, 0, 200])];
+      customTPA1 := [Point(2445, 3435){plane 0 stairs}, Point(2445, 3434){plane 1 stairs}];
+      BankLocations := [Point(2447, 3427)];
+      bankOffset := [Point(0, 0)];
+      TreeLocations := [Point(2494, 3395)];
+      canBank := true;
+      setLength(LocationLogs, 1);
+      LocationLogs[0].ID := 1515;
+    end;
+    35:begin
+      jobString := 'Lumbridge Willows (sell)';
+      BankLocations := [Point(3212, 3246)];
+      bankOffset := [Point(0, 0)];
+      LocationTreeObjects := [R_MakeTTreeObject(Point(3234, 3238), [7480], [9711], 'Willow', 0, [0, 0, 200]), R_MakeTTreeObject(Point(3234, 3244), [7480], [9711], 'Willow', 1, [0, 0, 200])];
+      TreeLocations := [Point(3234, 3244)];
+      setLength(LocationLogs, 1);
+      LocationLogs[0].ID := 1519;
+      CanBank := true;
+      customIDs1 := [507, 506{general store guys}];
+      Fletch := true;
+      fletchPoint := Point(264, 413);
+      setLength(LocationDoorObjects, 1);
+      with LocationDoorObjects[0] do begin
+        IDs := [7129];
+        Tile := Point(3215, 3245);
+        Offset := [-62, 0, 100];
+        TileEncompass := [Point(3212, 3251), Point(3214, 3249), Point(3214, 3244), Point(3212, 3242), Point(3210, 3242), Point(3208, 3244), Point(3208, 3249), Point(3210, 3251)];
+      end;
+    end;
+    36:begin
+      jobString := 'Rimmington Willows (sell)';
+      BankLocations := [Point(2949, 3215)];
+      bankOffset := [Point(0, 0)];
+      LocationTreeObjects := [R_MakeTTreeObject(Point(2962, 3198), [7424], [9471], 'Willow', 0, [0, 0, 200]), R_MakeTTreeObject(Point(2963, 3195), [7422], [9471], 'Willow', 1, [0, 0, 200]), R_MakeTTreeObject(Point(2966, 3199), [7480], [9711], 'Willow', 2, [0, 0, 200]), R_MakeTTreeObject(Point(2961, 3195), [7480], [9711], 'Willow', 3, [0, 0, 200])];
+      TreeLocations := [Point(2962, 3198)];
+      setLength(LocationLogs, 1);
+      LocationLogs[0].ID := 1519;
+      CanBank := true;
+      //area of inside
+      customIDs1 := [516, 517];
+      Fletch := true;
+      fletchPoint := Point(264, 413);
+      setLength(LocationDoorObjects, 1);
+      with LocationDoorObjects[0] do begin
+        IDs := [7129];
+        Tile := Point(2951, 3214);
+        Offset := [-62, 0, 100];
+        TileEncompass := [Point(2949, 3218), Point(2950, 3217), Point(2950, 3212), Point(2949, 3211), Point(2946, 3211), Point(2946, 3218)];
+      end;
+    end;
+    37:begin
+      LocationTreeObjects := [R_MakeTTreeObject(Point(3220, 3306), [7482], [9471], 'Willow', 0, [100, -100, 200]), R_MakeTTreeObject(Point(3221, 3308), [7424], [9471], 'Willow', 1, [0, 0, 200]), R_MakeTTreeObject(Point(3222, 3302), [7422], [9471], 'Willow', 2, [0, 0, 200])];
+      TreeLocations := [Point(3222, 3306)];
+      setLength(LocationLogs, 1);
+      LocationLogs[0].ID := 1519;
+      jobString := 'North Lum. Willows';
+      fireMake := true;
+      fireTiles := [Point(3243, 3307), Point(3244, 3308), Point(3245, 3309)];
+      endFireTiles := [Point(3220, 3307), Point(3226, 3308), Point(3228, 3309)];
+    end;
+    38:begin
+      LocationTreeObjects := [R_MakeTTreeObject(Point(3178, 3274), [7480], [9711], 'Willow', 0, [0, 0, 200]), R_MakeTTreeObject(Point(3179, 3271), [7422], [9471], 'Willow', 1, [0, 0, 200])];
+      TreeLocations := [Point(3176, 3272)];
+      setLength(LocationLogs, 1);
+      LocationLogs[0].ID := 1519;
+      jobString := 'West Lum. Willows';
+      fireMake := true;
+      fireTiles := [Point(3183, 3276), Point(3183, 3277), Point(3171, 3275)];
+      endFireTiles := [Point(3158, 3276), Point(3166, 3277), Point(3158, 3275)];
+    end;
+    39:begin
+      LocationTreeObjects := [R_MakeTTreeObject(Point(3167, 3273), [7424], [9471], 'Willow', 0, [0, 0, 200]), R_MakeTTreeObject(Point(3164, 3271), [7424], [9471], 'Willow', 1, [0, 0, 200]), R_MakeTTreeObject(Point(3162, 3268), [7482], [9471], 'Willow', 2, [0, 0, 200]), R_MakeTTreeObject(Point(3165, 3266), [7480], [9711], 'Willow', 3, [0, 0, 200])];
+      TreeLocations := [Point(3176, 3272)];
+      setLength(LocationLogs, 1);
+      LocationLogs[0].ID := 1519;
+      jobString := 'West Lum. Willows(2)';
+      fireMake := true;
+      fireTiles := [Point(3180, 3263), Point(3172, 3262)];
+      endFireTiles := [Point(3154, 3263), Point(3158, 3262)];
+    end;
+    40:begin
+      LocationTreeObjects := [R_MakeTTreeObject(Point(2773, 2698), [9036], [9037], 'Teak', 0, [0, 0, 200]), R_MakeTTreeObject(Point(2776, 2698), [9036], [9037], 'Teak', 1, [0, 0, 200]), R_MakeTTreeObject(Point(2773, 2700), [9036], [9037], 'Teak', 2, [0, 0, 200])];
+      TreeLocations := [Point(2774, 2698)];
+      setLength(LocationLogs, 1);
+      LocationLogs[0].ID := 6333;
+      jobString := 'Ape Atoll Teaks';
+    end;
+    41:begin
+      progChopping := true;
+      jobString := 'Lumbridge Progressive Chopping';
+      setLength(LocationLogs, 3);
+      LocationLogs[0].ID := 1521;
+      LocationLogs[1].ID := 1519;
+      LocationLogs[2].ID := 1511;
+    end;
+    42:begin
+      LocationTreeObjects := [R_MakeTTreeObject(Point(2335, 3048), [9036], [9037], 'Teak', 0, [0, 0, 200])];
+      TreeLocations := [Point(2334, 3048)];
+      setLength(LocationLogs, 1);
+      LocationLogs[0].ID := 6333;
+      jobString := 'Castle Wars Teaks';
+      fireMake := true;
+      fireTiles := [Point(2333, 3051), Point(2333, 3050), Point(2336, 3049), Point(2334, 3048), Point(2335, 3047), Point(2335, 3046)];
+      endFireTiles := [Point(2329, 3051), Point(2329, 3050), Point(2330, 3049), Point(2330, 3048), Point(2330, 3047), Point(2331, 3046)];
+    end;
+    43:begin
+      LocationTreeObjects := [R_MakeTTreeObject(Point(2827, 3080), [9036], [9037], 'Teak', 1, [0, 0, 200]), R_MakeTTreeObject(Point(2828, 3082), [9036], [9037], 'Teak', 2, [0, 0, 200]), R_MakeTTreeObject(Point(2828, 3079), [9036], [9037], 'Teak', 0, [0, 0, 200]), R_MakeTTreeObject(Point(2822, 3078), [9036], [9037], 'Teak', 3, [0, 0, 200])];
+      TreeLocations := [Point(2827, 3081)];
+      setLength(LocationLogs, 1);
+      LocationLogs[0].ID := 6333;
+      jobString := 'Tai Bwo Wannai Teaks';
+    end;
+    44:begin
+      LocationTreeObjects := [R_MakeTTreeObject(Point(2823, 3088), [9036], [9037], 'Teak', 0, [0, 0, 200]), R_MakeTTreeObject(Point(2825, 3087), [9036], [9037], 'Teak', 1, [0, 0, 200]), R_MakeTTreeObject(Point(2827, 3088), [9036], [9037], 'Teak', 2, [0, 0, 200]), R_MakeTTreeObject(Point(2827, 3085), [9036], [9037], 'Teak', 3, [0, 0, 200]), R_MakeTTreeObject(Point(2826, 3084), [9036], [9037], 'Teak', 4, [0, 0, 200])];
+      TreeLocations := [Point(2826, 3086)];
+      setLength(LocationLogs, 1);
+      LocationLogs[0].ID := 6333;
+      jobString := 'Tai Bwo Wannai Teaks(2)';
+    end;
+    45:begin
+      LocationTreeObjects := [R_MakeTTreeObject(Point(2822, 3084), [9034], [9035], 'Mahogany', 0, [0, 0, 200]), R_MakeTTreeObject(Point(2820, 3088), [9034], [9035], 'Mahogany', 1, [0, 0, 200]), R_MakeTTreeObject(Point(2820, 3080), [9034], [9035], 'Mahogany', 2, [0, 0, 200]), R_MakeTTreeObject(Point(2824, 3080), [9034], [9035], 'Mahogany', 3, [0, 0, 200])];
+      TreeLocations := [Point(2824, 3084)];
+      setLength(LocationLogs, 1);
+      LocationLogs[0].ID := 6332;
+      jobString := 'Tai Bwo Wannai Mahogany';
+    end;
+  end;
+
+  for i:=0 to high(LocationLogs) do begin
+    LocationLogs[i].chopped := 0;
+     LocationLogs[i].price := getPriceGE(LocationLogs[i].ID);
+  end;
+
+  for i:=0 to 1000 do begin
+    if(not FileExists(ScriptPath+'ineedbot''s AIO Woodcutter proggy '+toStr(i)+'.png'))then begin
+      ProggieLocation := ScriptPath+'ineedbot''s AIO Woodcutter proggy '+toStr(i)+'.png';
+      i:=1000;
+    end;
+  end;
+  doProggy;
+
+  if disableBank then
+    canBank := false;
+
+  if fireMake and not TReflectionInventory.Contains(TinderIds) then
+    fireMake := false;
+
+  if fletch and not TReflectionInventory.Contains(KnifeIDs) then
+    fletch := false;
+end;
+
+procedure FreeDTMZ;
+begin
+  graphicOpti.Free;
+  daLogger.Status('Thanks for using ineedbot''s AIO Woodcutter v'+FloatToStr(Version)+'('+floatToStr(fversion)+')'+'! Please post your progress reports! Run time: '+TReflectionTime.msToTime(getTimeRunning(), TIME_FORMAL), []);
+end;
+
+procedure setupPlayer;
+begin
+  //setFixedClient;
+  //setBrightness(4);
+  //toggleDataOrbs(true);
+  //toggleRoofRemoval(true);
+  //setCompass('N');
+  //setAngle(ANGLE_HIGH);
+  Reflect.Compass.Make('n');
+  Reflect.Compass.MakePitch(10);
+  LastXPCheck.restart;
+end;
+
+procedure _doCount(howManyToCount:integer);
+var _items : TReflectInvItemArray;
+    i, h, count: integer;
+begin
+  count := 0;
+  statsServer.IncreaseVariable('43', 1);
+  _items.GetAll;
+  for i:=0 to high(_items) do begin
+    for h:=0 to high(LocationLogs) do
+      if (_items[i].GetID = LocationLogs[h].ID) and (count < howManyToCount) then begin
+        inc(count);
+        inc(LocationLogs[h].chopped);
+
+        if (pos('logs', lowercase(_items[i].getName)) > 0) then begin
+          if (pos('oak', lowercase(_items[i].getName)) > 0) then
+            statsServer.IncreaseVariable('30', 1)
+          else if (pos('willow', lowercase(_items[i].getName)) > 0) then
+            statsServer.IncreaseVariable('31', 1)
+          else if (pos('maple', lowercase(_items[i].getName)) > 0) then
+            statsServer.IncreaseVariable('32', 1)
+          else if (pos('yew', lowercase(_items[i].getName)) > 0) then
+            statsServer.IncreaseVariable('33', 1)
+          else if (pos('magic', lowercase(_items[i].getName)) > 0) then
+            statsServer.IncreaseVariable('34', 1)
+          else if (pos('teak', lowercase(_items[i].getName)) > 0) then
+            statsServer.IncreaseVariable('131', 1)
+          else if (pos('arctic pine', lowercase(_items[i].getName)) > 0) then
+            statsServer.IncreaseVariable('136', 1)
+          else if (pos('mahogany', lowercase(_items[i].getName)) > 0) then
+            statsServer.IncreaseVariable('133', 1)
+          else
+             statsServer.IncreaseVariable('29', 1);
+        end;
+        if (pos('logs', lowercase(_items[i].getName)) > 0) then begin
+          if (pos('oak', lowercase(_items[i].getName)) > 0) then
+            statsServer.IncreaseVariable('24', 1)
+          else if (pos('willow', lowercase(_items[i].getName)) > 0) then
+            statsServer.IncreaseVariable('25', 1)
+          else if (pos('maple', lowercase(_items[i].getName)) > 0) then
+            statsServer.IncreaseVariable('26', 1)
+          else if (pos('yew', lowercase(_items[i].getName)) > 0) then
+            statsServer.IncreaseVariable('27', 1)
+          else if (pos('magic', lowercase(_items[i].getName)) > 0) then
+            statsServer.IncreaseVariable('28', 1)
+          else if (pos('teak', lowercase(_items[i].getName)) > 0) then
+            statsServer.IncreaseVariable('132', 1)
+          else if (pos('arctic pine', lowercase(_items[i].getName)) > 0) then
+            statsServer.IncreaseVariable('135', 1)
+          else if (pos('mahogany', lowercase(_items[i].getName)) > 0) then
+            statsServer.IncreaseVariable('134', 1)
+          else
+            statsServer.IncreaseVariable('23', 1);
+        end;
+      end;
+  end;
+end;
+
+procedure doCount;
+var _items : TReflectInvItemArray;
+    i, h : integer;
+begin
+  statsServer.IncreaseVariable('43', 1);
+  _items.GetAll;
+  for i:=0 to high(_items) do begin
+    for h:=0 to high(LocationLogs) do
+      if (_items[i].GetID = LocationLogs[h].ID) then begin
+        inc(LocationLogs[h].chopped);
+        if (pos('logs', lowercase(_items[i].getName)) > 0) then begin
+          if (pos('oak', lowercase(_items[i].getName)) > 0) then
+            statsServer.IncreaseVariable('30', 1)
+          else if (pos('willow', lowercase(_items[i].getName)) > 0) then
+            statsServer.IncreaseVariable('31', 1)
+          else if (pos('maple', lowercase(_items[i].getName)) > 0) then
+            statsServer.IncreaseVariable('32', 1)
+          else if (pos('yew', lowercase(_items[i].getName)) > 0) then
+            statsServer.IncreaseVariable('33', 1)
+          else if (pos('magic', lowercase(_items[i].getName)) > 0) then
+            statsServer.IncreaseVariable('34', 1)
+          else if (pos('teak', lowercase(_items[i].getName)) > 0) then
+            statsServer.IncreaseVariable('131', 1)
+          else if (pos('arctic pine', lowercase(_items[i].getName)) > 0) then
+            statsServer.IncreaseVariable('136', 1)
+          else if (pos('mahogany', lowercase(_items[i].getName)) > 0) then
+            statsServer.IncreaseVariable('133', 1)
+          else
+             statsServer.IncreaseVariable('29', 1);
+        end;
+      end;
+  end;
+end;
+
+procedure doDropping(forced:boolean=false);
+var _items : TReflectInvItemArray;
+    i, _id, _slot : integer;
+    firstTim : boolean;
+    logIDs : TIntegerArray;
+    tB : TBox;
+begin
+  if not forced then
+    doCount;
+  updateScreen('Dropping items.');
+  doProggy;
+  firstTim := true;
+  logIDs := getLogIDs;
+  exitMenu;
+  while ReflectPlayer.isLoggedIn and (TReflectionInventory.Contains(LogIDs) or firstTim)
+  and not ReflectPlayer.IsUnderAttack and not anySlotActivated do begin
+    updateScreen('Dropping items.');
+    randomHandler;
+    Reflect.Gametab.Open(Gametab_Inventory);
+    _items.GetAll;
+    for i:=0 to high(_items) do begin
+      _slot := _items[i].getinvslot;
+      _id := _items[i].getid;
+      if ReflectPlayer.isLoggedIn and ((not inIntArray(KnifeIDs, _id) and not inIntArray(AxeIDs, _id) and
+      not inIntArray(CoinsIDs, _id) and not inIntArray(ShaftIDs, _id) and not inIntArray(NestIDs, _id) and
+      not inIntArray(GreeGreeIDs, _id) and not inIntArray(TradingSticksIDs, _id) and not DropOnly) or (dropOnly and inIntArray(LogIDs, _id)))
+      and itemInSlot(_slot) and not anySlotActivated and
+      not ReflectPlayer.IsUnderAttack then begin
+        tB := TReflectionInventory.invBox(_slot);
+        if not MouseKeys then begin
+          Reflect.Mouse.Move(tB, mouse_right);
+          Reflect.Text.ChooseOption('Drop', 2500);
+        end else begin
+          MoveMouse(RandomRange(tb.X1, tb.X2), RandomRange(tb.y1, tb.y2));
+          fastClick(Mouse_right);
+          chooseOptionMultiFast('Drop');
+        end;
+      end;
+    end;
+    firstTim := false;
+  end;
+end;
+
+procedure doFire;
+var goodLanes : TIntegerArray;
+    goodLane, h, activeID, count : integer;
+    tP, tP2 : TPoint;
+    tB : TBox;
+    fail, fail2, fail3 : TreflectTimer;
+    _item : TReflectInvItem;
+    _obj : TReflectObject;
+    logIDs : TIntegerArray;
+begin
+  if not FireMake then
+    exit;
+
+  goodLanes := getGoodFireLaneIndices;
+  logIDs := getLogIDs;
+
+  if high(goodLanes) <= -1 then begin
+    doDropping(true);
+    exit;
+  end;
+
+  goodLane := goodLanes[random(length(goodLanes))];
+
+  if not TReflectionInventory.Contains(LogIDs) then
+    exit;
+
+  if not TReflectionInventory.Contains(TinderIds) then
+    Exit;
+
+  fail.restart;
+  while not R_TileOnMS(FireTiles[goodLane], tP) and (fail.Elapsedtime < 30000) do begin
+    updateScreen('Going to firelane.');
+    ReflectPlayer.BlindWalkMM(FireTiles[goodLane], 5);
+    ReflectPlayer.FFlag(0, 2500+random(500));
+    sleepScript(500+random(500));
+  end;
+
+  fail.restart;
+  while not TReflectionTiles.NearTile(FireTiles[goodLane], 1) and R_TileOnMS(FireTiles[goodLane], tP) and (fail.Elapsedtime < 10000) do begin
+    updateScreen('Going to firelane tile.');
+    R_InteractTile(FireTiles[goodLane], 'Walk');
+    ReflectPlayer.FFlag(0, 5000+random(500));
+    sleepScript(500+random(500));
+  end;
+  tP := TReflectionTiles.GetGlobalTile;
+  if TReflectionInventory.Contains(LogIDs) and TReflectionInventory.Contains(TinderIds) and
+        (tP.Y = FireTiles[goodLane].Y) and (tP.X >= endFireTiles[goodLane].x) and
+        (tP.X <= FireTiles[goodLane].x) and ReflectPlayer.isLoggedIn and not ReflectPlayer.IsUnderAttack then begin
+    for h:=EndFireTiles[goodLane].X to FireTiles[goodLane].X do
+      inc(count);
+
+    _Docount(count);
+    updateScreen('Making fires...');
+    randomHandler;
+    doProggy;
+  end;
+
+  while TReflectionInventory.Contains(LogIDs) and TReflectionInventory.Contains(TinderIds) and
+        (tP.Y = FireTiles[goodLane].Y) and (tP.X >= endFireTiles[goodLane].x) and
+        (tP.X <= FireTiles[goodLane].x) and ReflectPlayer.isLoggedIn and not ReflectPlayer.IsUnderAttack do begin
+    if Reflect.Gametab.Current <> Gametab_Inventory then
+      Reflect.Gametab.Open(Gametab_Inventory);
+    _obj.GetAt(ObjGame, tP);
+    if not inIntArray(FireIDs, _obj.GetID) then begin
+      if not anySlotActivated then begin
+        for h:=0 to high(TinderIds) do begin
+          if(_item.Find(TinderIds[h]))then begin
+            getMousePos(tP2.x, tP2.y);
+            tB := _item.getbox;
+            if not PointInBox(tP2, tB) then
+              reflect.mouse.move(tB, mouse_left)
+            else
+              fastClick(mouse_left);
+            h:= high(TinderIds);
+            fail2.restart;
+            while not anySlotActivated and (fail2.Elapsedtime < 1000) do
+              sleepScript(25);
+          end;
+        end;
+      end;
+      if anySlotActivated then begin
+        activeID := getActiveItemID;
+        if inIntArray(LogIDs, activeID) then begin
+          for h:=0 to high(TinderIds) do begin
+            if(_item.Find(TinderIds[h]))then begin
+              getMousePos(tP2.x, tP2.y);
+              tB := _item.getbox;
+              if not PointInBox(tP2, tB) then
+                reflect.mouse.move(tB, mouse_left)
+              else
+                fastClick(mouse_left);
+              h:= high(TinderIds);
+            end;
+          end;
+        end else begin
+          if inIntArray(TinderIds, activeID) then begin
+            for h:=0 to high(LogIDs) do begin
+              if(_item.Find(LogIDs[h]))then begin
+                getMousePos(tP2.x, tP2.y);
+                tB := _item.getbox;
+                if not PointInBox(tP2, tB) then
+                  reflect.mouse.move(tB, mouse_left)
+                else
+                  fastClick(mouse_left);
+                h:= high(LogIDs);
+              end;
+            end;
+          end else begin
+            fixActive;
+          end;
+        end;
+      end;
+
+      fail.restart;
+      fail2.restart;
+      fail3.restart;
+      while TReflectionTiles.NearTile(tP, 1) and (fail.Elapsedtime < 2500) do begin
+        //updateScreen('Making fires...');  //to slow
+        //randomHandler;//to slow
+        if inIntArray(fireAnimIDs, ReflectPlayer.getAnimation) then
+          fail.restart;
+        if (fail3.Elapsedtime > 350) then begin     //used to stop overlap or false postive with wasactive
+          if not anySlotActivated then begin
+            if (R_CountItems(LogIDs) > 1) and ((tP.X-1) >= endFireTiles[goodLane].x) then begin
+              for h:=0 to high(TinderIds) do begin
+                if(_item.Find(TinderIds[h]))then begin
+                  getMousePos(tP2.x, tP2.y);
+                  tB := _item.getbox;
+                  if not PointInBox(tP2, tB) then
+                    reflect.mouse.move(tB, mouse_left)
+                  else
+                    fastClick(mouse_left);
+                  h:= high(TinderIds);
+                  fail2.restart;
+                  while not anySlotActivated and (fail2.Elapsedtime < 1000) do
+                    sleepScript(25);
+                end;
+              end;
+            end;
+          end;
+          if anySlotActivated then begin
+            activeID := getActiveItemID;
+            if inIntArray(LogIDs, activeID) then begin
+              for h:=0 to high(TinderIds) do begin
+                if(_item.Find(TinderIds[h]))then begin
+                  getMousePos(tP2.x, tP2.y);
+                  tB := _item.getbox;
+                  if not PointInBox(tP2, tB) then
+                    reflect.mouse.move(tB);
+                  h:= high(TinderIds);
+                end;
+              end;
+            end else begin
+              if inIntArray(TinderIds, activeID) then begin
+                for h:=0 to high(LogIDs) do begin
+                  if(_item.Find(LogIDs[h]))then begin
+                    getMousePos(tP2.x, tP2.y);
+                    tB := _item.getbox;
+                    if not PointInBox(tP2, tB) then
+                      reflect.mouse.move(tB);
+                    h:= high(LogIDs);
+                  end;
+                end;
+              end else begin
+                fixActive;
+              end;
+            end;
+          end;
+        end;
+      end;
+
+      fail.restart;
+      _obj.GetAt(ObjGame, tP);
+      while not inIntArray(FireIDs, _obj.GetId) and (fail.Elapsedtime < 2500) do
+        _obj.GetAt(ObjGame, tP);
+      tP := TReflectionTiles.GetGlobalTile;
+    end else begin
+      for h:=tP.x downto endFireTiles[goodLane].X do begin
+        _obj.GetAt(ObjGame, Point(h, tP.y));
+        if not inIntArray(FireIDs, _obj.GetID) then begin
+          tP := Point(h, tP.y);
+          h:=endFireTiles[goodLane].X;
+        end else begin
+          if (h = endFireTiles[goodLane].X) then
+            exit;
+        end;
+      end;
+
+      fail.restart;
+      while not R_TileOnMS(tP, tP2) and (fail.Elapsedtime < 30000) do begin
+        updateScreen('Going to fire spot...');
+        ReflectPlayer.BlindWalkMM(tP, 5);
+        ReflectPlayer.FFlag(0, 2500+random(500));
+        sleepScript(500+random(500));
+      end;
+
+      fail.restart;
+      while not TReflectionTiles.NearTile(tP, 1) and R_TileOnMS(tP, tP2) and (fail.Elapsedtime < 10000) do begin
+        updateScreen('Going to fire spot tile...');
+        FixActive;
+        R_InteractTile(tP, 'Walk');
+        ReflectPlayer.FFlag(0, 5000+random(500));
+        sleepScript(500+random(500));
+      end;
+
+      updateScreen('Making fires...');
+    end;
+  end;
+  sleepScript(1000+random(1000));
+end;
+
+procedure doFletch;
+var _item : TReflectInvItem;
+    i : integer;
+    logIDs : TIntegerArray;
+begin
+  logIDs := getLogIDs;
+  while ReflectPlayer.IsLoggedIn and TReflectionInventory.Contains(LogIDs) and TReflectionInventory.Contains(KnifeIDs)
+  and not ReflectPlayer.IsUnderAttack do begin
+    Reflect.Gametab.Open(Gametab_Inventory);
+    UpdateScreen('Going to fletch.');
+    if not anySlotActivated then begin
+      for i:=0 to high(KnifeIDs) do begin
+        if _item.Find(KnifeIDs[i]) then begin
+          reflect.mouse.move(_item.getBox, mouse_left);
+          sleepScript(500+random(500));
+        end;
+      end;
+    end;
+    if anySlotActivated then begin
+      for i:=0 to high(LogIDs) do begin
+        if _item.Find(LogIDs[i]) then begin
+          reflect.mouse.move(_item.getBox, mouse_left);
+          sleepScript(1500+random(500));
+        end;
+      end;
+    end;
+    Reflect.Mouse.Move(fletchPoint, 15, 15, mouse_right);
+    if Reflect.Text.ChooseOption('Make X') then begin
+      sleepScript(750+random(1000));
+      TReflectionKeyboard.TypeSend('99', true);
+      sleepScript(random(1000));
+      if(random(round(AntiAmount/200)) <> 1)then
+        TReflectionAntiban.MMouseOffClient('rand');
+      sleepScript(1000);
+      while ReflectPlayer.IsLoggedIn and R_isDoingAnimation(FletchAnimationIDs, 1000) and
+      not ReflectPlayer.IsUnderAttack do begin
+        randomHandler;
+        UpdateScreen('Fletching...');
+      end;
+    end;
+  end;
+end;
+
+procedure doGnomeCheck(banking:boolean);
+var rstile : Tpoint;
+begin
+  if(TReflectionTiles.GetPlane = 0)then begin
+    if banking then begin
+      if(not R_TileOnMS(customTPA1[0], rstile))then begin
+        UpdateScreen('Going to stairs.');
+        ReflectPlayer.BlindWalkMM(customTPA1[0], 5);
+        ReflectPlayer.FFlag(0, 2500+random(500));
+        Sleepscript(random(2000));
+      end;
+      UpdateScreen('Going up stairs.');
+      if(R_InteractTile(customTPA1[0], 'Climb-up'))then begin
+          ReflectPlayer.FFlag(0, 2500+random(500));
+          Sleepscript(random(2000));
+      end;
+    end else begin
+    end;
+  end else begin
+    if banking then begin
+    end else begin
+      if(not R_TileOnMS(customTPA1[1], rstile))then begin
+        UpdateScreen('Going to stairs.');
+        ReflectPlayer.BlindWalkMM(customTPA1[1], 5);
+        ReflectPlayer.FFlag(0, 2500+random(500));
+        Sleepscript(random(2000));
+      end;
+      UpdateScreen('Going down stairs.');
+      if(R_InteractTile(customTPA1[1], 'Climb-down'))then begin
+        ReflectPlayer.FFlag(0, 2500+random(500));
+        Sleepscript(random(2000));
+      end;
+    end;
+  end;
+end;
+
+procedure doLumbYewCheck(banking:boolean);
+var RSTile : TPoint;
+begin
+  if(TReflectionTiles.GetPlane = 2)then begin
+    if banking then begin
+    end else begin
+      if(not R_TileOnMS(customTPA1[0], rstile))then begin
+        UpdateScreen('Going to stairs.');
+        ReflectPlayer.BlindWalkMM(customTPA1[0], 5);
+        ReflectPlayer.FFlag(0, 2500+random(500));
+        Sleepscript(random(2000));
+      end;
+      UpdateScreen('Going down stairs.');
+      if(R_InteractTile(customTPA1[0], 'Climb-down'))then begin
+        ReflectPlayer.FFlag(0, 2500+random(500));
+        Sleepscript(random(2000));
+      end;
+    end;
+  end else begin
+    if(TReflectionTiles.GetPlane = 1)then begin
+      if banking then begin
+        if(not R_TileOnMS(customTPA1[0], rstile))then begin
+          UpdateScreen('Going to stairs.');
+          ReflectPlayer.BlindWalkMM(customTPA1[0], 5);
+          ReflectPlayer.FFlag(0, 2500+random(500));
+          Sleepscript(random(2000));
+        end;
+        UpdateScreen('Going up stairs.');
+        if(R_InteractTile(customTPA1[0], 'Climb-up'))then begin
+          ReflectPlayer.FFlag(0, 2500+random(500));
+          Sleepscript(random(2000));
+        end;
+      end else begin
+        if(not R_TileOnMS(customTPA1[0], rstile))then begin
+          UpdateScreen('Going to stairs.');
+          ReflectPlayer.BlindWalkMM(customTPA1[0], 5);
+          ReflectPlayer.FFlag(0, 2500+random(500));
+          Sleepscript(random(2000));
+        end;
+        UpdateScreen('Going down stairs.');
+        if(R_InteractTile(customTPA1[0], 'Climb-down'))then begin
+          ReflectPlayer.FFlag(0, 2500+random(500));
+          Sleepscript(random(2000));
+        end;
+      end;
+    end else begin
+      if banking then begin
+        if(not R_TileOnMS(customTPA1[0], rstile))then begin
+          UpdateScreen('Going to stairs.');
+          ReflectPlayer.BlindWalkMM(customTPA1[0], 5);
+          ReflectPlayer.FFlag(0, 2500+random(500));
+          Sleepscript(random(2000));
+        end;
+        UpdateScreen('Going up stairs.');
+        if(R_InteractTile(customTPA1[0], 'Climb-up'))then begin
+          ReflectPlayer.FFlag(0, 2500+random(500));
+          Sleepscript(random(2000));
+        end;
+      end else begin
+      end;
+    end;
+  end;
+  if ReflectPlayer.isLoggedIn and TReflectionTiles.NearTile(customTPA1[0], 100) then begin
+    if(banking)then begin
+      if(TReflectionTiles.GetPlane <> 2)then
+        doLumbYewCheck(true);
+    end else begin
+      if(TReflectionTiles.GetPlane <> 0)then
+        doLumbYewCheck(false);
+    end;
+    randomHandler;
+  end;
+end;
+
+procedure goTobank;
+var RSTile : TPoint;
+    nearestBank, i : integer;
+begin
+  if canBank and (high(BankLocations) >= 0) then begin
+    case job of
+      21:LocationDoorObjects[0].Open(true); //edge
+      19:doLumbYewCheck(true);
+      18,27,35:LocationDoorObjects[0].Open(false);//lumb gen
+      16,17,34:doGnomeCheck(true);
+      26,36:LocationDoorObjects[0].Open(false); //remming gen
+    end;
+    nearestBank := -1;
+    RsTIle := TReflectionTiles.GetGlobalTile;
+    for i:=0 to high(BankLocations) do begin
+      if(nearestBank = -1) then begin
+        nearestBank := i;
+      end else begin
+        if(distance(BankLocations[i].x, BankLocations[i].y, RsTIle.x, RsTIle.y) <
+          distance(BankLocations[nearestBank].x, BankLocations[nearestBank].y, RsTIle.x, RsTIle.y)) then
+            nearestBank := i;
+      end;
+    end;
+    if R_TileOnMS(BankLocations[nearestBank], RSTile) or Reflect.Bank.IsOpen
+    or R_SellMenuOpen or Reflect.Bank.IsPinOpen or R_DepositMenuOpen then
+      exit;
+    if(high(PathToBank) > -1) then begin
+      if R_TileOnMM(PathToBank[0], RSTile) then begin
+        updateScreen('Going to bank.');
+        ReflectPlayer.WalkPathMM(PathToBank, false);
+        ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
+        sleepScript(random(1500));
+      end else begin
+        updateScreen('Going to bank.');
+        ReflectPlayer.BlindWalkMM(Point(BankLocations[nearestBank].x + bankOffset[nearestBank].x, BankLocations[nearestBank].y + bankOffset[nearestBank].y), 5);
+        ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
+        sleepScript(random(1500));
+      end;
+    end else begin
+      updateScreen('Going to bank.');
+      ReflectPlayer.BlindWalkMM(Point(BankLocations[nearestBank].x + bankOffset[nearestBank].x, BankLocations[nearestBank].y + bankOffset[nearestBank].y), 5);
+      ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
+      sleepScript(random(1500));
+    end;
+  end else begin
+    RsTIle := TReflectionTiles.GetGlobalTile;
+    updateScreen('Running away.');
+    case runDirection of
+      'n':begin
+        ReflectPlayer.BlindWalkMM(point(RsTIle.x, RsTIle.y+15), 5);
+      end;
+      's':begin
+        ReflectPlayer.BlindWalkMM(point(RsTIle.x, RsTIle.y-15), 5);
+      end;
+      'w':begin
+        ReflectPlayer.BlindWalkMM(point(RsTIle.x-15, RsTIle.y), 5);
+      end;
+      'e':begin
+        ReflectPlayer.BlindWalkMM(point(RsTIle.x+15, RsTIle.y), 5);
+      end;
+      else begin
+        case random(8) of
+          0:ReflectPlayer.BlindWalkMM(point(RsTIle.x, RsTIle.y-15), 5);
+          1:ReflectPlayer.BlindWalkMM(point(RsTIle.x, RsTIle.y+15), 5);
+          2:ReflectPlayer.BlindWalkMM(point(RsTIle.x+15, RsTIle.y), 5);
+          3:ReflectPlayer.BlindWalkMM(point(RsTIle.x-15, RsTIle.y), 5);
+          4:ReflectPlayer.BlindWalkMM(point(RsTIle.x+15, RsTIle.y-15), 5);
+          5:ReflectPlayer.BlindWalkMM(point(RsTIle.x-15, RsTIle.y+15), 5);
+          6:ReflectPlayer.BlindWalkMM(point(RsTIle.x-15, RsTIle.y-15), 5);
+          7:ReflectPlayer.BlindWalkMM(point(RsTIle.x+15, RsTIle.y+15), 5);
+        end;
+      end;
+    end;
+    ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
+    sleepScript(random(1500));
+  end;
+end;
+
+procedure openBank;
+var RSTIle : Tpoint;
+    i, nearestBank : integer;
+begin
+  case Job of
+    26,36,18,27,35:begin//rim lum sell
+      if canBank and (high(BankLocations) > -1) then begin
+        if R_SellMenuOpen then
+          exit;
+        LocationDoorObjects[0].Open(false);
+        nearestBank := -1;
+        RsTIle := TReflectionTiles.GetGlobalTile;
+        for i:=0 to high(BankLocations) do begin
+          if(nearestBank = -1) then begin
+            nearestBank := i;
+          end else begin
+            if(distance(BankLocations[i].x, BankLocations[i].y, RsTIle.x, RsTIle.y) <
+              distance(BankLocations[nearestBank].x, BankLocations[nearestBank].y, RsTIle.x, RsTIle.y)) then
+                nearestBank := i;
+          end;
+        end;
+        if not R_TileOnMS(BankLocations[nearestBank], RSTile) then begin
+          updateScreen('Going to general store.');
+          ReflectPlayer.BlindWalkMM(Point(BankLocations[nearestBank].x + bankOffset[nearestBank].x, BankLocations[nearestBank].y + bankOffset[nearestBank].y), 5);
+          ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
+          sleepScript(random(1500));
+        end;
+        updateScreen('Opening general store.');
+        if R_TryInteractNPC(customIDs1, 'Trade', false, 5) then begin
+          ReflectPlayer.FFlag(0, 5000+random(500));
+          sleepScript(1500+random(500));
+        end;
+      end;
+    end;
+    else begin
+      if canBank and (high(BankLocations) > -1) then begin
+        if Reflect.Bank.IsOpen or R_DepositMenuOpen or Reflect.Bank.IsPinOpen then
+          exit;
+        case job of
+          21:LocationDoorObjects[0].Open(true);//edge
+          19:doLumbYewCheck(true);
+          16,17,34:doGnomeCheck(true);
+        end;
+        nearestBank := -1;
+        RsTIle := TReflectionTiles.GetGlobalTile;
+        for i:=0 to high(BankLocations) do begin
+          if(nearestBank = -1) then begin
+            nearestBank := i;
+          end else begin
+            if(distance(BankLocations[i].x, BankLocations[i].y, RsTIle.x, RsTIle.y) <
+              distance(BankLocations[nearestBank].x, BankLocations[nearestBank].y, RsTIle.x, RsTIle.y)) then
+                nearestBank := i;
+          end;
+        end;
+        if not R_TileOnMS(BankLocations[nearestBank], RSTile) then begin
+          updateScreen('Going to bank.');
+          ReflectPlayer.BlindWalkMM(Point(BankLocations[nearestBank].x + bankOffset[nearestBank].x, BankLocations[nearestBank].y + bankOffset[nearestBank].y), 5);
+          ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
+          sleepScript(random(1500));
+        end;
+        if R_TileOnMS(BankLocations[nearestBank], RSTile) then begin
+          updateScreen('Opening bank.');
+          R_OpenBank(BankLocations[nearestBank]);
+          ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
+          sleepScript(random(1500));
+        end;
+      end;
+    end;
+  end;
+end;
+
+procedure goToTrees;
+var RSTile : TPoint;
+    i , farest : integer;
+begin
+  case job of
+    21:LocationDoorObjects[0].Open(false);//edge
+    19:doLumbYewCheck(false);
+    18,27,35:LocationDoorObjects[0].Open(true); //lum
+    16,17,34:doGnomeCheck(false);
+    26,36:LocationDoorObjects[0].Open(true);     //rim
+  end;
+  farest := -1;
+  RsTIle := TReflectionTiles.GetGlobalTile;
+  for i:=0 to high(TreeLocations) do begin
+    if (farest = -1) then begin
+      farest := i;
+    end else begin
+      if (distance(TreeLocations[i].X, TreeLocations[i].Y, RSTIle.X, rsTile.Y) >
+      distance(TreeLocations[farest].X, TreeLocations[farest].Y, RSTIle.X, rsTile.Y)) then begin
+        farest := i;
+      end;
+    end;
+  end;
+  if canBank and (high(PathToTree) > -1) then begin
+    if R_TileOnMM(PathToTree[0], RSTile) then begin
+      updateScreen('Going to tree spots.');
+      ReflectPlayer.WalkPathMM(PathToTree, false);
+      ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
+      sleepScript(random(1500));
+    end else begin
+      updateScreen('Going to tree spots.');
+      ReflectPlayer.BlindWalkMM(TreeLocations[farest], 5);
+      ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
+      sleepScript(random(1500));
+    end;
+  end else begin
+    if(high(TreeLocations) > -1) then begin
+      updateScreen('Going to tree spots.');
+      ReflectPlayer.BlindWalkMM(TreeLocations[farest], 5);
+      ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
+      sleepScript(random(1500));
+    end;
+  end;
+end;
+
+procedure doBanking;
+var _items : TReflectInvItemArray;
+    i, count : integer;
+    firstTim : boolean;
+    logIDs : TIntegerArray;
+    tB : TBox;
+    tim : treflecttimer;
+begin
+  firstTim := true;
+  logIDs := getLogIDs;
+  case Job of
+    26,27,18,36,35:begin //sell
+      if canBank then begin
+        if not R_SellMenuOpen then
+          exit;
+        doCount;
+        updateScreen('Selling items.');
+        doProggy;
+        while ReflectPlayer.isLoggedIn and (TReflectionInventory.Contains(LogIDs) or firstTim) and
+        R_SellMenuOpen and not ReflectPlayer.IsUnderAttack do begin
+          updateScreen('Selling items.');
+          _items.GetAll;
+          for i:=0 to high(_items) do begin
+            if ReflectPlayer.IsLoggedIn and ((not inIntArray(KnifeIDs, _items[i].getid) and not inIntArray(AxeIDs, _items[i].getid) and
+            not inIntArray(CoinsIDs, _items[i].getid) and not inIntArray(ShaftIDs, _items[i].getid) and not dropOnly) or (dropOnly and inIntArray(LogIDs, _items[i].getid)))
+            and itemInSlot(_items[i].getinvslot) and R_SellMenuOpen and not ReflectPlayer.IsUnderAttack then begin
+              count := Reflect.Inv.Count;
+              tB := _items[i].getbox;
+              Reflect.Mouse.Move(tB, mouse_right);
+              sleepScript(100+random(100));
+              Reflect.Text.ChooseOption('Sell 50');
+              tim.restart;
+              while (tim.Elapsedtime < 2500) and (Reflect.Inv.Count = count) do
+                sleepScript(20 + Random(20));
+              sleepScript(500+random(250));
+              if pos('highly over-stocked', Reflect.Chat.GetTextOnLine(1)) > 1 then begin
+                R_SellMenuOpen(true);
+                sleepScript(1000+random(1500));
+                doDropping(true);
+                exit;
+              end;
+            end;
+          end;
+          firstTim := false;
+        end;
+        if(random(2) = 1)then
+          R_SellMenuOpen(true);
+        sleepScript(random(1500));
+        goToTrees;
+      end;
+    end;
+    else begin
+      if canBank then begin
+        if not Reflect.Bank.IsOpen and not R_DepositMenuOpen and not Reflect.Bank.IsPinOpen then
+          exit;
+        if Reflect.Bank.IsPinOpen then begin
+          Reflect.Bank.EnterPin(ReflectPlayer.Pin);
+          sleepScript(random(2500));
+        end;
+        if not Reflect.Bank.IsOpen and not R_DepositMenuOpen then
+          exit;
+        doCount;
+        updateScreen('Banking items.');
+        doProggy;
+        while ReflectPlayer.IsLoggedIn and (TReflectionInventory.Contains(LogIDs) or firstTim) and
+        (Reflect.Bank.IsOpen or R_DepositMenuOpen) and not ReflectPlayer.IsUnderAttack do begin
+          updateScreen('Banking items.');
+          if not TReflectionInventory.Contains(KnifeIDs) and not TReflectionInventory.Contains(AxeIDs) and
+          not TReflectionInventory.Contains(CoinsIDs) and not TReflectionInventory.Contains(ShaftIDs) and (random(2) = 0) then begin
+            R_QuickDeposit('inv');
+            sleepScript(1000+random(1000));
+          end else begin
+            _items.GetAll;
+            for i:=0 to high(_items) do begin
+              if ReflectPlayer.IsLoggedIn and not inIntArray(KnifeIDs, _items[i].getid) and not inIntArray(AxeIDs, _items[i].getid) and
+              not inIntArray(CoinsIDs, _items[i].getid) and not inIntArray(ShaftIDs, _items[i].getid)
+              and itemInSlot(_items[i].getinvslot) and (Reflect.Bank.IsOpen or R_DepositMenuOpen) and not ReflectPlayer.IsUnderAttack then begin
+                if not R_DepositMenuOpen then
+                  tB := _items[i].GetBox
+                else
+                  tB := depositItemBox(_items[i].GetInvSlot);
+                count := Reflect.Inv.Count;
+                Reflect.Mouse.Move(tB, mouse_right);
+                sleepScript(100+random(100));
+                Reflect.Text.ChooseOption('Deposit-All');
+                tim.restart;
+                while (tim.Elapsedtime < 2500) and (Reflect.Inv.Count = count) do
+                  sleepScript(20 + Random(20));
+                sleepScript(500+random(250));
+              end;
+            end;
+          end;
+          firstTim := false;
+        end;
+        if(random(2) = 1)then begin
+          R_DepositMenuOpen(true);
+          Reflect.Bank.Close;
+        end;
+        sleepScript(random(1500));
+        goToTrees;
+      end;
+    end;
+  end;
+end;
+
+procedure chopTree;
+var tempTree : R_TTreeObject;
+    rSTile : Tpoint;
+    tempObject : TReflectObject;
+    i, objectID : integer;
+    _objects : TReflectobjecTArray;
+begin
+  if useFakeWaitTime and wasWorking then begin
+    updateScreen('Doing fake ''antiban'' wait.');
+    sleepScript(1000+random(7500));
+  end;
+  if R_DidLevelUp or R_DidLevelUpExtra then begin
+    updateScreen('Clicking level up!');
+    R_DidLevelUp(true);
+    R_DidLevelUpExtra(true);
+  end;
+  case job of
+    22,23,24,41:begin//powerchop
+      updateScreen('Looking for tree...');
+      tempTree := R_MakeNullTTreeObject;
+      if distanceCheck < 1 then
+        _objects.GetAll(ObjGame, 30)
+      else
+        _objects.GetAll2(ObjGame, distanceCheck, TreeLocations[0]);
+      for i:=0 to high(_objects) do begin
+        if inIntArray(customIDs1, _objects[i].getId) then begin
+          tempTree := R_ConvertTRSObjectToR_TTreeObject(_objects[i].GetTile, _objects[i].getID);
+          i := high(_objects);
+        end;
+      end;
+      wasWorking := false;
+      if R_isValidTTreeObject(tempTree) then begin
+        updateScreen('Going to chop tree.');
+        if not R_TileOnMS(tempTree.Tile, rsTile, tempTree.Offset[0], tempTree.Offset[1], tempTree.Offset[2]) then begin
+          ReflectPlayer.BlindWalkMM(Point(tempTree.Tile.x + tempTree.TileOffset.x, tempTree.Tile.y + tempTree.TileOffset.y), 5);
+          ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
+          sleepScript(random(1500));
+        end;
+        R_CloseAllMenus;
+        if R_TileOnMS(tempTree.Tile, rsTile, tempTree.Offset[0], tempTree.Offset[1], tempTree.Offset[2]) then begin
+          if UseSpec and (TReflectLocalPlayer.GetSpecPercent >= 100)then begin
+            Reflect.Gametab.Open(Gametab_CombatOptions);
+            reflect.mouse.move(Point(645, 432), 5, 5);
+            FastClick(mouse_left);
+          end;
+          if R_InteractTile(tempTree.Tile, 'Chop', tempTree.Offset[0], tempTree.Offset[1], tempTree.Offset[2]) then begin
+            sleepScript(random(1000));
+            if(random(round(AntiAmount/200)) <> 0)then
+              TReflectionAntiban.MMouseOffClient('Random');
+            ReflectPlayer.FFlag(0, 5000+random(500));
+            sleepScript(1000+random(1000));
+            tempObject.GetAt(ObjGame, tempTree.Tile);
+            objectID := tempObject.GetId;
+            while ReflectPlayer.IsLoggedIn and inIntArray(TempTree.AliveObjectID, objectID) and
+            inIntArray(ChopAnimationIDs, ReflectPlayer.GetAnimation) and
+            not TReflectionInventory.IsFull and
+            not ReflectPlayer.IsUnderAttack do begin
+              tempObject.GetAt(ObjGame, tempTree.Tile);
+              objectID := tempObject.GetId;
+              randomHandler;
+              UpdateScreen('Chopping tree...');
+              wasWorking := true;
+            end;
+          end;
+        end;
+      end else begin
+        goToTrees;
+      end;
+    end;
+    2,13,31:begin//far trees
+      updateScreen('Looking for tree...');
+      tempTree := R_getClosestAliveTTreeObject(LocationTreeObjects);
+      wasWorking := false;
+      if R_isValidTTreeObject(tempTree) then begin
+        PreviousTree := R_getClosestTTreeObject(LocationTreeObjects);
+        updateScreen('Going to chop tree.');
+        if not R_TileOnMS(tempTree.Tile, rsTile, tempTree.Offset[0], tempTree.Offset[1], tempTree.Offset[2]) then begin
+          ReflectPlayer.BlindWalkMM(Point(tempTree.Tile.x + tempTree.TileOffset.x, tempTree.Tile.y + tempTree.TileOffset.y), 5);
+          ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
+          sleepScript(random(1500));
+        end;
+        R_CloseAllMenus;
+        if R_TileOnMS(tempTree.Tile, rsTile, tempTree.Offset[0], tempTree.Offset[1], tempTree.Offset[2]) then begin
+          if UseSpec and (TReflectLocalPlayer.GetSpecPercent >= 100)then begin
+            Reflect.Gametab.Open(Gametab_CombatOptions);
+            reflect.mouse.move(Point(645, 432), 5, 5);
+            FastClick(mouse_left);
+          end;
+          if R_InteractTile(tempTree.Tile, 'Chop', tempTree.Offset[0], tempTree.Offset[1], tempTree.Offset[2]) then begin
+            sleepScript(random(1000));
+            if(random(round(AntiAmount/200)) <> 0)then
+              TReflectionAntiban.MMouseOffClient('Random');
+            ReflectPlayer.FFlag(0, 5000+random(500));
+            sleepScript(1000+random(1000));
+            tempObject.GetAt(ObjGame, tempTree.Tile);
+            objectID := tempObject.GetId;
+            while ReflectPlayer.IsLoggedIn and inIntArray(TempTree.AliveObjectID, objectId) and
+            inIntArray(ChopAnimationIDs, ReflectPlayer.GetAnimation) and
+            not TReflectionInventory.IsFull and
+            not ReflectPlayer.IsUnderAttack do begin
+              tempObject.GetAt(ObjGame, tempTree.Tile);
+              objectID := tempObject.GetId;
+              randomHandler;
+              UpdateScreen('Chopping tree...');
+              wasWorking := true;
+            end;
+          end;
+        end;
+      end else begin
+        tempTree := R_getNextTTreeObject(LocationTreeObjects, PreviousTree);
+        PreviousTree := R_getClosestTTreeObject(LocationTreeObjects);
+        UpdateScreen('Going to next tree...');
+        if R_isValidTTreeObject(tempTree) and not R_TileOnMS(tempTree.Tile, rsTile, tempTree.Offset[0], tempTree.Offset[1], tempTree.Offset[2]) then begin
+          ReflectPlayer.BlindWalkMM(Point(tempTree.Tile.x + tempTree.TileOffset.x, tempTree.Tile.y + tempTree.TileOffset.y), 5);
+          ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
+          sleepScript(random(1500));
+        end;
+      end;
+    end;
+    else begin
+      case job of
+        21:LocationDoorObjects[0].Open(false);//edge
+        19:doLumbYewCheck(false);
+        18,27,35:LocationDoorObjects[0].Open(true); //lum
+        16,17,34:doGnomeCheck(false);
+        34:LocationDoorObjects[0].Open(true);   //barb
+        26,36:LocationDoorObjects[0].Open(true);     //rim
+      end;
+      updateScreen('Looking for tree...');
+      tempTree := R_getClosestAliveTTreeObject(LocationTreeObjects);
+      if R_isValidTTreeObject(tempTree) then begin
+        wasWorking := false;
+        updateScreen('Going to chop tree.');
+        if not R_TileOnMS(tempTree.Tile, rsTile, tempTree.Offset[0], tempTree.Offset[1], tempTree.Offset[2]) then begin
+          ReflectPlayer.BlindWalkMM(Point(tempTree.Tile.x + tempTree.TileOffset.x, tempTree.Tile.y + tempTree.TileOffset.y), 5);
+          ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
+          sleepScript(random(1500));
+        end;
+        R_CloseAllMenus;
+        if R_TileOnMS(tempTree.Tile, rsTile, tempTree.Offset[0], tempTree.Offset[1], tempTree.Offset[2]) then begin
+          if UseSpec and (TReflectLocalPlayer.GetSpecPercent >= 100)then begin
+            Reflect.Gametab.Open(Gametab_CombatOptions);
+            Reflect.Mouse.Move(Point(645, 432), 5, 5);
+            FastClick(mouse_left);
+          end;
+          if R_InteractTile(tempTree.Tile, 'Chop', tempTree.Offset[0], tempTree.Offset[1], tempTree.Offset[2]) then begin
+            sleepScript(random(1000));
+            if(random(round(AntiAmount/200)) <> 0)then
+              TReflectionAntiban.MMouseOffClient('Random');
+            ReflectPlayer.FFlag(0, 5000+random(500));
+            sleepScript(1000+random(1000));
+            tempObject.GetAt(ObjGame, tempTree.Tile);
+            objectID := tempObject.GetId;
+            while ReflectPlayer.IsLoggedIn and inIntArray(TempTree.AliveObjectID, ObjectId) and
+            (inIntArray(ChopAnimationIDs, ReflectPlayer.GetAnimation) or apeAtollIsChopping(tempTree)) and
+            not TReflectionInventory.IsFull and
+            not ReflectPlayer.IsUnderAttack do begin
+              tempObject.GetAt(ObjGame, tempTree.Tile);
+              objectID := tempObject.GetId;
+              randomHandler;
+              UpdateScreen('Chopping tree...');
+              wasWorking := true;
+            end;
+          end;
+        end;
+      end else begin
+        tempTree := R_getClosestDeadTTreeObject(LocationTreeObjects);
+        if not R_isValidTTreeObject(TempTree) then
+          goToTrees
+        else if fireMake then
+          doFire;
+        tempTree := R_getTTreeObjectLeastTime(LocationTreeObjects);
+        if R_isValidTTreeObject(TempTree) then begin
+          if not TReflectionTiles.NearTile(TempTree.Tile, 5) then begin
+            ReflectPlayer.BlindWalkMM(Point(tempTree.Tile.x + tempTree.TileOffset.x, tempTree.Tile.y + tempTree.TileOffset.y), 5);
+            ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
+            sleepScript(random(1500));
+          end;
+        end;
+      end;
+    end;
+  end;
+end;
+
+procedure doChecks;
+var i, tInt : integer;
+    _items : TReflectGroundItemArray;
+    rsTile, nestTile : TPoint;
+begin
+  UpdateScreen('');
+
+  randomHandler;
+  FixActive;
+
+  if fireMake and not TReflectionInventory.Contains(TinderIds) then
+    fireMake := false;
+
+  if fletch and not TReflectionInventory.Contains(KnifeIDs) then
+    fletch := false;
+
+  if(TReflectLocalPlayer.GetRunEnergy >= RunAmount) and not TReflectLocalPlayer.IsRunOn then
+    R_ToggleRun(true);
+
+  if gItemTim.Elapsedtime > gItemOften then begin
+    _items.GetAll(10);
+    for i:=0 to high(_items) do begin
+      nestTile := _items[i].GetTile;
+      if inIntArray(NestIDs, _items[i].getId) and not TReflectionInventory.IsFull {and canBank} then begin
+        daLogger.Status('Found nest!', []);
+        UpdateScreen('Found nest...');
+        if not R_TileOnMS(nestTile, RSTile) then begin
+          ReflectPlayer.BlindWalkMM(nestTile, 5);
+          ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
+          sleepScript(random(1500));
+        end;
+
+        UpdateScreen('Taking nest...');
+        if R_InteractTile(nestTile, 'Take B') then begin
+          inc(Nests);
+          statsServer.IncreaseVariable('119', 1);
+          ReflectPlayer.FFlag(0, 5000+random(500));
+          sleepScript(random(2000));
+        end;
+      end;
+    end;
+    gItemTim.restart;
+  end;
+
+  if ReflectPlayer.IsUnderAttack then begin
+    UpdateScreen('Under attack! Running away to bank.');
+    daLogger.Status('Under attack!', []);
+    GoToBank;
+    if canBank and not fireMake then begin
+      openBank;
+      doBanking;
+    end;
+    sleepScript(5000+random(2500));
+  end;
+
+  if(LastXPCheck.Elapsedtime > 600000) then begin
+    Reflect.Gametab.Open(Gametab_Inventory);
+    //setupPlayer;
+    LastXPCheck.restart;
+    if(TReflectLocalPlayer.GetSkillExp(SKILL_WOODCUTTING) <= LastXPXPCheck)then begin
+      UpdateScreen('No woodcutting XP gained in 10 minutes.');
+      daLogger.Error('No woocutting XP gained in 10 minutes.', []);
+      LastXPXPCheck := TReflectLocalPlayer.GetSkillExp(SKILL_WOODCUTTING);
+      ReflectPlayer.Active := false;
+      ReflectPlayer.Logout;
+      sleepScript(2500);
+      exit;
+    end;
+    LastXPXPCheck := TReflectLocalPlayer.GetSkillExp(SKILL_WOODCUTTING);
+  end;
+
+  if (tim.Elapsedtime > tim2) then begin
+    tim.restart;
+    tim2 := 50000 + random(400000);
+    tInt := 0;
+    for i:=0 to high(LocationLogs) do
+      tInt := tInt + (LocationLogs[i].price * LocationLogs[i].chopped);
+
+    statsServer.IncreaseVariable('80', (TReflectLocalPlayer.GetSkillExp(SKILL_WOODCUTTING)-statsWoodXP));
+    statsServer.IncreaseVariable('79', (TReflectLocalPlayer.GetSkillExp(SKILL_FIREMAKING)-statsFireXP));
+    statsServer.IncreaseVariable('65', (TReflectLocalPlayer.GetSkillExp(SKILL_FLETCHING)-statsFletchXP));
+    if canBank and not FireMake and not inIntArray([26,27,18,36,35], job) and not fletch then
+      statsServer.IncreaseVariable('44', (tInt - statsProfit));
+
+    statsWoodXP := TReflectLocalPlayer.GetSkillExp(SKILL_WOODCUTTING);
+    statsFletchXP := TReflectLocalPlayer.GetSkillExp(SKILL_FLETCHING);
+    statsFireXP := TReflectLocalPlayer.GetSkillExp(SKILL_FIREMAKING);
+    statsProfit := tInt;
+
+    if useStats then
+      if statsServer.Commit then
+        daLogger.Status('Successfully sent heartbeat to ''stats.grats.pw''.', []);
+  end;
+
+  tInt := 0;
+  for i:=0 to high(LocationLogs) do
+    tInt := tInt + LocationLogs[i].chopped;
+  if(tInt >= AmountAmount) and (AmountAmount > -1) then begin
+    UpdateScreen('Chopped more or equal to given amount to chop.');
+    daLogger.Status('Chopped more or equal to given amount to chop.', []);
+    ReflectPlayer.Active := false;
+    ReflectPlayer.Logout;
+    sleepScript(2500);
+    exit;
+  end;
+
+  if useBreaks then
+    doBreakCheck;
+end;
+
+begin
+  safeShowModal;
+  if (started and (job > -1)) or forceUpdate then begin
+    ClearDebug;
+    Reflect.Setup;
+    Reflect.Smart.Graphics.Clear;
+    if not(SmartEnabled(Reflect.Smart.Target)) then
+      SmartSetEnabled(Reflect.Smart.Target, false);
+    setupINeedFuncs;
+    doUpdate;
+    if (high(WorldList) > -1) and not ReflectPlayer.isLoggedIn then
+      ReflectPlayer.ChangeWorld(WorldList[random(length(WorldList))]);
+    nullInt := -1337;//so it runs .create at least once and makes sure script is played logged in
+    while not(ReflectPlayer.isLoggedIn) or (nullInt = -1337) do begin
+      if ReflectPlayer.Active then begin
+        ReflectPlayer.Login;
+        if ReflectPlayer.Active then
+          setupPlayer;
+      end else begin
+        sleepScript(1000);
+      end;
+      nullInt := 0;
+    end;
+    setupScript;
+    while 1 do begin
+      if ReflectPlayer.isLoggedIn then begin
+        if progChopping then
+          progChop;
+        if TReflectionInventory.IsFull then begin
+          if useFakeWaitTime and wasWorking then begin
+            updateScreen('Doing fake ''antiban'' wait.');
+            sleepScript(1000+random(7500));
+          end;
+          wasWorking := false;
+          if fireMake then begin
+            doFire;
+          end else begin
+            if Fletch then
+              doFletch;
+            if canBank then begin
+              goToBank;
+              openBank;
+              doBanking;
+            end else begin
+              doDropping(false);
+            end;
+          end;
+        end else begin
+          chopTree;
+        end;
+        doChecks;
+      end else begin
+        if ReflectPlayer.Active then begin
+          if (high(WorldList) > -1) then
+            ReflectPlayer.ChangeWorld(WorldList[random(length(WorldList))]);
+          ReflectPlayer.Login;
+          if ReflectPlayer.Active then
+            setupPlayer;
+        end else begin
+          sleepScript(1000);
+        end;
+      end;
+    end;
+  end;
+end.
