@@ -1,8 +1,9 @@
+//Feel free to use code, MAKE SURE TO GIVE CREDIT WHERE DUE! -ineedbot
 const
       fVersion = 2.0;
       fWhatsNew = 'Rewrite.';
 
-      fScriptPage = 'http://pastebin.com/raw/uewSX2rb';
+      fScriptPage = 'https://raw.githubusercontent.com/ineedbots/Scripts/master/%5BReflection%5D%20ineedbot''s%20functions.simba';
 
       Widget_StatsTab_Container = 320;
 

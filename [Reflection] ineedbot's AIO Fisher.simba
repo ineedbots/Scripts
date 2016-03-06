@@ -8,7 +8,7 @@ const Version = 5.0;
       whatsNew = 'Rewrite.';
 
       PicturePage = 'http://pastebin.com/raw/hs3w81WZ';
-      ScriptPage = 'http://pastebin.com/raw/BdSw221F';
+      ScriptPage = 'https://raw.githubusercontent.com/ineedbots/Scripts/master/%5BReflection%5D%20ineedbot''s%20AIO%20Fisher.simba';
       ForumPage = 'http://villavu.com/forum/showthread.php?t=109034';
 
       Widget_Cook_Container = 307;
@@ -1308,14 +1308,14 @@ begin
   freeBitmap(bmp1);
 
   try
-    script := GetPage(scriptPage);
+    script := TReflectionMisc.GetPage(scriptPage);
   except
     begin
       daLogger.Error('Failed to get script from: '+scriptPage,[]);
     end;
   end;
   try
-    fScript := GetPage(fscriptPage);
+    fScript := TReflectionMisc.GetPage(fscriptPage);
   except
     begin
       daLogger.Error('Failed to get fscript from: '+fscriptPage,[]);
