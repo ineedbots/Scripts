@@ -4,8 +4,8 @@ program newLapeFisher;
 {$i Reflection/Reflection.Simba}
 {$i [Reflection] ineedbot's functions.simba}
 
-const Version = 5.01;
-      whatsNew = 'Misc fixes.';
+const Version = 5.02;
+      whatsNew = 'Temp fix for getting stuck while trying to open bank.';
 
       PicturePage = 'http://pastebin.com/raw/hs3w81WZ';
       ScriptPage = 'https://raw.githubusercontent.com/ineedbots/Scripts/master/%5BReflection%5D%20ineedbot''s%20AIO%20Fisher.simba';
@@ -3031,6 +3031,8 @@ begin
       if canBank then begin
         if Reflect.Bank.IsOpen or R_DepositMenuOpen or Reflect.Bank.IsPinOpen then
           exit;
+        Reflect.Compass.Make('n');
+        Reflect.Compass.MakePitch(10);
         if not R_TileOnMS(BankLocations[0], RSTile) then begin
           updateScreen('Going to bank.');
           ReflectPlayer.BlindWalkMM(Point(BankLocations[0].x + bankOffset[0].x, BankLocations[0].y + bankOffset[0].y), 5);
@@ -3048,6 +3050,8 @@ begin
       if canBank then begin
         if Reflect.Bank.IsOpen or R_DepositMenuOpen or Reflect.Bank.IsPinOpen then
           exit;
+        Reflect.Compass.Make('n');
+        Reflect.Compass.MakePitch(10);
         if not R_TileOnMS(BankLocations[0], RSTile) then begin
           updateScreen('Going to bank.');
           ReflectPlayer.BlindWalkMM(Point(BankLocations[0].x + bankOffset[0].x, BankLocations[0].y + bankOffset[0].y), 5);
@@ -3065,6 +3069,8 @@ begin
       if canBank then begin
         if R_SellMenuOpen then
           exit;
+        Reflect.Compass.Make('n');
+        Reflect.Compass.MakePitch(10);
         if not R_TileOnMS(BankLocations[0], RSTile) then begin
           updateScreen('Going to bank.');
           ReflectPlayer.BlindWalkMM(Point(BankLocations[0].x + bankOffset[0].x, BankLocations[0].y + bankOffset[0].y), 5);
@@ -3093,6 +3099,14 @@ begin
                 nearestBank := i;
           end;
         end;
+        Reflect.Compass.Make('n');
+        Reflect.Compass.MakePitch(10);
+        if not R_TileOnMS(BankLocations[nearestBank], RSTile) then begin
+          updateScreen('Going to bank.');
+          ReflectPlayer.BlindWalkMM(Point(BankLocations[0].x + bankOffset[0].x, BankLocations[0].y + bankOffset[0].y), 5);
+          ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
+          sleepScript(random(1500));
+        end;
         if R_TileOnMS(BankLocations[nearestBank], RSTile) then begin
           updateScreen('Opening bank.');
           R_OpenBank(BankLocations[nearestBank]);
@@ -3116,6 +3130,8 @@ begin
                 nearestBank := i;
           end;
         end;
+        Reflect.Compass.Make('n');
+        Reflect.Compass.MakePitch(10);
         if not R_TileOnMS(BankLocations[nearestBank], RSTile) then begin
           updateScreen('Going to bank.');
           ReflectPlayer.BlindWalkMM(Point(BankLocations[0].x + bankOffset[0].x, BankLocations[0].y + bankOffset[0].y), 5);

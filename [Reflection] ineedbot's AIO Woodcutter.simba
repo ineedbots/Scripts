@@ -4,8 +4,8 @@ program newLapeCutter;
 {$i Reflection/Reflection.Simba}
 {$i [Reflection] ineedbot's functions.simba}
 
-const Version = 4.01;
-      whatsNew = 'Misc fixes.';
+const Version = 4.02;
+      whatsNew = 'Temp fix for getting stuck while trying to open bank.';
 
       PicturePage = 'http://pastebin.com/raw/mJtA7u8d';
       ScriptPage = 'https://raw.githubusercontent.com/ineedbots/Scripts/master/%5BReflection%5D%20ineedbot''s%20AIO%20Woodcutter.simba';
@@ -3282,6 +3282,8 @@ begin
                 nearestBank := i;
           end;
         end;
+        Reflect.Compass.Make('n');
+        Reflect.Compass.MakePitch(10);
         if not R_TileOnMS(BankLocations[nearestBank], RSTile) then begin
           updateScreen('Going to general store.');
           ReflectPlayer.BlindWalkMM(Point(BankLocations[nearestBank].x + bankOffset[nearestBank].x, BankLocations[nearestBank].y + bankOffset[nearestBank].y), 5);
@@ -3315,6 +3317,8 @@ begin
                 nearestBank := i;
           end;
         end;
+        Reflect.Compass.Make('n');
+        Reflect.Compass.MakePitch(10);
         if not R_TileOnMS(BankLocations[nearestBank], RSTile) then begin
           updateScreen('Going to bank.');
           ReflectPlayer.BlindWalkMM(Point(BankLocations[nearestBank].x + bankOffset[nearestBank].x, BankLocations[nearestBank].y + bankOffset[nearestBank].y), 5);

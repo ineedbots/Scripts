@@ -1,7 +1,7 @@
 //Feel free to use code, MAKE SURE TO GIVE CREDIT WHERE DUE! -ineedbot
 const
-      fVersion = 2.02;
-      fWhatsNew = 'Fixes FFlag from halting the entire script.';
+      fVersion = 2.03;
+      fWhatsNew = 'Fixes FFlag from halting the entire script, speed ups.';
 
       fScriptPage = 'https://raw.githubusercontent.com/ineedbots/Scripts/master/%5BReflection%5D%20ineedbot''s%20functions.simba';
 
@@ -1378,7 +1378,6 @@ var
 begin
   if not inRange(I, 1, 28) then
     Exit;
-  Reflect.Gametab.Open(Gametab_Inventory);
 
   if R_DepositMenuOpen(false) then
     TB := depositItemBox(I)
