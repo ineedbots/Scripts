@@ -4,8 +4,7 @@ program newLapeFisher;
 {$i Reflection/Reflection.Simba}
 {$i [Reflection] ineedbot's functions.simba}
 
-const Version = 5.02;
-      whatsNew = 'Temp fix for getting stuck while trying to open bank.';
+const Version = 5.1;
 
       PicturePage = 'http://pastebin.com/raw/hs3w81WZ';
       ScriptPage = 'https://raw.githubusercontent.com/ineedbots/Scripts/master/%5BReflection%5D%20ineedbot''s%20AIO%20Fisher.simba';
@@ -16,27 +15,76 @@ const Version = 5.02;
 
 //Feel free to use code, MAKE SURE TO GIVE CREDIT WHERE DUE! -ineedbot
 
-type TReflectTreeObject = record
-     AliveIDs, DeadIDs, LogIDs : TIntegerArray;
+type TreeObject = record
      Tile : TPoint;
      Offset : array[0..2] of integer;
+     TileOffset : array[0..1] of integer;
+     AliveIDs, DeadIDs : TIntegerArray;
+     Options : TStringArray;
+     Name : String;
+end;
+
+type BankLocation = record
+     Tile : TPoint;
+     Name : String;
+     Plane : integer;
+     Offset : array[0..2] of integer;
+     TileOffset : array[0..1] of integer;
+     Options : TStringArray;
+end;
+
+type FireLocation = record
+     Tile : TPoint;
+     Name : String;
+     Plane : integer;
+     Offset : array[0..2] of integer;
+     TileOffset : array[0..1] of integer;
+     Options : TStringArray;
 end;
 
 type workedFish = record
-     caught, ID, price, fishType : integer;
+     caught, ID, price : integer;
 end;
 
-var PathToBank, PathToFish, customTPA1, customTPA2, customTPA3, customTPA4, bankOffset, BankLocations, FireLocations, FishLocations : TPointArray;
-    LocationTreeObjects : array of TReflectTreeObject;
-    LocationFish : array of workedFish;
-    LocationDoorObjects : array of TReflectDoor;
-    graphicOpti : TMufasaBitmap;
+type BankNPC = record
+     Locations : TPointArray;
+     Options, Names : TStringArray;
+     IDs : TIntegerArray;
+     Plane : Integer;
+end;
+
+type FishNPC = record
+     IDs, AnimationIDs, EquipmentIDs, BaitIDs : TIntegerArray;
+     RawFishes, CookedFishes, BurntFishes : array of workedFish;
+     Options, Names : TStringArray;
+     Locations : TPointArray;
+end;
+
+type Location = record
+     Name : string;
+     RunDirections : TStringArray;
+     ID : integer;
+     canCook, canBank, isDynamic, isSell : boolean;
+     PathToBank, PathToFish : TPointArray;
+     customIDs : array of TIntegerArray;
+     customTPAs : array of TPointArray;
+     FishNPCs : array of FishNPC;
+     FireLocations : array of FireLocation;
+     BankLocations : array of BankLocation;
+     TreeObjects : array of TreeObject;
+     DoorObjects : array of TReflectDoor;
+     BankNPCs : array of BankNPC;
+end;
+
+var graphicOpti : TMufasaBitmap;
     statsServer : TStats;
-    WorldList, CookingAnimationIDs, FiremakingAnimationIDs, deadObjIDs, FishingAnimationIDs, WoodcuttingAnimationIDs, AxeIDs, BaitIDs, EquipmentIDs, TinderIDs, FishspotIDs, customIDs1, customIDs2, CoinsIDs, KnifeIDs, FireIDs : TIntegerArray;
-    sdrop,script, runDirection, sbrin, sbreak, sbin, sbrfor, sbfor, swait, schat, FishspotName, scriptstatus, jobString, sname, spass, spin, samount, sloc, sfish, santi, srun, sworld, scook, sbank, smouse, sbarb, ssound, schatt, swaitt, swaito, supdatet, sscreent, slchatt, slevelt, scloset, sdismisst, sfired : string;
+    daLocation : Location;
+    WorldList, CookingAnimationIDs, FiremakingAnimationIDs, deadObjIDs, WoodcuttingAnimationIDs, AxeIDs, TinderIDs, CoinsIDs, KnifeIDs, FireIDs, LogIDs : TIntegerArray;
+    sdrop,script, sbrin, sbreak, sbin, sbrfor, sbfor, swait, schat, scriptstatus, sname, spass, spin, samount, sloc, sfish, santi, srun, sworld, scook, sbank, smouse, sbarb, ssound, schatt, swaitt, swaito, supdatet, sscreent, slchatt, slevelt, scloset, sdismisst, sfired : string;
     FireCheckDistance, statsProfit, playNum, statsFishXP, tim2, statsCookXP, statsFireXP, statsAgilXP, statsSTRxp, statsWoodXP, FishspotIndice, nullINT, Job, AmountAmount, RunAmount, startFishXP, startFishLevel, startCookXP, startAgilXp, startStrXp, startWoodXp, LastXPXP, StartFireXP, updateScreenOften, cpuLoadWait, cpuLoadOften : integer;
-    progFish,dropOnly,useBreaks, useStats, started, saving, loading, mouseKeys, DisableCook, DisableBank, BarbFish, canCook, canBank : boolean;
+    dropOnly, useBreaks, useStats, started, saving, loading, mouseKeys, DisableCook, DisableBank, BarbFish : boolean;
     tim, LastXPCheck : TReflectTimer;
+    fireOptions : TStringArray;
     DsgnForm, DsgnForm2, DsgnForm3:TForm;
     UsernameBox,PasswordBox,PinBox,AntibanBox,RunBox,AmountBox,WorldBox,LocalBox,NetworkBox, PlayBox,brfor, bfor, brin, bin, soundBox, chatTimeBox, screenTimeBox, waitOftenBox, waitTimeBox, dismissTimeBox, updateTimeBox, levelTimeBox, closeTimeBox, lookChatTimeBox, fireCheckBox: TEdit;
     Image: TImage;
@@ -74,7 +122,6 @@ begin
       end;
       CloseFile(ThisFile);
       daLogger.Status('Successfully downloaded new script to '+FileNew+'. Please reopen this script.', []);
-      daLogger.Status('Whats new script: '+between('whatsNew = ''', ''';', Script), []);
       TerminateScript;
   end else begin
     if(Version = NetworkVersion)then begin
@@ -994,7 +1041,7 @@ procedure ShowFormModal();
 {$IFNDEF CODEINSIGHT}
 native;
 {$ENDIF}
-var i, breakIn, breakInRandom, breakForRandom, breakFor : integer;
+var i : integer;
     strings : TStringArray;
 begin
   InitForm;
@@ -1282,7 +1329,13 @@ begin
 
   SoundString := SoundBox.getText;
 
+  breakIn := breakIn*60000;
+  breakInRandom := breakInRandom*60000;
+  breakFor := breakFor*60000;
+  breakForRandom := breakForRandom*60000;
+
   breakInTimer.restart;
+  breakInFinal := breakIn + randomRange(-breakInRandom, breakInRandom);
 
   DsgnForm.Free;
   DsgnForm2.Free;
@@ -1407,48 +1460,90 @@ begin
   bmp0.Free;
 end;
 
-function getLogIDs : TIntegerArray;
+function Location.getRawFishIDs : TIntegerArray;
 var i, h : integer;
 begin
-  for i:=0 to high(LocationTreeObjects) do
-    for h:=0 to high(LocationTreeObjects[i].LogIDs) do begin
+  for i:=0 to high(self.FishNPCs) do
+    for h:=0 to high(self.FishNPCs[i].RawFishes) do begin
       setLength(result, length(result)+1);
-      result[high(result)] := LocationTreeObjects[i].LogIDs[h];
+      result[high(result)] := self.FishNPCs[i].RawFishes[h].ID;
     end;
 end;
 
-function getFishIDs : TIntegerArray;
-var i : integer;
+function Location.getBurntFishIDs : TIntegerArray;
+var i, h : integer;
 begin
-  for i:=0 to high(locationFish) do begin
-    setLength(result, length(result)+1);
-    result[high(result)] := locationFish[i].ID;
-  end;
-end;
-
-function getRawFishIDs : TIntegerArray;
-var i : integer;
-begin
-  for i:=0 to high(locationFish) do begin
-    if locationFish[i].fishType = 0 then begin
+  for i:=0 to high(self.FishNPCs) do
+    for h:=0 to high(self.FishNPCs[i].BurntFishes) do begin
       setLength(result, length(result)+1);
-      result[high(result)] := locationFish[i].ID;
+      result[high(result)] := self.FishNPCs[i].BurntFishes[h].ID;
     end;
-  end;
 end;
 
-function hasRawFish: boolean;
-var rawFishIDs : TintegerArray;
+function Location.getCookedFishIDs : TIntegerArray;
+var i, h : integer;
 begin
-  rawFishIDs := getRawFishIDs;
-  result := TReflectionInventory.Contains(rawFishIDs);
+  for i:=0 to high(self.FishNPCs) do
+    for h:=0 to high(self.FishNPCs[i].CookedFishes) do begin
+      setLength(result, length(result)+1);
+      result[high(result)] := self.FishNPCs[i].CookedFishes[h].ID;
+    end;
+end;
+
+function Location.getBaitIDs : TIntegerArray;
+var i, h : integer;
+begin
+  for i:=0 to high(self.FishNPCs) do
+    for h:=0 to high(self.FishNPCs[i].BaitIDs) do begin
+      setLength(result, length(result)+1);
+      result[high(result)] := self.FishNPCs[i].BaitIDs[h];
+    end;
+end;
+
+function Location.getAnimationIDs : TIntegerArray;
+var i, h : integer;
+begin
+  for i:=0 to high(self.FishNPCs) do
+    for h:=0 to high(self.FishNPCs[i].AnimationIDs) do begin
+      setLength(result, length(result)+1);
+      result[high(result)] := self.FishNPCs[i].AnimationIDs[h];
+    end;
+end;
+
+function Location.getEquipmentIDs : TIntegerArray;
+var i, h : integer;
+begin
+  for i:=0 to high(self.FishNPCs) do
+    for h:=0 to high(self.FishNPCs[i].EquipmentIDs) do begin
+      setLength(result, length(result)+1);
+      result[high(result)] := self.FishNPCs[i].EquipmentIDs[h];
+    end;
+end;
+
+function Location.getFishIDs : TIntegerArray;
+var i, h : integer;
+begin
+  for i:=0 to high(self.FishNPCs) do
+    for h:=0 to high(self.FishNPCs[i].IDs) do begin
+      setLength(result, length(result)+1);
+      result[high(result)] := self.FishNPCs[i].IDs[h];
+    end;
+end;
+
+function Location.getFishLocations : TPointArray;
+var i, h : integer;
+begin
+  for i:=0 to high(self.FishNPCs) do
+    for h:=0 to high(self.FishNPCs[i].Locations) do begin
+      setLength(result, length(result)+1);
+      result[high(result)] := self.FishNPCs[i].Locations[h];
+    end;
 end;
 
 function isInvFullScript:boolean;
-var logIds : TIntegerArray;
 begin
-  if canCook then begin
-    case Job of
+  if daLocation.canCook then begin
+    case daLocation.ID of
       24:begin //otto
         result := TReflectionInventory.IsFull;
       end;
@@ -1456,7 +1551,6 @@ begin
         result := TReflectionInventory.IsFull;
       end;
       else begin
-        logIDs := getLogIDs;
         if TReflectionInventory.Contains(LogIDs) then begin
           result := TReflectionInventory.IsFull;
         end else begin
@@ -1471,110 +1565,123 @@ end;
 
 procedure doCount;
 var _items : TReflectInvItemArray;
-    i, h : integer;
+    i, h, j, _id : integer;
+    _name : string;
 begin
   statsServer.IncreaseVariable('43', 1);
   _items.GetAll;
   for i:=0 to high(_items) do begin
-    for h:=0 to high(LocationFish) do
-      if LocationFish[h].ID = _items[i].getID then
-        inc(LocationFish[h].caught);
+    _name := _items[i].getname;
+    _id := _items[i].getID;
+
+    for h:=0 to high(daLocation.FishNPCs) do begin
+      for j:=0 to high(daLocation.FishNPCs[h].RawFishes) do
+        if daLocation.FishNPCs[h].RawFishes[j].ID = _id then
+          daLocation.FishNPCs[h].RawFishes[j].caught := daLocation.FishNPCs[h].RawFishes[j].caught + _items[i].getQuantity;
+
+      for j:=0 to high(daLocation.FishNPCs[h].CookedFishes) do
+        if daLocation.FishNPCs[h].CookedFishes[j].ID = _id then
+          daLocation.FishNPCs[h].CookedFishes[j].caught := daLocation.FishNPCs[h].CookedFishes[j].caught + _items[i].getQuantity;
+
+      for j:=0 to high(daLocation.FishNPCs[h].BurntFishes) do
+        if daLocation.FishNPCs[h].BurntFishes[j].ID = _id then
+          daLocation.FishNPCs[h].BurntFishes[j].caught := daLocation.FishNPCs[h].BurntFishes[j].caught + _items[i].getQuantity;
+    end;
 
     //hope item.name always works, and item.id doesnt change
-    if (pos('shrimp', lowercase(_items[i].getname)) > 0) then begin
+    if (pos('shrimp', lowercase(_name)) > 0) then begin
       statsServer.IncreaseVariable('109', 1);
-      if (pos('raw', lowercase(_items[i].getname)) <= 0) and (pos('burn', lowercase(_items[i].getname)) <= 0) then
+      if (pos('raw', lowercase(_name)) <= 0) and (pos('burn', lowercase(_name)) <= 0) then
         statsServer.IncreaseVariable('115', 1);
     end else begin
-      if (pos('anchovie', lowercase(_items[i].getname)) > 0) then begin
+      if (pos('anchovie', lowercase(_name)) > 0) then begin
         statsServer.IncreaseVariable('110', 1);
-        if (pos('raw', lowercase(_items[i].getname)) <= 0) and (pos('burn', lowercase(_items[i].getname)) <= 0) then
+        if (pos('raw', lowercase(_name)) <= 0) and (pos('burn', lowercase(_name)) <= 0) then
           statsServer.IncreaseVariable('116', 1);
       end else begin
-        if (pos('leaping trout', lowercase(_items[i].getname)) > 0) then begin
+        if (pos('leaping trout', lowercase(_name)) > 0) then begin
           statsServer.IncreaseVariable('120', 1);
         end else begin
-          if (pos('leaping salmon', lowercase(_items[i].getname)) > 0) then begin
+          if (pos('leaping salmon', lowercase(_name)) > 0) then begin
             statsServer.IncreaseVariable('121', 1);
           end else begin
-            if (pos('lobster', lowercase(_items[i].getname)) > 0) then begin
+            if (pos('lobster', lowercase(_name)) > 0) then begin
               statsServer.IncreaseVariable('106', 1);
-              if (pos('raw', lowercase(_items[i].getname)) <= 0) and (pos('burn', lowercase(_items[i].getname)) <= 0) then
+              if (pos('raw', lowercase(_name)) <= 0) and (pos('burn', lowercase(_name)) <= 0) then
                 statsServer.IncreaseVariable('97', 1);
             end else begin
-              if (pos('tuna', lowercase(_items[i].getname)) > 0) then begin
+              if (pos('tuna', lowercase(_name)) > 0) then begin
                 statsServer.IncreaseVariable('105', 1);
-                if (pos('raw', lowercase(_items[i].getname)) <= 0) and (pos('burn', lowercase(_items[i].getname)) <= 0) then
+                if (pos('raw', lowercase(_name)) <= 0) and (pos('burn', lowercase(_name)) <= 0) then
                   statsServer.IncreaseVariable('98', 1);
               end else begin
-                if (pos('swordfish', lowercase(_items[i].getname)) > 0) then begin
+                if (pos('swordfish', lowercase(_name)) > 0) then begin
                   statsServer.IncreaseVariable('103', 1);
-                  if (pos('raw', lowercase(_items[i].getname)) <= 0) and (pos('burn', lowercase(_items[i].getname)) <= 0) then
+                  if (pos('raw', lowercase(_name)) <= 0) and (pos('burn', lowercase(_name)) <= 0) then
                     statsServer.IncreaseVariable('100', 1);
                 end else begin
-                  if (pos('shark', lowercase(_items[i].getname)) > 0) then begin
+                  if (pos('shark', lowercase(_name)) > 0) then begin
                     statsServer.IncreaseVariable('102', 1);
-                    if (pos('raw', lowercase(_items[i].getname)) <= 0) and (pos('burn', lowercase(_items[i].getname)) <= 0) then
+                    if (pos('raw', lowercase(_name)) <= 0) and (pos('burn', lowercase(_name)) <= 0) then
                       statsServer.IncreaseVariable('101', 1);
                   end else begin
-                    if (pos('monkfish', lowercase(_items[i].getname)) > 0) then begin
+                    if (pos('monkfish', lowercase(_name)) > 0) then begin
                       statsServer.IncreaseVariable('104', 1);
-                      if (pos('raw', lowercase(_items[i].getname)) <= 0) and (pos('burn', lowercase(_items[i].getname)) <= 0) then
+                      if (pos('raw', lowercase(_name)) <= 0) and (pos('burn', lowercase(_name)) <= 0) then
                         statsServer.IncreaseVariable('99', 1);
                     end else begin
-                      if (pos('fish', lowercase(_items[i].getname)) > 0) then begin
-                        if inIntArray([7954], _items[i].getID) then
+                      if (pos('fish', lowercase(_name)) > 0) then begin
+                        if inIntArray([7954], _id) then
                           statsServer.IncreaseVariable('110', 1)
-                        else if inIntArray([323], _items[i].getID) then
+                        else if inIntArray([323], _id) then
                           statsServer.IncreaseVariable('109', 1)
-                        else if inIntArray([343], _items[i].getID) then
+                        else if inIntArray([343], _id) then
                           statsServer.IncreaseVariable('108', 1)  //default to trout i guess...
-                        else if inIntArray([367], _items[i].getID) then
+                        else if inIntArray([367], _id) then
                           statsServer.IncreaseVariable('105', 1);  //default to tuna i guess...
                       end else begin
-                        if (pos('trout', lowercase(_items[i].getname)) > 0) then begin
+                        if (pos('trout', lowercase(_name)) > 0) then begin
                           statsServer.IncreaseVariable('108', 1);
-                          if (pos('raw', lowercase(_items[i].getname)) <= 0) and (pos('burn', lowercase(_items[i].getname)) <= 0) then
+                          if (pos('raw', lowercase(_name)) <= 0) and (pos('burn', lowercase(_name)) <= 0) then
                             statsServer.IncreaseVariable('95', 1);
                         end else begin
-                          if (pos('salmon', lowercase(_items[i].getname)) > 0) then begin
+                          if (pos('salmon', lowercase(_name)) > 0) then begin
                             statsServer.IncreaseVariable('107', 1);
-                            if (pos('raw', lowercase(_items[i].getname)) <= 0) and (pos('burn', lowercase(_items[i].getname)) <= 0) then
+                            if (pos('raw', lowercase(_name)) <= 0) and (pos('burn', lowercase(_name)) <= 0) then
                               statsServer.IncreaseVariable('96', 1);
                           end else begin
-                            if (pos('leaping sturgeon', lowercase(_items[i].getname)) > 0) then begin
+                            if (pos('leaping sturgeon', lowercase(_name)) > 0) then begin
                               statsServer.IncreaseVariable('122', 1);
                             end else begin
-                              if (pos('sardine', lowercase(_items[i].getname)) > 0) then begin
+                              if (pos('sardine', lowercase(_name)) > 0) then begin
                                 statsServer.IncreaseVariable('126', 1);
-                                if (pos('raw', lowercase(_items[i].getname)) <= 0) and (pos('burn', lowercase(_items[i].getname)) <= 0) then
+                                if (pos('raw', lowercase(_name)) <= 0) and (pos('burn', lowercase(_name)) <= 0) then
                                   statsServer.IncreaseVariable('125', 1);
                               end else begin
-                                if (pos('herring', lowercase(_items[i].getname)) > 0) then begin
+                                if (pos('herring', lowercase(_name)) > 0) then begin
                                   statsServer.IncreaseVariable('113', 1);
-                                  if (pos('raw', lowercase(_items[i].getname)) <= 0) and (pos('burn', lowercase(_items[i].getname)) <= 0) then
+                                  if (pos('raw', lowercase(_name)) <= 0) and (pos('burn', lowercase(_name)) <= 0) then
                                     statsServer.IncreaseVariable('114', 1);
                                 end else begin
-                                  if (pos('bass', lowercase(_items[i].getname)) > 0) then begin
+                                  if (pos('bass', lowercase(_name)) > 0) then begin
                                     statsServer.IncreaseVariable('123', 1);
-                                    if (pos('raw', lowercase(_items[i].getname)) <= 0) and (pos('burn', lowercase(_items[i].getname)) <= 0) then
+                                    if (pos('raw', lowercase(_name)) <= 0) and (pos('burn', lowercase(_name)) <= 0) then
                                       statsServer.IncreaseVariable('124', 1);
                                   end else begin
-                                    if (pos('mackerel', lowercase(_items[i].getname)) > 0) then begin
+                                    if (pos('mackerel', lowercase(_name)) > 0) then begin
                                       statsServer.IncreaseVariable('127', 1);
-                                      if (pos('raw', lowercase(_items[i].getname)) <= 0) and (pos('burn', lowercase(_items[i].getname)) <= 0) then
+                                      if (pos('raw', lowercase(_name)) <= 0) and (pos('burn', lowercase(_name)) <= 0) then
                                         statsServer.IncreaseVariable('128', 1);
                                     end else begin
-                                      if (pos('cod', lowercase(_items[i].getname)) > 0) then begin
+                                      if (pos('cod', lowercase(_name)) > 0) then begin
                                         statsServer.IncreaseVariable('112', 1);
-                                        if (pos('raw', lowercase(_items[i].getname)) <= 0) and (pos('burn', lowercase(_items[i].getname)) <= 0) then
+                                        if (pos('raw', lowercase(_name)) <= 0) and (pos('burn', lowercase(_name)) <= 0) then
                                           statsServer.IncreaseVariable('118', 1);
                                       end else begin
-                                        if (pos('pike', lowercase(_items[i].getname)) > 0) then begin
+                                        if (pos('pike', lowercase(_name)) > 0) then begin
                                           statsServer.IncreaseVariable('111', 1);
-                                          if (pos('raw', lowercase(_items[i].getname)) <= 0) and (pos('burn', lowercase(_items[i].getname)) <= 0) then
+                                          if (pos('raw', lowercase(_name)) <= 0) and (pos('burn', lowercase(_name)) <= 0) then
                                             statsServer.IncreaseVariable('117', 1);
-                                        end else begin
                                         end;
                                       end;
                                     end;
@@ -1598,14 +1705,16 @@ begin
 end;
 
 procedure doUpdateScreen;
-var currentFishXP, currentFishLevel, currentCookXP, currentAgilXP, currentStrXP, currentFireXP, currentWoodXP, tempInt, tInt, h, i : integer;
+var currentFishXP, currentFishLevel, currentCookXP, currentAgilXP, currentStrXP, currentFireXP, currentWoodXP, tempInt, h, i, rawCaught, cookedCaught, burntCaught, tInt : integer;
     _items : TReflectInvItemArray;
     tempObject : TReflectObject;
     _eitems : TReflectWornEquipmentArray;
     _objects : TReflectObjectArray;
     _npcs : TReflectNPCArray;
     rsTIle, rsTile2 : TPoint;
+    FishLocations : TPointArray;
     tempBox : TBox;
+    BaitIDs, EquipmentIDs, rawFishIDs, cookedFishIDs, burntFishIDs, FishspotIDs : TIntegerArray;
 begin
   graphicOpti.DrawClear(0);
 
@@ -1617,8 +1726,14 @@ begin
   currentAgilXP := TReflectLocalPlayer.GetSkillExp(SKILL_AGILITY);
   currentStrXP := TReflectLocalPlayer.GetSkillExp(SKILL_STRENGTH);
 
-  tInt := TReflectionGametab.Current;
-  if(tInt = Gametab_Inventory)then begin
+  BaitIDs := daLocation.getBaitIDs;
+  EquipmentIDs := daLocation.getEquipmentIDs;
+  rawFishIDs := daLocation.getRawFishIDs;
+  cookedFishIDs := daLocation.getCookedFishIDs;
+  burntFishIDs := daLocation.getBurntFishIDs;
+
+  tempInt := TReflectionGametab.Current;
+  if(tempInt = Gametab_Inventory)then begin
     _items.GetAll;
     for i:=0 to high(_items) do begin
       h := _items[i].GetID;
@@ -1646,26 +1761,25 @@ begin
                   tempBox := _items[i].GetBox;
                   graphicOpti.DrawClippedText('Coins', 'upchars07', Point(tempBox.x1 - 5, tempBox.y1), true, 65280);
                 end else begin
-                  for tInt := 0 to high(LocationTreeObjects) do
-                    if inIntArray(LocationTreeObjects[tInt].LogIDs, h) then begin
+                  if inIntArray(LogIDs, h) then begin
+                    tempBox := _items[i].GetBox;
+                    graphicOpti.DrawClippedText('Log', 'upchars07', Point(tempBox.x1 - 5, tempBox.y1), true, 65280);
+                  end else begin
+                    if inIntArray(burntFishIds, h) then begin
                       tempBox := _items[i].GetBox;
-                      graphicOpti.DrawClippedText('Log', 'upchars07', Point(tempBox.x1 - 5, tempBox.y1), true, 65280);
-                    end;
-                  for tInt := 0 to high(locationFish) do
-                    if h = locationFish[tInt].ID then begin
-                      if locationFish[tInt].fishType = 2 then begin
+                      graphicOpti.DrawClippedText('Burnt', 'upchars07', Point(tempBox.x1 - 5, tempBox.y1), true, 65280);
+                    end else begin
+                      if inIntArray(cookedFishIds, h) then begin
                         tempBox := _items[i].GetBox;
-                        graphicOpti.DrawClippedText('Burnt', 'upchars07', Point(tempBox.x1 - 5, tempBox.y1), true, 65280);
+                        graphicOpti.DrawClippedText('Cook', 'upchars07', Point(tempBox.x1 - 5, tempBox.y1), true, 65280);
                       end else begin
-                        if locationFish[tInt].fishType = 1 then begin
-                          tempBox := _items[i].GetBox;
-                          graphicOpti.DrawClippedText('Cook', 'upchars07', Point(tempBox.x1 - 5, tempBox.y1), true, 65280);
-                        end else begin
+                        if inIntArray(rawFishIds, h) then begin
                           tempBox := _items[i].GetBox;
                           graphicOpti.DrawClippedText('Raw', 'upchars07', Point(tempBox.x1 - 5, tempBox.y1), true, 65280);
                         end;
                       end;
                     end;
+                  end;
                 end;
               end;
             end;
@@ -1674,7 +1788,7 @@ begin
       end;
     end;
   end else begin
-    if(tInt = Gametab_WornEquipment)then begin
+    if(tempInt = Gametab_WornEquipment)then begin
       _eitems.GetAll;
       for i:=0 to high(_eitems) do begin
         h := _eitems[i].ID;
@@ -1703,14 +1817,15 @@ begin
     end;
   end;
 
-  for i:=0 to high(BankLocations) do begin
-    if R_TileOnMM(BankLocations[i], RSTile) then begin
+  for i:=0 to high(daLocation.BankLocations) do begin
+    if R_TileOnMM(daLocation.BankLocations[i].Tile, RSTile) then begin
       graphicOpti.DrawEllipse(RSTile, 5, 5, clBlue, false);
-      if R_TileOnMS(BankLocations[i], RSTile) then
-        graphicOpti.DrawClippedText('Bank', 'upchars07', RSTile, true, clBlue);
+      if R_TileOnMS(daLocation.BankLocations[i].Tile, RSTile, daLocation.BankLocations[i].Offset[0], daLocation.BankLocations[i].Offset[1], daLocation.BankLocations[i].Offset[2]) then
+        graphicOpti.DrawClippedText(daLocation.BankLocations[i].Name, 'upchars07', RSTile, true, clBlue);
     end;
   end;
 
+  FishLocations := daLocation.getFishLocations;
   for i:=0 to high(FishLocations) do begin
     if R_TileOnMM(FishLocations[i], RSTile) then begin
       graphicOpti.DrawEllipse(RSTile, 5, 5, clAqua, false);
@@ -1719,14 +1834,15 @@ begin
     end;
   end;
 
-  for i:=0 to high(FireLocations) do begin
-    if R_TileOnMM(FireLocations[i], RSTile) then begin
+  for i:=0 to high(daLocation.FireLocations) do begin
+    if R_TileOnMM(daLocation.FireLocations[i].Tile, RSTile) then begin
       graphicOpti.DrawEllipse(RSTile, 5, 5, clOrange, false);
-      if R_TileOnMS(FireLocations[i], RSTile) then
-        graphicOpti.DrawClippedText('Fire', 'upchars07', RSTile, true, clOrange);
+      if R_TileOnMS(daLocation.FireLocations[i].Tile, RSTile, daLocation.FireLocations[i].Offset[0], daLocation.FireLocations[i].Offset[1], daLocation.FireLocations[i].Offset[2]) then
+        graphicOpti.DrawClippedText(daLocation.FireLocations[i].Name, 'upchars07', RSTile, true, clOrange);
     end;
   end;
 
+  FishspotIDs := daLocation.getFishIDs;
   _npcs.GetAll;
   for i:=0 to high(_npcs) do begin
     if(inIntArray(FishspotIDs, _npcs[i].getid))then begin
@@ -1739,19 +1855,19 @@ begin
     end;
   end;
 
-  for i:=0 to high(LocationTreeObjects) do begin
-    if R_TileOnMM(LocationTreeObjects[i].Tile, RSTile) then begin
+  for i:=0 to high(daLocation.TreeObjects) do begin
+    if R_TileOnMM(daLocation.TreeObjects[i].Tile, RSTile) then begin
       graphicOpti.DrawEllipse(RSTile, 5, 5, clLime, false);
-      if R_TileOnMS(LocationTreeObjects[i].Tile, RSTile, LocationTreeObjects[i].Offset[0], LocationTreeObjects[i].Offset[1], LocationTreeObjects[i].Offset[2]) then begin
-        tempObject.GetAt(ObjGame, LocationTreeObjects[i].Tile);
-        tInt := tempObject.GetId;
-        if inIntArray(LocationTreeObjects[i].AliveIDs, tInt) then begin
-          graphicOpti.DrawClippedText('Alive Tree', 'upchars07', RSTile, true, clLime);
+      if R_TileOnMS(daLocation.TreeObjects[i].Tile, RSTile, daLocation.TreeObjects[i].Offset[0], daLocation.TreeObjects[i].Offset[1], daLocation.TreeObjects[i].Offset[2]) then begin
+        tempObject.GetAt(ObjGame, daLocation.TreeObjects[i].Tile);
+        tempInt := tempObject.GetId;
+        if inIntArray(daLocation.TreeObjects[i].AliveIDs, tempInt) then begin
+          graphicOpti.DrawClippedText('Alive '+daLocation.TreeObjects[i].name, 'upchars07', RSTile, true, clLime);
         end else begin
-          if inIntArray(LocationTreeObjects[i].DeadIDs, tInt) then begin
-            graphicOpti.DrawClippedText('Dead Tree', 'upchars07', RSTile, true, clLime);
+          if inIntArray(daLocation.TreeObjects[i].DeadIDs, tempInt) then begin
+            graphicOpti.DrawClippedText('Dead '+daLocation.TreeObjects[i].name, 'upchars07', RSTile, true, clLime);
           end else begin
-            graphicOpti.DrawClippedText('Unknown Tree', 'upchars07', RSTile, true, clLime);
+            graphicOpti.DrawClippedText('Unknown '+daLocation.TreeObjects[i].name, 'upchars07', RSTile, true, clLime);
           end;
         end;
       end;
@@ -1785,21 +1901,31 @@ begin
     graphicOpti.DrawClippedText('Strength XP gained: '+intToStr(currentStrXP-startStrXP)+'('+InttoStr(round(((CurrentStrXP-StartStrXP)*3600)/(GetTimeRunning/1000)))+')', 'upchars07', Point(5, tempInt), true, 65280);
     tempInt:=tempInt+15;
   end;
-  tInt := 0;
-  for i := 0 to high(locationFish) do
-    tInt := tInt + locationFish[i].caught;
-  if (tInt > 0) then begin
-    graphicOpti.DrawClippedText('Caught: '+intToStr(tInt)+'('+InttoStr(round(((tInt)*3600)/(GetTimeRunning/1000)))+')', 'upchars07', Point(5, tempInt), true, 65280);
+  for i := 0 to high(daLocation.FishNPCs) do begin
+    for h:=0 to high(daLocation.FishNPCs[i].RawFishes) do
+      rawCaught := rawCaught + daLocation.FishNPCs[i].RawFishes[h].caught;
+    for h:=0 to high(daLocation.FishNPCs[i].CookedFishes) do
+      cookedCaught := cookedCaught + daLocation.FishNPCs[i].CookedFishes[h].caught;
+    for h:=0 to high(daLocation.FishNPCs[i].BurntFishes) do
+      burntCaught := burntCaught + daLocation.FishNPCs[i].BurntFishes[h].caught;
+  end;
+  if ((rawCaught + cookedCaught + burntCaught) > 0) then begin
+    graphicOpti.DrawClippedText('Caught: '+intToStr(rawCaught + cookedCaught + burntCaught)+'('+InttoStr(round(((rawCaught + cookedCaught + burntCaught)*3600)/(GetTimeRunning/1000)))+')', 'upchars07', Point(5, tempInt), true, 65280);
     tempInt:=tempInt+15;
-    if canBank and not inIntArray([16,17,18,19,20,21], job) then begin
-      tInt := 0;
-      for i:=0 to high(locationFish) do
-        tInt := tInt + (locationFish[i].caught * locationFish[i].price);
+    if daLocation.canBank and not inIntArray([16,17,18,19,20,21], daLocation.ID) then begin
+      for i := 0 to high(daLocation.FishNPCs) do begin
+        for h:=0 to high(daLocation.FishNPCs[i].RawFishes) do
+          tInt := tInt + (daLocation.FishNPCs[i].RawFishes[h].price * rawCaught);
+        for h:=0 to high(daLocation.FishNPCs[i].burntFishes) do
+          tInt := tInt + (daLocation.FishNPCs[i].burntFishes[h].price * burntCaught);
+        for h:=0 to high(daLocation.FishNPCs[i].cookedFishes) do
+          tInt := tInt + (daLocation.FishNPCs[i].cookedFishes[h].price * cookedCaught);
+      end;
       graphicOpti.DrawClippedText('Profit: '+intToStr(tInt)+'('+InttoStr(round(((tInt)*3600)/(GetTimeRunning/1000)))+')', 'upchars07', Point(5, tempInt), true, 65280);
       tempInt:=tempInt+15;
     end;
   end;
-  graphicOpti.DrawClippedText('Current job: '+JobString+', bank:'+boolToStr(canBank)+', cook:'+boolToStr(canCook)+', barb:'+boolToStr(BarbFish), 'upchars07', Point(5, tempInt), true, 65280);
+  graphicOpti.DrawClippedText('Current job: '+daLocation.Name+', bank:'+boolToStr(daLocation.canBank)+', cook:'+boolToStr(daLocation.canCook)+', barb:'+boolToStr(BarbFish), 'upchars07', Point(5, tempInt), true, 65280);
   tempInt:=tempInt+15;
   graphicOpti.DrawClippedText('Ran for '+TReflectionTime.msToTime(getTimeRunning(), TIME_FORMAL)+'. Script version: '+floatToStr(version)+'('+floatToStr(fversion)+')', 'upchars07', Point(5, tempInt), true, 65280);
 
@@ -1829,49 +1955,197 @@ begin
   end;
 end;
 
-procedure progFishing;
+procedure dynFishing;
 var curLevel : integer;
 begin
-  curLevel := TReflectLocalPlayer.GetMaxSkillLevel(SKILL_FISHING);
-  if curLevel >= 35 then begin
-    if curLevel >= 40 then begin
-     BankLocations := [Point(2904, 3148)];
-     bankOffset := [Point(0, 0)];
-     FishLocations := [Point(2924, 3178)];
-     PathToFish := [Point(2905, 3149), Point(2910, 3149), Point(2915, 3150), Point(2915, 3155), Point(2919, 3159), Point(2923, 3162), Point(2923, 3167), Point(2923, 3172), Point(2924, 3177)]; //from store
-     FishspotIDs := [1522];
-     FishingAnimationIDs := [619];
-     FishspotName := 'Cage';
-     canCook := false;
-     canBank := not disableBank;
-     customIDs1 := [518, 519{general store salesmen}];//'Trade'
-     Job := 18;
-    end else begin
-     BankLocations := [Point(2904, 3148)];
-     bankOffset := [Point(0, 0)];
-     FishLocations := [Point(2924, 3178)];
-     PathToFish := [Point(2905, 3149), Point(2910, 3149), Point(2915, 3150), Point(2915, 3155), Point(2919, 3159), Point(2923, 3162), Point(2923, 3167), Point(2923, 3172), Point(2924, 3177)]; //from store
-     FishingAnimationIDs := [618, 5108];
-     FishspotIDs := [1522];
-     FishspotName := 'Harpoon';
-     canCook := false;
-     canBank := not disableBank;
-     customIDs1 := [518, 519{general store salesmen}];//'Trade'
-     Job := 19;
+  case job of
+    28:begin
+      daLocation.PathToBank := [Point(2944, 3146), Point(2939, 3146), Point(2934, 3146), Point(2929, 3148), Point(2924, 3148), Point(2919, 3150), Point(2914, 3150), Point(2909, 3150), Point(2905, 3147)]; //from tree
+      daLocation.PathToFish := [Point(2905, 3149), Point(2910, 3149), Point(2915, 3150), Point(2915, 3155), Point(2919, 3159), Point(2923, 3162), Point(2923, 3167), Point(2923, 3172), Point(2924, 3177)]; //from store
+      daLocation.canCook := true;
+      daLocation.canBank := true;
+      daLocation.isSell := true;
+
+      setLength(daLocation.customTPAs, 2);
+      daLocation.customTPAs[1] := [Point(2924, 3179), Point(2924, 3174), Point(2920, 3171), Point(2920, 3166), Point(2920, 3161), Point(2917, 3157), Point(2914, 3153), Point(2909, 3150), Point(2905, 3147)];//path from fish to store
+      daLocation.customTPAs[0] := [Point(2925, 3179), Point(2925, 3174), Point(2923, 3169), Point(2918, 3169), Point(2914, 3166), Point(2914, 3161), Point(2914, 3156), Point(2916, 3151), Point(2921, 3151), Point(2926, 3151), Point(2931, 3151), Point(2936, 3148), Point(2940, 3145), Point(2945, 3147)];//path to tree from fish
+
+      setLength(daLocation.BankNPCs, 1);
+      with daLocation.BankNPCs[0] do begin
+        Locations := [Point(2904, 3148)];
+        Names := [];
+        Plane := 0;
+        IDs := [518, 519{general store salesmen}];
+        Options := ['Trade'];
+      end;
+
+      setLength(daLocation.TreeObjects, 1);
+      with daLocation.TreeObjects[0] do begin
+        Offset := [50, 50, 200];
+        TileOffset := [0, -1];
+        Tile := Point(2945, 3148);
+        AliveIDs := [1276];
+        DeadIDs := [1342];
+        Options := ['Chop down Tree'];
+        Name := 'Tree';
+      end;
+
+      curLevel := TReflectLocalPlayer.GetMaxSkillLevel(SKILL_FISHING);
+      daLocation.FishNPCs := [];
+      if curLevel >= 35 then begin
+        if curLevel >= 40 then begin
+          daLocation.ID := 18;
+          setLength(daLocation.FishNPCs, 1);
+          with daLocation.FishNPCs[0] do begin
+            Names := [];
+            BaitIDs := [];
+            AnimationIDs := [619];
+            EquipmentIDs := [311, 303, 301];
+            IDs := [1522];
+            Locations := [Point(2924, 3178)];
+            Options := ['Cage'];
+            setLength(RawFishes, 5);
+            with RawFishes[0] do
+              ID := 377;
+            with RawFishes[1] do
+              ID := 317;
+            with RawFishes[2] do
+              ID := 321;
+            with RawFishes[3] do
+              ID := 371;
+            with RawFishes[4] do
+              ID := 359;
+
+            setLength(CookedFishes, 5);
+            with CookedFishes[0] do
+              ID := 379;
+            with CookedFishes[1] do
+              ID := 315;
+            with CookedFishes[2] do
+              ID := 319;
+            with CookedFishes[3] do
+              ID := 361;
+            with CookedFishes[4] do
+              ID := 373;
+
+            setLength(BurntFishes, 5);
+            with BurntFishes[0] do
+              ID := 381;
+            with BurntFishes[1] do
+              ID := 323;
+            with BurntFishes[2] do
+              ID := 7954;
+            with BurntFishes[3] do
+              ID := 375;
+            with BurntFishes[4] do
+              ID := 367;
+          end;
+        end else begin
+          daLocation.ID := 19;
+          setLength(daLocation.FishNPCs, 1);
+          with daLocation.FishNPCs[0] do begin
+            Names := [];
+            BaitIDs := [];
+            AnimationIDs := [619];
+            EquipmentIDs := [311, 303, 301];
+            IDs := [1522];
+            Locations := [Point(2924, 3178)];
+            Options := ['Harpoon'];
+            setLength(RawFishes, 5);
+            with RawFishes[0] do
+              ID := 377;
+            with RawFishes[1] do
+              ID := 317;
+            with RawFishes[2] do
+              ID := 321;
+            with RawFishes[3] do
+              ID := 371;
+            with RawFishes[4] do
+              ID := 359;
+
+            setLength(CookedFishes, 5);
+            with CookedFishes[0] do
+              ID := 379;
+            with CookedFishes[1] do
+              ID := 315;
+            with CookedFishes[2] do
+              ID := 319;
+            with CookedFishes[3] do
+              ID := 361;
+            with CookedFishes[4] do
+              ID := 373;
+
+            setLength(BurntFishes, 5);
+            with BurntFishes[0] do
+              ID := 381;
+            with BurntFishes[1] do
+              ID := 323;
+            with BurntFishes[2] do
+              ID := 7954;
+            with BurntFishes[3] do
+              ID := 375;
+            with BurntFishes[4] do
+              ID := 367;
+          end;
+        end;
+      end else begin
+        daLocation.ID := 16;
+        setLength(daLocation.FishNPCs, 1);
+        with daLocation.FishNPCs[0] do begin
+          Names := [];
+          BaitIDs := [];
+          AnimationIDs := [619];
+          EquipmentIDs := [311, 303, 301];
+          IDs := [1521];
+          Locations := [Point(2924, 3178)];
+          Options := ['Net'];
+          setLength(RawFishes, 5);
+          with RawFishes[0] do
+            ID := 377;
+          with RawFishes[1] do
+            ID := 317;
+          with RawFishes[2] do
+            ID := 321;
+          with RawFishes[3] do
+            ID := 371;
+          with RawFishes[4] do
+            ID := 359;
+
+          setLength(CookedFishes, 5);
+          with CookedFishes[0] do
+            ID := 379;
+          with CookedFishes[1] do
+            ID := 315;
+          with CookedFishes[2] do
+            ID := 319;
+          with CookedFishes[3] do
+            ID := 361;
+          with CookedFishes[4] do
+            ID := 373;
+
+          setLength(BurntFishes, 5);
+          with BurntFishes[0] do
+            ID := 381;
+          with BurntFishes[1] do
+            ID := 323;
+          with BurntFishes[2] do
+            ID := 7954;
+          with BurntFishes[3] do
+            ID := 375;
+          with BurntFishes[4] do
+            ID := 367;
+        end;
+      end;
+      if disableCook then
+        daLocation.canCook := false;
+      if disableBank then
+        daLocation.canBank := false;
     end;
-  end else begin
-    FishLocations := [Point(2924, 3178)];
-    FishingAnimationIDs := [621];
-    FishspotIDs := [1521];
-    FishspotName := 'Net';
-    canBank := false;
-    canCook := false;
-    Job := 16;
   end;
 end;
 
 procedure setupScript;
-var i : integer;
+var i, h : integer;
 begin
   graphicOpti.Init(Client.GetMBitmaps);
   graphicOpti.SetSize(765, 503);
@@ -1915,951 +2189,1158 @@ begin
   AxeIDs := [1351, 1349, 1357, 1359, 6739, 1355, 1361, 1353];
   CoinsIDs := [995];
   KnifeIDs := [946];
+  LogIDs := [1511, 1521, 1519, 1517, 1515, 1513];
 
   CookingAnimationIDs := [897, 896];
   FiremakingAnimationIDs := [733];
   WoodcuttingAnimationIDs := [879, 877, 875, 873, 871, 869, 867, 2846];
 
+  fireOptions := ['Fire'];
   FireIDs := [26185];//game fire object ids on ground created by players
   deadObjIDs := [0, 2047];
 
-  FishspotName := '';
-  locationTreeObjects := [];
-  locationFish := [];
-  FishingAnimationIDs := [];
-  BaitIDs := [];
-  EquipmentIDs := [];
-  customIDs1 := [];
-  customIDs2 := [];
-  FishspotIDs := [];
-  BankLocations := [];
-  bankOffset := [];
-  FireLocations := [];
-  FishLocations := [];
-  customTPA1 := [];
-  customTPA2 := [];
-  customTPA3 := [];
-  customTPA4 := [];
-  pathToBank := [];
-  pathToFish := [];
-  JobString := '';
-  canBank := false;
-  canCook := false;
-  runDirection := '';
+  daLocation.BankLocations := [];
+  daLocation.BankNPCs := [];
+  daLocation.customIDs := [];
+  daLocation.customTPAs := [];
+  daLocation.DoorObjects := [];
+  daLocation.FireLocations := [];
+  daLocation.FishNPCs := [];
+  daLocation.ID := -1;
+  daLocation.Name := '';
+  daLocation.PathToBank := [];
+  daLocation.PathToFish := [];
+  daLocation.RunDirections := [];
+  daLocation.TreeObjects := [];
+  daLocation.canBank := false;
+  daLocation.canCook := false;
+  daLocation.isDynamic := false;
+  daLocation.isSell := false;
 
   case Job of
-    0:begin
-      JobString := 'Draynor small netting';
-      FishspotName := 'Net';
-      FishingAnimationIDs := [621];
-      EquipmentIDs := [303];
-      FishspotIDs := [1525];
-      BankLocations := [Point(3091, 3245)];
-      bankOffset := [Point(0, 0)];
-      FishLocations := [Point(3087, 3235)];
-      PathToBank := [Point(3087, 3233), Point(3087, 3238), Point(3087, 3243), Point(3090, 3247), Point(3093, 3245)];
-      PathToFish := [Point(3092, 3245), Point(3087, 3247), Point(3087, 3242), Point(3087, 3237), Point(3087, 3233)];
-      canBank := true;
-      canCook := true;
-      setLength(locationFish, 6);
-      locationFish[0].ID := 317;
-      locationFish[0].fishType := 0;  //raw
-      locationFish[1].ID := 321;
-      locationFish[1].fishType := 0;
-      locationFish[2].ID := 315;
-      locationFish[2].fishType := 1;  //cook
-      locationFish[3].ID := 319;
-      locationFish[3].fishType := 1;
-      locationFish[4].ID := 323;
-      locationFish[4].fishType := 2; //burnt
-      locationFish[5].ID := 7954;
-      locationFish[5].fishType := 2;
-      setLength(locationTreeObjects, 1);
-      with locationTreeObjects[0] do begin
+    0..1:begin
+      daLocation.canBank := true;
+      daLocation.canCook := true;
+
+      daLocation.RunDirections := ['n', 's', 'e'];
+
+      case job of
+        0:begin
+          daLocation.Name := 'Draynor small netting';
+          daLocation.ID := 0;
+          setLength(daLocation.FishNPCs, 1);
+          with daLocation.FishNPCs[0] do begin
+            Names := [];
+            BaitIDs := [];
+            AnimationIDs := [621];
+            EquipmentIDs := [303];
+            IDs := [1525];
+            Locations := [Point(3087, 3235)];
+            Options := ['Net'];
+            setLength(RawFishes, 2);
+            with RawFishes[0] do
+              ID := 317;
+            with RawFishes[1] do
+              ID := 321;
+            setLength(CookedFishes, 2);
+            with CookedFishes[0] do
+              ID := 315;
+            with CookedFishes[1] do
+              ID := 319;
+            setLength(BurntFishes, 2);
+            with BurntFishes[0] do
+              ID := 323;
+            with BurntFishes[1] do
+              ID := 7954;
+          end;
+        end;
+        1:begin
+          daLocation.Name := 'Draynor baiting';
+          daLocation.ID := 1;
+          setLength(daLocation.FishNPCs, 1);
+          with daLocation.FishNPCs[0] do begin
+            Names := [];
+            BaitIDs := [313];
+            AnimationIDs := [622, 623];
+            EquipmentIDs := [307];
+            IDs := [1525];
+            Locations := [Point(3087, 3235)];
+            Options := ['Bait'];
+            setLength(RawFishes, 2);
+            with RawFishes[0] do
+              ID := 327;
+            with RawFishes[1] do
+              ID := 345;
+            setLength(CookedFishes, 2);
+            with CookedFishes[0] do
+              ID := 325;
+            with CookedFishes[1] do
+              ID := 347;
+            setLength(BurntFishes, 2);
+            with BurntFishes[0] do
+              ID := 357;
+            with BurntFishes[1] do
+              ID := 369;
+          end;
+        end;
+      end;
+
+      setLength(daLocation.BankLocations, 1);
+      with daLocation.BankLocations[0] do begin
+        Offset := [0, 0, 50];
+        TileOffset := [2, -1];
+        Tile := Point(3091, 3245);
+        Options := ['Bank Bank booth'];
+        Plane := 0;
+        Name := 'Bank';
+      end;
+
+      daLocation.PathToBank := [Point(3087, 3233), Point(3087, 3238), Point(3087, 3243), Point(3090, 3247), Point(3093, 3245)];
+      daLocation.PathToFish := [Point(3092, 3245), Point(3087, 3247), Point(3087, 3242), Point(3087, 3237), Point(3087, 3233)];
+
+      setLength(daLocation.TreeObjects, 1);
+      with daLocation.TreeObjects[0] do begin
         Offset := [50, 50, 200];
+        TileOffset := [0, -1];
         Tile := Point(3083, 3242);
         AliveIDs := [1278];
         DeadIDs := [1342];
-        LogIDs := [1511];
+        Options := ['Chop down Tree'];
+        Name := 'Tree';
       end;
     end;
-    1:begin
-      JobString := 'Draynor baitting';
-      FishspotName := 'Bait';
-      FishingAnimationIDs := [623, 622];
-      EquipmentIDs := [307];
-      FishspotIDs := [1525];
-      BaitIDs := [313];
-      BankLocations := [Point(3091, 3245)];
-      bankOffset := [Point(0, 0)];
-      FishLocations := [Point(3087, 3235)];
-      PathToBank := [Point(3087, 3233), Point(3087, 3238), Point(3087, 3243), Point(3090, 3247), Point(3093, 3245)];
-      PathToFish := [Point(3092, 3245), Point(3087, 3247), Point(3087, 3242), Point(3087, 3237), Point(3087, 3233)];
-      canBank := true;
-      canCook := true;
-      setLength(locationFish, 6);
-      locationFish[0].ID := 327;
-      locationFish[0].fishType := 0;  //raw
-      locationFish[1].ID := 345;
-      locationFish[1].fishType := 0;
-      locationFish[2].ID := 325;
-      locationFish[2].fishType := 1;  //cook
-      locationFish[3].ID := 347;
-      locationFish[3].fishType := 1;
-      locationFish[4].ID := 369;
-      locationFish[4].fishType := 2; //burnt
-      locationFish[5].ID := 357;
-      locationFish[5].fishType := 2;
-      setLength(locationTreeObjects, 1);
-      with locationTreeObjects[0] do begin
+    2..3:begin
+      daLocation.canBank := true;
+      daLocation.canCook := true;
+
+      daLocation.RunDirections := ['n', 's', 'w'];
+
+      setLength(daLocation.TreeObjects, 3);
+      with daLocation.TreeObjects[0] do begin
+        Offset := [0, 0, 200];
+        TileOffset := [0, 0];
+        Tile := Point(3103, 3431);
+        AliveIDs := [1278];
+        DeadIDs := [1342];
+        Options := ['Chop down Tree'];
+        Name := 'Tree';
+      end;
+      with daLocation.TreeObjects[1] do begin
+        Offset := [0, 0, 200];
+        TileOffset := [0, 0];
+        Tile := Point(3103, 3429);
+        AliveIDs := [1278];
+        DeadIDs := [1342];
+        Options := ['Chop down Tree'];
+        Name := 'Tree';
+      end;
+      with daLocation.TreeObjects[2] do begin
+        Offset := [0, 0, 200];
+        TileOffset := [0, 0];
+        Tile := Point(3101, 3436);
+        AliveIDs := [1278];
+        DeadIDs := [1342];
+        Options := ['Chop down Tree'];
+        Name := 'Tree';
+      end;
+
+      daLocation.PathToBank := [Point(3104, 3434), Point(3096, 3437), Point(3092, 3444), Point(3090, 3453), Point(3088, 3459), Point(3087, 3465), Point(3082, 3477), Point(3086, 3485), Point(3094, 3491)];
+      daLocation.PathToFish := [Point(3094, 3491), Point(3086, 3486), Point(3082, 3477), Point(3087, 3464), Point(3091, 3458), Point(3090, 3449), Point(3091, 3443), Point(3096, 3438), Point(3102, 3435), Point(3106, 3434), Point(3109, 3433)];
+
+      setLength(daLocation.BankLocations, 2);
+      with daLocation.BankLocations[0] do begin
+        Offset := [0, 0, 50];
+        TileOffset := [-2, 0];
+        Tile := Point(3095, 3491);
+        Options := ['Bank Bank booth'];
+        Plane := 0;
+        Name := 'Bank';
+      end;
+      with daLocation.BankLocations[1] do begin
+        Offset := [0, 0, 50];
+        TileOffset := [-2, 0];
+        Tile := Point(3095, 3489);
+        Options := ['Bank Bank booth'];
+        Plane := 0;
+        Name := 'Bank';
+      end;
+
+      case job of
+        2:begin
+          daLocation.Name := 'Barb. Village luring';
+          daLocation.ID := 2;
+          setLength(daLocation.FishNPCs, 1);
+          with daLocation.FishNPCs[0] do begin
+            Names := [];
+            BaitIDs := [314];
+            AnimationIDs := [622, 623];
+            EquipmentIDs := [309];
+            IDs := [1526];
+            Locations := [Point(3104, 3431)];
+            Options := ['Lure'];
+            setLength(RawFishes, 2);
+            with RawFishes[0] do
+              ID := 335;
+            with RawFishes[1] do
+              ID := 331;
+            setLength(CookedFishes, 2);
+            with CookedFishes[0] do
+              ID := 329;
+            with CookedFishes[1] do
+              ID := 333;
+            setLength(BurntFishes, 1);
+            with BurntFishes[0] do
+              ID := 343;
+          end;
+        end;
+        3:begin
+          daLocation.Name := 'Barb. Village baiting';
+          daLocation.ID := 3;
+          setLength(daLocation.FishNPCs, 1);
+          with daLocation.FishNPCs[0] do begin
+            Names := [];
+            BaitIDs := [313];
+            AnimationIDs := [622, 623];
+            EquipmentIDs := [307];
+            IDs := [1526];
+            Locations := [Point(3104, 3431)];
+            Options := ['Bait'];
+            setLength(RawFishes, 2);
+            with RawFishes[0] do
+              ID := 335;
+            with RawFishes[1] do
+              ID := 331;
+            setLength(CookedFishes, 2);
+            with CookedFishes[0] do
+              ID := 349;
+            with CookedFishes[1] do
+              ID := 351;
+            setLength(BurntFishes, 1);
+            with BurntFishes[0] do
+              ID := 343;
+          end;
+        end;
+      end;
+    end;
+    4..7:begin
+      daLocation.canCook := true;
+      daLocation.canBank := true;
+
+      daLocation.RunDirections := ['rand'];
+      daLocation.PathToBank := [Point(2603, 3420), Point(2598, 3420), Point(2594, 3417), Point(2589, 3417), Point(2588, 3419)];
+      daLocation.PathToFish := [Point(2588, 3419), Point(2592, 3415), Point(2594, 3420), Point(2599, 3420), Point(2604, 3420)];
+
+      setLength(daLocation.TreeObjects, 1);
+      with daLocation.TreeObjects[0] do begin
+        Offset := [0, 0, 200];
+        TileOffset := [-2, 1];
+        Tile := Point(2580, 3423);
+        AliveIDs := [1276];
+        DeadIDs := [1342];
+        Options := ['Chop down Tree'];
+        Name := 'Tree';
+      end;
+
+      setLength(daLocation.BankLocations, 1);
+      with daLocation.BankLocations[0] do begin
+        Offset := [0, 0, 50];
+        TileOffset := [2, 0];
+        Tile := Point(2585, 3419);
+        Options := ['Bank Bank booth'];
+        Plane := 0;
+        Name := 'Bank';
+      end;
+
+      case job of
+        4:begin
+          daLocation.Name := 'Fish Guild big netting';
+          daLocation.ID := 4;
+          setLength(daLocation.FishNPCs, 1);
+          with daLocation.FishNPCs[0] do begin
+            Names := [];
+            BaitIDs := [];
+            AnimationIDs := [620];
+            EquipmentIDs := [305];
+            IDs := [1520];
+            Locations := [Point(2604, 3420)];
+            Options := ['Net'];
+            setLength(RawFishes, 3);
+            with RawFishes[0] do
+              ID := 363;
+            with RawFishes[1] do
+              ID := 341;
+            with RawFishes[2] do
+              ID := 353;
+            setLength(CookedFishes, 3);
+            with CookedFishes[0] do
+              ID := 355;
+            with CookedFishes[1] do
+              ID := 365;
+            with CookedFishes[2] do
+              ID := 339;
+            setLength(BurntFishes, 2);
+            with BurntFishes[0] do
+              ID := 343;
+            with BurntFishes[1] do
+              ID := 367;
+          end;
+        end;
+        5:begin
+          daLocation.Name := 'Fish Guild caging';
+          daLocation.ID := 5;
+          setLength(daLocation.FishNPCs, 1);
+          with daLocation.FishNPCs[0] do begin
+            Names := [];
+            BaitIDs := [];
+            AnimationIDs := [619];
+            EquipmentIDs := [301];
+            IDs := [1519];
+            Locations := [Point(2604, 3420)];
+            Options := ['Cage'];
+            setLength(RawFishes, 1);
+            with RawFishes[0] do
+              ID := 377;
+            setLength(CookedFishes, 1);
+            with CookedFishes[0] do
+              ID := 379;
+            setLength(BurntFishes, 1);
+            with BurntFishes[0] do
+              ID := 381;
+          end;
+        end;
+        6:begin
+          daLocation.Name := 'Fish Guild harpooning';
+          daLocation.ID := 6;
+          setLength(daLocation.FishNPCs, 1);
+          with daLocation.FishNPCs[0] do begin
+            Names := [];
+            BaitIDs := [];
+            AnimationIDs := [618, 5108];
+            EquipmentIDs := [311];
+            IDs := [1519];
+            Locations := [Point(2604, 3420)];
+            Options := ['Harpoon'];
+            setLength(RawFishes, 2);
+            with RawFishes[0] do
+              ID := 371;
+            with RawFishes[1] do
+              ID := 359;
+            setLength(CookedFishes, 2);
+            with CookedFishes[0] do
+              ID := 361;
+            with CookedFishes[1] do
+              ID := 373;
+            setLength(BurntFishes, 2);
+            with BurntFishes[0] do
+              ID := 375;
+            with BurntFishes[1] do
+              ID := 367;
+          end;
+        end;
+        7:begin
+          daLocation.Name := 'Fish Guild harpooning(shark)';
+          daLocation.ID := 7;
+          setLength(daLocation.FishNPCs, 1);
+          with daLocation.FishNPCs[0] do begin
+            Names := [];
+            BaitIDs := [];
+            AnimationIDs := [618, 5108];
+            EquipmentIDs := [311];
+            IDs := [1520];
+            Locations := [Point(2604, 3420)];
+            Options := ['Harpoon'];
+            setLength(RawFishes, 1);
+            with RawFishes[0] do
+              ID := 383;
+            setLength(CookedFishes, 1);
+            with CookedFishes[0] do
+              ID := 385;
+            setLength(BurntFishes, 1);
+            with BurntFishes[0] do
+              ID := 387;
+          end;
+        end;
+      end;
+    end;
+    8..13:begin
+      daLocation.canBank := true;
+      daLocation.canCook := true;
+
+      daLocation.RunDirections := ['w', 'e', 'n'];
+
+      daLocation.PathToBank := [Point(2844, 3430), Point(2840, 3433), Point(2835, 3435), Point(2830, 3436), Point(2825, 3436), Point(2820, 3436), Point(2815, 3436), Point(2810, 3436), Point(2809, 3439)];
+      daLocation.PathToFish := [Point(2809, 3439), Point(2813, 3436), Point(2818, 3436), Point(2823, 3436), Point(2828, 3436), Point(2833, 3436), Point(2838, 3436), Point(2842, 3433)];
+
+      setLength(daLocation.BankLocations, 1);
+      with daLocation.BankLocations[0] do begin
+        Offset := [0, 0, 50];
+        TileOffset := [0, -2];
+        Tile := Point(2809, 3442);
+        Options := ['Bank Bank booth'];
+        Plane := 0;
+        Name := 'Bank';
+      end;
+
+      setLength(daLocation.FireLocations, 1);
+      with daLocation.FireLocations[0] do begin
+        Offset := [0, 0, 50];
+        TileOffset := [0, -2];
+        Tile := Point(2817, 3444);
+        Options := ['Range'];
+        Plane := 0;
+        Name := 'Range';
+      end;
+
+      case job of
+        8:begin
+          daLocation.Name := 'Catherby small netting';
+          daLocation.ID := 8;
+          setLength(daLocation.FishNPCs, 1);
+          with daLocation.FishNPCs[0] do begin
+            Names := [];
+            BaitIDs := [];
+            AnimationIDs := [621];
+            EquipmentIDs := [303];
+            IDs := [1518];
+            Locations := [Point(2846, 3430)];
+            Options := ['Net'];
+            setLength(RawFishes, 2);
+            with RawFishes[0] do
+              ID := 317;
+            with RawFishes[1] do
+              ID := 321;
+            setLength(CookedFishes, 2);
+            with CookedFishes[0] do
+              ID := 315;
+            with CookedFishes[1] do
+              ID := 319;
+            setLength(BurntFishes, 2);
+            with BurntFishes[0] do
+              ID := 323;
+            with BurntFishes[1] do
+              ID := 7954;
+          end;
+        end;
+        9:begin
+          daLocation.Name := 'Catherby baiting';
+          daLocation.ID := 9;
+          setLength(daLocation.FishNPCs, 1);
+          with daLocation.FishNPCs[0] do begin
+            Names := [];
+            BaitIDs := [313];
+            AnimationIDs := [622, 623];
+            EquipmentIDs := [307];
+            IDs := [1518];
+            Locations := [Point(2846, 3430)];
+            Options := ['Bait'];
+            setLength(RawFishes, 2);
+            with RawFishes[0] do
+              ID := 327;
+            with RawFishes[1] do
+              ID := 345;
+            setLength(CookedFishes, 2);
+            with CookedFishes[0] do
+              ID := 325;
+            with CookedFishes[1] do
+              ID := 347;
+            setLength(BurntFishes, 2);
+            with BurntFishes[0] do
+              ID := 357;
+            with BurntFishes[1] do
+              ID := 369;
+          end;
+        end;
+        10:begin
+          daLocation.Name := 'Catherby big netting';
+          daLocation.ID := 10;
+          setLength(daLocation.FishNPCs, 1);
+          with daLocation.FishNPCs[0] do begin
+            Names := [];
+            BaitIDs := [];
+            AnimationIDs := [620];
+            EquipmentIDs := [305];
+            IDs := [1511];
+            Locations := [Point(2846, 3430)];
+            Options := ['Net'];
+            setLength(RawFishes, 3);
+            with RawFishes[0] do
+              ID := 363;
+            with RawFishes[1] do
+              ID := 341;
+            with RawFishes[2] do
+              ID := 353;
+            setLength(CookedFishes, 3);
+            with CookedFishes[0] do
+              ID := 355;
+            with CookedFishes[1] do
+              ID := 365;
+            with CookedFishes[2] do
+              ID := 339;
+            setLength(BurntFishes, 2);
+            with BurntFishes[0] do
+              ID := 343;
+            with BurntFishes[1] do
+              ID := 367;
+          end;
+        end;
+        11:begin
+          daLocation.Name := 'Catherby caging';
+          daLocation.ID := 11;
+          setLength(daLocation.FishNPCs, 1);
+          with daLocation.FishNPCs[0] do begin
+            Names := [];
+            BaitIDs := [];
+            AnimationIDs := [619];
+            EquipmentIDs := [301];
+            IDs := [1510];
+            Locations := [Point(2846, 3430)];
+            Options := ['Cage'];
+            setLength(RawFishes, 1);
+            with RawFishes[0] do
+              ID := 377;
+            setLength(CookedFishes, 1);
+            with CookedFishes[0] do
+              ID := 379;
+            setLength(BurntFishes, 1);
+            with BurntFishes[0] do
+              ID := 381;
+          end;
+        end;
+        12:begin
+          daLocation.Name := 'Catherby harpooning';
+          daLocation.ID := 12;
+          setLength(daLocation.FishNPCs, 1);
+          with daLocation.FishNPCs[0] do begin
+            Names := [];
+            BaitIDs := [];
+            AnimationIDs := [618, 5108];
+            EquipmentIDs := [311];
+            IDs := [1510];
+            Locations := [Point(2846, 3430)];
+            Options := ['Harpoon'];
+            setLength(RawFishes, 2);
+            with RawFishes[0] do
+              ID := 371;
+            with RawFishes[1] do
+              ID := 359;
+            setLength(CookedFishes, 2);
+            with CookedFishes[0] do
+              ID := 361;
+            with CookedFishes[1] do
+              ID := 373;
+            setLength(BurntFishes, 2);
+            with BurntFishes[0] do
+              ID := 375;
+            with BurntFishes[1] do
+              ID := 367;
+          end;
+        end;
+        13:begin
+          daLocation.Name := 'Catherby harpooning(shark)';
+          daLocation.ID := 13;
+          setLength(daLocation.FishNPCs, 1);
+          with daLocation.FishNPCs[0] do begin
+            Names := [];
+            BaitIDs := [];
+            AnimationIDs := [618, 5108];
+            EquipmentIDs := [311];
+            IDs := [1511];
+            Locations := [Point(2846, 3430)];
+            Options := ['Harpoon'];
+            setLength(RawFishes, 1);
+            with RawFishes[0] do
+              ID := 383;
+            setLength(CookedFishes, 1);
+            with CookedFishes[0] do
+              ID := 385;
+            setLength(BurntFishes, 1);
+            with BurntFishes[0] do
+              ID := 387;
+          end;
+        end;
+      end;
+    end;
+    14..15:begin
+      daLogger.status('Be sure to start near the fishing spot or deposit box...', []);
+
+      daLocation.canBank := true;
+      daLocation.canCook := true;
+
+      daLocation.RunDirections := ['s'];
+
+      case job of
+        14:begin
+          daLocation.Name := 'Karamja caging';
+          daLocation.ID := 14;
+          setLength(daLocation.FishNPCs, 1);
+          with daLocation.FishNPCs[0] do begin
+            Names := [];
+            BaitIDs := [];
+            AnimationIDs := [619];
+            EquipmentIDs := [301];
+            IDs := [1522];
+            Locations := [Point(2924, 3178)];
+            Options := ['Cage'];
+            setLength(RawFishes, 1);
+            with RawFishes[0] do
+              ID := 377;
+            setLength(CookedFishes, 1);
+            with CookedFishes[0] do
+              ID := 379;
+            setLength(BurntFishes, 1);
+            with BurntFishes[0] do
+              ID := 381;
+          end;
+        end;
+        15:begin
+          daLocation.Name := 'Karamja harpooning';
+          daLocation.ID := 15;
+          setLength(daLocation.FishNPCs, 1);
+          with daLocation.FishNPCs[0] do begin
+            Names := [];
+            BaitIDs := [];
+            AnimationIDs := [618, 5108];
+            EquipmentIDs := [311];
+            IDs := [1522];
+            Locations := [Point(2924, 3178)];
+            Options := ['Harpoon'];
+            setLength(RawFishes, 2);
+            with RawFishes[0] do
+              ID := 371;
+            with RawFishes[1] do
+              ID := 359;
+            setLength(CookedFishes, 2);
+            with CookedFishes[0] do
+              ID := 361;
+            with CookedFishes[1] do
+              ID := 373;
+            setLength(BurntFishes, 2);
+            with BurntFishes[0] do
+              ID := 375;
+            with BurntFishes[1] do
+              ID := 367;
+          end;
+        end;
+      end;
+
+      setLength(daLocation.BankLocations, 1);
+      with daLocation.BankLocations[0] do begin
+        Offset := [0, 0, 50];
+        TileOffset := [0, 2];
+        Tile := Point(3045, 3234);
+        Options := ['Deposit'];
+        Plane := 0;
+        Name := 'Depo';
+      end;
+
+      daLocation.PathToBank := [Point(3028, 3217), Point(3027, 3222), Point(3027, 3227), Point(3027, 3232), Point(3030, 3236), Point(3035, 3236), Point(3040, 3236), Point(3045, 3236)];
+      daLocation.PathToFish := [Point(2951, 3147), Point(2946, 3147), Point(2941, 3146), Point(2936, 3146), Point(2931, 3148), Point(2926, 3148), Point(2921, 3150), Point(2916, 3150), Point(2915, 3155), Point(2919, 3159), Point(2920, 3164), Point(2920, 3169), Point(2923, 3173), Point(2924, 3178)];
+
+      setLength(daLocation.TreeObjects, 1);
+      with daLocation.TreeObjects[0] do begin
         Offset := [50, 50, 200];
-        Tile := Point(3083, 3242);
-        AliveIDs := [1278];
-        DeadIDs := [1342];
-        LogIDs := [1511];
-      end;
-    end;
-    2:begin
-      JobString := 'Barb. Village luring';
-      FishspotName := 'Lure';
-      FishingAnimationIDs := [623, 622];
-      EquipmentIDs := [309];
-      BaitIDs := [314];
-      FishspotIDs := [1526];
-      BankLocations := [Point(3095, 3491), Point(3095, 3489)];
-      bankOffset := [Point(0, 0), Point(0, 0)];
-      FishLocations := [Point(3104, 3431)];
-      PathToBank := [Point(3104, 3434), Point(3096, 3437), Point(3092, 3444), Point(3090, 3453), Point(3088, 3459), Point(3087, 3465), Point(3082, 3477), Point(3086, 3485), Point(3094, 3491)];
-      PathToFish := [Point(3094, 3491), Point(3086, 3486), Point(3082, 3477), Point(3087, 3464), Point(3091, 3458), Point(3090, 3449), Point(3091, 3443), Point(3096, 3438), Point(3102, 3435), Point(3106, 3434), Point(3109, 3433)];
-      canBank := true;
-      canCook := true;
-      setLength(locationTreeObjects, 3);
-      with locationTreeObjects[0] do begin
-        Offset := [0, 0, 200];
-        Tile := Point(3103, 3431);
-        AliveIDs := [1278];
-        DeadIDs := [1342];
-        LogIDs := [1511];
-      end;
-      with locationTreeObjects[1] do begin
-        Offset := [0, 0, 200];
-        Tile := Point(3103, 3429);
-        AliveIDs := [1278];
-        DeadIDs := [1342];
-        LogIDs := [1511];
-      end;
-      with locationTreeObjects[2] do begin
-        Offset := [0, 0, 200];
-        Tile := Point(3101, 3436);
-        AliveIDs := [1278];
-        DeadIDs := [1342];
-        LogIDs := [1511];
-      end;
-      setLength(locationFish, 5);
-      locationFish[0].ID := 343;
-      locationFish[0].fishType := 2;
-      locationFish[1].ID := 329;
-      locationFish[1].fishType := 1;
-      locationFish[2].ID := 333;
-      locationFish[2].fishType := 1;
-      locationFish[3].ID := 335;
-      locationFish[3].fishType := 0;
-      locationFish[4].ID := 331;
-      locationFish[4].fishType := 0;
-    end;
-    3:begin
-      JobString := 'Barb. Village baitting';
-      FishspotName := 'Bait';
-      FishingAnimationIDs := [623, 622];
-      EquipmentIDs := [307];
-      BaitIDs := [313];
-      FishspotIDs := [1526];
-      BankLocations := [Point(3095, 3491), Point(3095, 3489)];
-      bankOffset := [Point(0, 0), Point(0, 0)];
-      FishLocations := [Point(3104, 3431)];
-      PathToBank := [Point(3104, 3431), Point(3100, 3434), Point(3096, 3437), Point(3094, 3442), Point(3091, 3446), Point(3090, 3451), Point(3089, 3456), Point(3088, 3461), Point(3085, 3465), Point(3080, 3467), Point(3080, 3472), Point(3080, 3477), Point(3082, 3482), Point(3086, 3486), Point(3090, 3490)];
-      PathToFish := [Point(3094, 3491), Point(3089, 3490), Point(3085, 3486), Point(3081, 3483), Point(3081, 3478), Point(3080, 3473), Point(3080, 3468), Point(3083, 3464), Point(3088, 3461), Point(3091, 3457), Point(3093, 3452), Point(3091, 3447), Point(3092, 3442), Point(3096, 3438), Point(3100, 3435), Point(3104, 3432)];
-      canBank := true;
-      canCook := true;
-      setLength(locationTreeObjects, 3);
-      with locationTreeObjects[0] do begin
-        Offset := [0, 0, 200];
-        Tile := Point(3103, 3431);
-        AliveIDs := [1278];
-        DeadIDs := [1342];
-        LogIDs := [1511];
-      end;
-      with locationTreeObjects[1] do begin
-        Offset := [0, 0, 200];
-        Tile := Point(3103, 3429);
-        AliveIDs := [1278];
-        DeadIDs := [1342];
-        LogIDs := [1511];
-      end;
-      with locationTreeObjects[2] do begin
-        Offset := [0, 0, 200];
-        Tile := Point(3101, 3436);
-        AliveIDs := [1278];
-        DeadIDs := [1342];
-        LogIDs := [1511];
-      end;
-      setLength(locationFish, 3);
-      locationFish[0].ID := 343;
-      locationFish[0].fishType := 2;
-      locationFish[1].ID := 351;
-      locationFish[1].fishType := 1;
-      locationFish[2].ID := 349;
-      locationFish[2].fishType := 0;
-    end;
-    4:begin
-       JobString := 'Fish Guild big netting';
-       BankLocations := [Point(2585, 3419)];
-       bankOffset := [Point(2, 1)];
-       FishLocations := [Point(2604, 3420)];
-       PathToBank := [Point(2603, 3420), Point(2598, 3420), Point(2594, 3417), Point(2589, 3417), Point(2588, 3419)];
-       PathToFish := [Point(2588, 3419), Point(2592, 3415), Point(2594, 3420), Point(2599, 3420), Point(2604, 3420)];
-       FishingAnimationIDs := [620];
-       EquipmentIDs := [305];
-       FishspotIDs := [1511];
-       FishspotName := 'Net';
-       canCook := true;
-       canBank := true;
-       setLength(locationTreeObjects, 1);
-      with locationTreeObjects[0] do begin
-        Offset := [0, 0, 200];
-        Tile := Point(2580, 3423);
-        AliveIDs := [1276];
-        DeadIDs := [];
-        LogIDs := [1511];
-      end;
-      setLength(locationFish, 8);
-      locationFish[0].ID := 343;
-      locationFish[0].fishType := 2;
-      locationFish[1].ID := 367;
-      locationFish[1].fishType := 2;
-      locationFish[2].ID := 365;
-      locationFish[2].fishType := 1;
-      locationFish[3].ID := 355;
-      locationFish[3].fishType := 1;
-      locationFish[4].ID := 339;
-      locationFish[4].fishType := 1;
-      locationFish[5].ID := 363;
-      locationFish[5].fishType := 0;
-      locationFish[6].ID := 341;
-      locationFish[6].fishType := 0;
-      locationFish[7].ID := 353;
-      locationFish[7].fishType := 0;
-    end;
-    5:begin
-       JobString := 'Fish Guild caging';
-       BankLocations := [Point(2585, 3419)];
-      bankOffset := [Point(2, 1)];
-       FishLocations := [Point(2604, 3420)];
-       PathToBank := [Point(2603, 3420), Point(2598, 3420), Point(2594, 3417), Point(2589, 3417), Point(2588, 3419)];
-       PathToFish := [Point(2588, 3419), Point(2592, 3415), Point(2594, 3420), Point(2599, 3420), Point(2604, 3420)];
-       FishingAnimationIDs := [619];
-       EquipmentIDs := [301];
-       FishspotIDs := [1510];
-       FishspotName := 'Cage';
-       canCook := true;
-       canBank := true;
-       setLength(locationTreeObjects, 1);
-      with locationTreeObjects[0] do begin
-        Offset := [0, 0, 200];
-        Tile := Point(2580, 3423);
-        AliveIDs := [1276];
-        DeadIDs := [];
-        LogIDs := [1511];
-      end;
-      setLength(locationFish, 3);
-      locationFish[0].ID := 381;
-      locationFish[0].fishType := 2;
-      locationFish[1].ID := 379;
-      locationFish[1].fishType := 1;
-      locationFish[2].ID := 377;
-      locationFish[2].fishType := 0;
-    end;
-    6:begin
-       JobString := 'Fish Guild harpooning';
-       BankLocations := [Point(2585, 3419)];
-       bankOffset := [Point(2, 1)];
-       FishLocations := [Point(2604, 3420)];
-       PathToBank := [Point(2603, 3420), Point(2598, 3420), Point(2594, 3417), Point(2589, 3417), Point(2588, 3419)];
-       PathToFish := [Point(2588, 3419), Point(2592, 3415), Point(2594, 3420), Point(2599, 3420), Point(2604, 3420)];
-       FishingAnimationIDs := [618, 5108];
-       EquipmentIDs := [311];
-       FishspotIDs := [1510];
-       FishspotName := 'Harpoon';
-       canCook := true;
-       canBank := true;
-       setLength(locationTreeObjects, 1);
-      with locationTreeObjects[0] do begin
-        Offset := [0, 0, 200];
-        Tile := Point(2580, 3423);
-        AliveIDs := [1276];
-        DeadIDs := [];
-        LogIDs := [1511];
-      end;
-      setLength(locationFish, 6);
-      locationFish[0].ID := 371;
-      locationFish[0].fishType := 0;  //raw
-      locationFish[1].ID := 359;
-      locationFish[1].fishType := 0;
-      locationFish[2].ID := 361;
-      locationFish[2].fishType := 1;  //cook
-      locationFish[3].ID := 373;
-      locationFish[3].fishType := 1;
-      locationFish[4].ID := 375;
-      locationFish[4].fishType := 2; //burnt
-      locationFish[5].ID := 367;
-      locationFish[5].fishType := 2;
-    end;
-    7:begin
-       JobString := 'Fish Guild harpooning (shark)';
-       BankLocations := [Point(2585, 3419)];
-       bankOffset := [Point(2, 1)];
-       FishLocations := [Point(2604, 3420)];
-       PathToBank := [Point(2603, 3420), Point(2598, 3420), Point(2594, 3417), Point(2589, 3417), Point(2588, 3419)];
-       PathToFish := [Point(2588, 3419), Point(2592, 3415), Point(2594, 3420), Point(2599, 3420), Point(2604, 3420)];
-       FishingAnimationIDs := [618, 5108];
-       EquipmentIDs := [311];
-       FishspotIDs := [1511];
-       FishspotName := 'Harpoon';
-       canCook := true;
-       canBank := true;
-       setLength(locationTreeObjects, 1);
-      with locationTreeObjects[0] do begin
-        Offset := [0, 0, 200];
-        Tile := Point(2580, 3423);
-        AliveIDs := [1276];
-        DeadIDs := [];
-        LogIDs := [1511];
-      end;
-      setLength(locationFish, 3);
-      locationFish[0].ID := 387;
-      locationFish[0].fishType := 2;
-      locationFish[1].ID := 385;
-      locationFish[1].fishType := 1;
-      locationFish[2].ID := 383;
-      locationFish[2].fishType := 0;
-    end;
-    8: begin
-       JobString := 'Catherby small netting';
-       BankLocations := [Point(2809, 3442)];
-       bankOffset := [Point(0, -2)];
-       FishLocations := [Point(2846, 3430)];
-       FireLocations := [Point(2817, 3444)];
-       PathToBank := [Point(2844, 3430), Point(2840, 3433), Point(2835, 3435), Point(2830, 3436), Point(2825, 3436), Point(2820, 3436), Point(2815, 3436), Point(2810, 3436), Point(2809, 3439)];
-       PathToFish := [Point(2809, 3439), Point(2813, 3436), Point(2818, 3436), Point(2823, 3436), Point(2828, 3436), Point(2833, 3436), Point(2838, 3436), Point(2842, 3433)];
-       EquipmentIDs := [303];
-       FishspotIDs := [1518];
-       FishingAnimationIDs := [621];
-       FishspotName := 'Net';
-       canCook := true;
-       canBank := true;
-       setLength(locationFish, 6);
-      locationFish[0].ID := 317;
-      locationFish[0].fishType := 0;  //raw
-      locationFish[1].ID := 321;
-      locationFish[1].fishType := 0;
-      locationFish[2].ID := 315;
-      locationFish[2].fishType := 1;  //cook
-      locationFish[3].ID := 319;
-      locationFish[3].fishType := 1;
-      locationFish[4].ID := 323;
-      locationFish[4].fishType := 2; //burnt
-      locationFish[5].ID := 7954;
-      locationFish[5].fishType := 2;
-     end;
-    9: begin
-       JobString := 'Catherby baitting';
-       BankLocations := [Point(2809, 3442)];
-       bankOffset := [Point(0, -2)];
-       FishLocations := [Point(2846, 3430)];
-       FireLocations := [Point(2817, 3444)];
-       PathToBank := [Point(2844, 3430), Point(2840, 3433), Point(2835, 3435), Point(2830, 3436), Point(2825, 3436), Point(2820, 3436), Point(2815, 3436), Point(2810, 3436), Point(2809, 3439)];
-       PathToFish := [Point(2809, 3439), Point(2813, 3436), Point(2818, 3436), Point(2823, 3436), Point(2828, 3436), Point(2833, 3436), Point(2838, 3436), Point(2842, 3433)];
-       EquipmentIDs := [307];
-       BaitIDs := [313];
-       FishspotIDs := [1518];
-       FishingAnimationIDs := [622, 623];
-       FishspotName := 'Bait';
-       canCook := true;
-       canBank := true;
-       setLength(locationFish, 6);
-      locationFish[0].ID := 327;
-      locationFish[0].fishType := 0;  //raw
-      locationFish[1].ID := 345;
-      locationFish[1].fishType := 0;
-      locationFish[2].ID := 325;
-      locationFish[2].fishType := 1;  //cook
-      locationFish[3].ID := 347;
-      locationFish[3].fishType := 1;
-      locationFish[4].ID := 369;
-      locationFish[4].fishType := 2; //burnt
-      locationFish[5].ID := 357;
-      locationFish[5].fishType := 2;
-     end;
-    10: begin
-       JobString := 'Catherby big netting';
-       BankLocations := [Point(2809, 3442)];
-       bankOffset := [Point(0, -2)];
-       FishLocations := [Point(2846, 3430)];
-       FireLocations := [Point(2817, 3444)];
-       PathToBank := [Point(2844, 3430), Point(2840, 3433), Point(2835, 3435), Point(2830, 3436), Point(2825, 3436), Point(2820, 3436), Point(2815, 3436), Point(2810, 3436), Point(2809, 3439)];
-       PathToFish := [Point(2809, 3439), Point(2813, 3436), Point(2818, 3436), Point(2823, 3436), Point(2828, 3436), Point(2833, 3436), Point(2838, 3436), Point(2842, 3433)];
-       EquipmentIDs := [305];
-       FishspotIDs := [1520];
-       FishingAnimationIDs := [620];
-       FishspotName := 'Net';
-       canCook := true;
-       canBank := true;
-       setLength(locationFish, 8);
-      locationFish[0].ID := 343;
-      locationFish[0].fishType := 2;
-      locationFish[1].ID := 367;
-      locationFish[1].fishType := 2;
-      locationFish[2].ID := 365;
-      locationFish[2].fishType := 1;
-      locationFish[3].ID := 355;
-      locationFish[3].fishType := 1;
-      locationFish[4].ID := 339;
-      locationFish[4].fishType := 1;
-      locationFish[5].ID := 363;
-      locationFish[5].fishType := 0;
-      locationFish[6].ID := 341;
-      locationFish[6].fishType := 0;
-      locationFish[7].ID := 353;
-      locationFish[7].fishType := 0;
-     end;
-    11: begin
-       JobString := 'Catherby caging';
-       BankLocations := [Point(2809, 3442)];
-       bankOffset := [Point(0, -2)];
-       FishLocations := [Point(2846, 3430)];
-       FireLocations := [Point(2817, 3444)];
-       PathToBank := [Point(2844, 3430), Point(2840, 3433), Point(2835, 3435), Point(2830, 3436), Point(2825, 3436), Point(2820, 3436), Point(2815, 3436), Point(2810, 3436), Point(2809, 3439)];
-       PathToFish := [Point(2809, 3439), Point(2813, 3436), Point(2818, 3436), Point(2823, 3436), Point(2828, 3436), Point(2833, 3436), Point(2838, 3436), Point(2842, 3433)];
-       EquipmentIDs := [301];
-       FishspotIDs := [1519];
-       FishingAnimationIDs := [619];
-       FishspotName := 'Cage';
-       canCook := true;
-       canBank := true;
-       setLength(locationFish, 3);
-      locationFish[0].ID := 381;
-      locationFish[0].fishType := 2;
-      locationFish[1].ID := 379;
-      locationFish[1].fishType := 1;
-      locationFish[2].ID := 377;
-      locationFish[2].fishType := 0;
-     end;
-    12: begin
-       JobString := 'Catherby harpooning';
-       BankLocations := [Point(2809, 3442)];
-       bankOffset := [Point(0, -2)];
-       FishLocations := [Point(2846, 3430)];
-       FireLocations := [Point(2817, 3444)];
-       PathToBank := [Point(2844, 3430), Point(2840, 3433), Point(2835, 3435), Point(2830, 3436), Point(2825, 3436), Point(2820, 3436), Point(2815, 3436), Point(2810, 3436), Point(2809, 3439)];
-       PathToFish := [Point(2809, 3439), Point(2813, 3436), Point(2818, 3436), Point(2823, 3436), Point(2828, 3436), Point(2833, 3436), Point(2838, 3436), Point(2842, 3433)];
-       EquipmentIDs := [311];
-       FishspotIDs := [1519];
-       FishingAnimationIDs := [618, 5108];
-       FishspotName := 'Harpoon';
-       canCook := true;
-       canBank := true;
-       setLength(locationFish, 6);
-      locationFish[0].ID := 371;
-      locationFish[0].fishType := 0;  //raw
-      locationFish[1].ID := 359;
-      locationFish[1].fishType := 0;
-      locationFish[2].ID := 361;
-      locationFish[2].fishType := 1;  //cook
-      locationFish[3].ID := 373;
-      locationFish[3].fishType := 1;
-      locationFish[4].ID := 375;
-      locationFish[4].fishType := 2; //burnt
-      locationFish[5].ID := 367;
-      locationFish[5].fishType := 2;
-     end;
-    13: begin
-       JobString := 'Catherby harpooning (shark)';
-       BankLocations := [Point(2809, 3442)];
-       bankOffset := [Point(0, -2)];
-       FishLocations := [Point(2846, 3430)];
-       FireLocations := [Point(2817, 3444)];
-       PathToBank := [Point(2844, 3430), Point(2840, 3433), Point(2835, 3435), Point(2830, 3436), Point(2825, 3436), Point(2820, 3436), Point(2815, 3436), Point(2810, 3436), Point(2809, 3439)];
-       PathToFish := [Point(2809, 3439), Point(2813, 3436), Point(2818, 3436), Point(2823, 3436), Point(2828, 3436), Point(2833, 3436), Point(2838, 3436), Point(2842, 3433)];
-       EquipmentIDs := [311];
-       FishspotIDs := [1520];
-       FishingAnimationIDs := [618, 5108];
-       FishspotName := 'Harpoon';
-       canCook := true;
-       canBank := true;
-       setLength(locationFish, 3);
-      locationFish[0].ID := 387;
-      locationFish[0].fishType := 2;
-      locationFish[1].ID := 385;
-      locationFish[1].fishType := 1;
-      locationFish[2].ID := 383;
-      locationFish[2].fishType := 0;
-     end;
-    14: begin
-      daLogger.status('Be sure to start near the fishing spot or deposit box...', []);
-       JobString := 'Karamja caging';
-       BankLocations := [Point(3045, 3234)]; //'Deposit'
-       bankOffset := [Point(0, 0)];
-       FishLocations := [Point(2924, 3178)];
-       PathToBank := [Point(3028, 3217), Point(3027, 3222), Point(3027, 3227), Point(3027, 3232), Point(3030, 3236), Point(3035, 3236), Point(3040, 3236), Point(3045, 3236)];
-       PathToFish := [Point(2951, 3147), Point(2946, 3147), Point(2941, 3146), Point(2936, 3146), Point(2931, 3148), Point(2926, 3148), Point(2921, 3150), Point(2916, 3150), Point(2915, 3155), Point(2919, 3159), Point(2920, 3164), Point(2920, 3169), Point(2923, 3173), Point(2924, 3178)];
-       FishingAnimationIDs := [619];
-       EquipmentIDs  := [301];
-       FishSpotIDs := [1522];
-       FishspotName := 'Cage';
-       canCook := true;
-       canBank := true;
-       customIDs1 := [3644, 3646, 3645{these 3 are 'Pay-fare' NPC sarim}, 3648{'Pay-Fare' NPC karma}];
-       customTPA1 := [Point(2925, 3179), Point(2925, 3174), Point(2923, 3169), Point(2918, 3169), Point(2914, 3166), Point(2914, 3161), Point(2914, 3156), Point(2916, 3151), Point(2921, 3151), Point(2926, 3151), Point(2931, 3151), Point(2936, 3148), Point(2940, 3145), Point(2945, 3147)];//path to tree from fish
-       customTPA2 := [Point(3047, 3234), Point(3042, 3236), Point(3037, 3236), Point(3032, 3236), Point(3028, 3233), Point(3028, 3228), Point(3028, 3223), Point(3027, 3218)]; //path from depo to payfare
-       customTPA3 := [Point(3027, 3219){payfare sarim}, Point(2956, 3144){'Cross' at karma}, Point(3031, 3217){'Cross' at sarim}, Point(2955, 3146){payfare karam}];
-      setLength(locationFish, 3);
-      locationFish[0].ID := 381;
-      locationFish[0].fishType := 2;
-      locationFish[1].ID := 379;
-      locationFish[1].fishType := 1;
-      locationFish[2].ID := 377;
-      locationFish[2].fishType := 0;
-      setLength(locationTreeObjects, 1);
-      with locationTreeObjects[0] do begin
-        Offset := [0, 0, 200];
+        TileOffset := [0, -1];
         Tile := Point(2945, 3148);
         AliveIDs := [1276];
-        DeadIDs := [];
-        LogIDs := [1511];
+        DeadIDs := [1342];
+        Options := ['Chop down Tree'];
+        Name := 'Tree';
       end;
-     end;
-    15: begin
-      daLogger.status('Be sure to start near the fishing spot or deposit box...', []);
-       JobString := 'Karamja harpooning';
-       BankLocations := [Point(3045, 3234)]; //'Deposit'
-       bankOffset := [Point(0, 0)];
-       FishLocations := [Point(2924, 3178)];
-       PathToBank := [Point(3028, 3217), Point(3027, 3222), Point(3027, 3227), Point(3027, 3232), Point(3030, 3236), Point(3035, 3236), Point(3040, 3236), Point(3045, 3236)];
-       PathToFish := [Point(2951, 3147), Point(2946, 3147), Point(2941, 3146), Point(2936, 3146), Point(2931, 3148), Point(2926, 3148), Point(2921, 3150), Point(2916, 3150), Point(2915, 3155), Point(2919, 3159), Point(2920, 3164), Point(2920, 3169), Point(2923, 3173), Point(2924, 3178)];
-       FishingAnimationIDs := [618, 5108];
-       EquipmentIDs  := [311];
-       FishSpotIDs := [1522];
-       FishspotName := 'Harpoon';
-       canCook := true;
-       canBank := true;
-       customIDs1 := [3644, 3646, 3645{these 3 are 'Pay-fare' NPC sarim}, 3648{'Pay-Fare' NPC karma}];
-       customTPA1 := [Point(2925, 3179), Point(2925, 3174), Point(2923, 3169), Point(2918, 3169), Point(2914, 3166), Point(2914, 3161), Point(2914, 3156), Point(2916, 3151), Point(2921, 3151), Point(2926, 3151), Point(2931, 3151), Point(2936, 3148), Point(2940, 3145), Point(2945, 3147)];//path to tree from fish
-       customTPA2 := [Point(3047, 3234), Point(3042, 3236), Point(3037, 3236), Point(3032, 3236), Point(3028, 3233), Point(3028, 3228), Point(3028, 3223), Point(3027, 3218)]; //path from depo to payfare
-       customTPA3 := [Point(3027, 3219){payfare sarim}, Point(2956, 3144){'Cross' at karma}, Point(3031, 3217){'Cross' at sarim}, Point(2955, 3146){payfare karam}];
-      setLength(locationTreeObjects, 1);
-      with locationTreeObjects[0] do begin
-        Offset := [0, 0, 200];
+
+      setLength(daLocation.customTPAs, 3);
+      daLocation.customTPAs[0] := [Point(2925, 3179), Point(2925, 3174), Point(2923, 3169), Point(2918, 3169), Point(2914, 3166), Point(2914, 3161), Point(2914, 3156), Point(2916, 3151), Point(2921, 3151), Point(2926, 3151), Point(2931, 3151), Point(2936, 3148), Point(2940, 3145), Point(2945, 3147)];//path to tree from fish
+      daLocation.customTPAs[1] := [Point(3047, 3234), Point(3042, 3236), Point(3037, 3236), Point(3032, 3236), Point(3028, 3233), Point(3028, 3228), Point(3028, 3223), Point(3027, 3218)]; //path from depo to payfare
+      daLocation.customTPAs[2] := [Point(3027, 3219){payfare sarim}, Point(2956, 3144){'Cross' at karma}, Point(3031, 3217){'Cross' at sarim}, Point(2955, 3146){payfare karam}];
+
+      setLength(daLocation.customIDs, 1);
+      daLocation.customIDs[0] := [3644, 3646, 3645{these 3 are 'Pay-fare' NPC sarim}, 3648{'Pay-Fare' NPC karma}];
+    end;
+    16..19:begin
+      daLocation.PathToBank := [Point(2944, 3146), Point(2939, 3146), Point(2934, 3146), Point(2929, 3148), Point(2924, 3148), Point(2919, 3150), Point(2914, 3150), Point(2909, 3150), Point(2905, 3147)]; //from tree
+      daLocation.PathToFish := [Point(2905, 3149), Point(2910, 3149), Point(2915, 3150), Point(2915, 3155), Point(2919, 3159), Point(2923, 3162), Point(2923, 3167), Point(2923, 3172), Point(2924, 3177)]; //from store
+      daLocation.canCook := true;
+      daLocation.canBank := true;
+      daLocation.isSell := true;
+
+      setLength(daLocation.customTPAs, 2);
+      daLocation.customTPAs[1] := [Point(2924, 3179), Point(2924, 3174), Point(2920, 3171), Point(2920, 3166), Point(2920, 3161), Point(2917, 3157), Point(2914, 3153), Point(2909, 3150), Point(2905, 3147)];//path from fish to store
+      daLocation.customTPAs[0] := [Point(2925, 3179), Point(2925, 3174), Point(2923, 3169), Point(2918, 3169), Point(2914, 3166), Point(2914, 3161), Point(2914, 3156), Point(2916, 3151), Point(2921, 3151), Point(2926, 3151), Point(2931, 3151), Point(2936, 3148), Point(2940, 3145), Point(2945, 3147)];//path to tree from fish
+
+      setLength(daLocation.BankNPCs, 1);
+      with daLocation.BankNPCs[0] do begin
+        Locations := [Point(2904, 3148)];
+        Names := [];
+        Plane := 0;
+        IDs := [518, 519{general store salesmen}];
+        Options := ['Trade'];
+      end;
+
+      setLength(daLocation.TreeObjects, 1);
+      with daLocation.TreeObjects[0] do begin
+        Offset := [50, 50, 200];
+        TileOffset := [0, -1];
         Tile := Point(2945, 3148);
         AliveIDs := [1276];
-        DeadIDs := [];
-        LogIDs := [1511];
+        DeadIDs := [1342];
+        Options := ['Chop down Tree'];
+        Name := 'Tree';
       end;
-      setLength(locationFish, 6);
-      locationFish[0].ID := 371;
-      locationFish[0].fishType := 0;  //raw
-      locationFish[1].ID := 359;
-      locationFish[1].fishType := 0;
-      locationFish[2].ID := 361;
-      locationFish[2].fishType := 1;  //cook
-      locationFish[3].ID := 373;
-      locationFish[3].fishType := 1;
-      locationFish[4].ID := 375;
-      locationFish[4].fishType := 2; //burnt
-      locationFish[5].ID := 367;
-      locationFish[5].fishType := 2;
-     end;
-    16: begin
-       JobString := 'Karamja small netting (sell)';
-       BankLocations := [Point(2904, 3148)];
-       bankOffset := [Point(0, 0)];
-       FishLocations := [Point(2924, 3178)];
-       PathToBank := [Point(2944, 3146), Point(2939, 3146), Point(2934, 3146), Point(2929, 3148), Point(2924, 3148), Point(2919, 3150), Point(2914, 3150), Point(2909, 3150), Point(2905, 3147)]; //from tree
-       PathToFish := [Point(2905, 3149), Point(2910, 3149), Point(2915, 3150), Point(2915, 3155), Point(2919, 3159), Point(2923, 3162), Point(2923, 3167), Point(2923, 3172), Point(2924, 3177)]; //from store
-       FishingAnimationIDs := [621];
-       EquipmentIDs := [303];
-       FishspotIDs := [1521];
-       FishspotName := 'Net';
-       canCook := true;
-       canBank := true;
-       customIDs1 := [518, 519{general store salesmen}];//'Trade'
-       customTPA1 := [Point(2924, 3179), Point(2924, 3174), Point(2920, 3171), Point(2920, 3166), Point(2920, 3161), Point(2917, 3157), Point(2914, 3153), Point(2909, 3150), Point(2905, 3147)];//path from fish to store
-       customTPA2 := [Point(2925, 3179), Point(2925, 3174), Point(2923, 3169), Point(2918, 3169), Point(2914, 3166), Point(2914, 3161), Point(2914, 3156), Point(2916, 3151), Point(2921, 3151), Point(2926, 3151), Point(2931, 3151), Point(2936, 3148), Point(2940, 3145), Point(2945, 3147)];//path to tree from fish
-      setLength(locationTreeObjects, 1);
-      with locationTreeObjects[0] do begin
-        Offset := [0, 0, 200];
-        Tile := Point(2945, 3148);
-        AliveIDs := [1276];
-        DeadIDs := [];
-        LogIDs := [1511];
+
+      case job of
+        16:begin
+          daLocation.Name := 'Karamja small netting (sell)';
+          daLocation.ID := 16;
+          setLength(daLocation.FishNPCs, 1);
+          with daLocation.FishNPCs[0] do begin
+            Names := [];
+            BaitIDs := [];
+            AnimationIDs := [621];
+            EquipmentIDs := [303];
+            IDs := [1521];
+            Locations := [Point(2924, 3178)];
+            Options := ['Net'];
+            setLength(RawFishes, 2);
+            with RawFishes[0] do
+              ID := 317;
+            with RawFishes[1] do
+              ID := 321;
+            setLength(CookedFishes, 2);
+            with CookedFishes[0] do
+              ID := 315;
+            with CookedFishes[1] do
+              ID := 319;
+            setLength(BurntFishes, 2);
+            with BurntFishes[0] do
+              ID := 323;
+            with BurntFishes[1] do
+              ID := 7954;
+          end;
+        end;
+        17:begin
+          daLocation.Name := 'Karamja small baiting (sell)';
+          daLocation.ID := 17;
+          setLength(daLocation.FishNPCs, 1);
+          with daLocation.FishNPCs[0] do begin
+            Names := [];
+            BaitIDs := [313];
+            AnimationIDs := [622, 623];
+            EquipmentIDs := [307];
+            IDs := [1521];
+            Locations := [Point(2924, 3178)];
+            Options := ['Bait'];
+            setLength(RawFishes, 2);
+            with RawFishes[0] do
+              ID := 327;
+            with RawFishes[1] do
+              ID := 345;
+            setLength(CookedFishes, 2);
+            with CookedFishes[0] do
+              ID := 325;
+            with CookedFishes[1] do
+              ID := 347;
+            setLength(BurntFishes, 2);
+            with BurntFishes[0] do
+              ID := 357;
+            with BurntFishes[1] do
+              ID := 369;
+          end;
+        end;
+        18:begin
+          daLocation.Name := 'Karamja caging(sell)';
+          daLocation.ID := 18;
+          setLength(daLocation.FishNPCs, 1);
+          with daLocation.FishNPCs[0] do begin
+            Names := [];
+            BaitIDs := [];
+            AnimationIDs := [619];
+            EquipmentIDs := [301];
+            IDs := [1522];
+            Locations := [Point(2924, 3178)];
+            Options := ['Cage'];
+            setLength(RawFishes, 1);
+            with RawFishes[0] do
+              ID := 377;
+            setLength(CookedFishes, 1);
+            with CookedFishes[0] do
+              ID := 379;
+            setLength(BurntFishes, 1);
+            with BurntFishes[0] do
+              ID := 381;
+          end;
+        end;
+        19:begin
+          daLocation.Name := 'Karamja harpooning(sell)';
+          daLocation.ID := 19;
+          setLength(daLocation.FishNPCs, 1);
+          with daLocation.FishNPCs[0] do begin
+            Names := [];
+            BaitIDs := [];
+            AnimationIDs := [618, 5108];
+            EquipmentIDs := [311];
+            IDs := [1522];
+            Locations := [Point(2924, 3178)];
+            Options := ['Harpoon'];
+            setLength(RawFishes, 2);
+            with RawFishes[0] do
+              ID := 371;
+            with RawFishes[1] do
+              ID := 359;
+            setLength(CookedFishes, 2);
+            with CookedFishes[0] do
+              ID := 361;
+            with CookedFishes[1] do
+              ID := 373;
+            setLength(BurntFishes, 2);
+            with BurntFishes[0] do
+              ID := 375;
+            with BurntFishes[1] do
+              ID := 367;
+          end;
+        end;
       end;
-      setLength(locationFish, 6);
-      locationFish[0].ID := 317;
-      locationFish[0].fishType := 0;  //raw
-      locationFish[1].ID := 321;
-      locationFish[1].fishType := 0;
-      locationFish[2].ID := 315;
-      locationFish[2].fishType := 1;  //cook
-      locationFish[3].ID := 319;
-      locationFish[3].fishType := 1;
-      locationFish[4].ID := 323;
-      locationFish[4].fishType := 2; //burnt
-      locationFish[5].ID := 7954;
-      locationFish[5].fishType := 2;
-     end;
-    17: begin
-       JobString := 'Karamja baitting (sell)';
-       BankLocations := [Point(2904, 3148)];
-       bankOffset := [Point(0, 0)];
-       FishLocations := [Point(2924, 3178)];
-       PathToBank := [Point(2944, 3146), Point(2939, 3146), Point(2934, 3146), Point(2929, 3148), Point(2924, 3148), Point(2919, 3150), Point(2914, 3150), Point(2909, 3150), Point(2905, 3147)]; //from tree
-       PathToFish := [Point(2905, 3149), Point(2910, 3149), Point(2915, 3150), Point(2915, 3155), Point(2919, 3159), Point(2923, 3162), Point(2923, 3167), Point(2923, 3172), Point(2924, 3177)]; //from store
-       FishingAnimationIDs := [622, 623];
-       EquipmentIDs := [307];
-       FishspotIDs := [1521];
-       FishspotName := 'Bait';
-       BaitIDs := [313];
-       canCook := true;
-       canBank := true;
-       customIDs1 := [518, 519{general store salesmen}];//'Trade'
-       customTPA1 := [Point(2924, 3179), Point(2924, 3174), Point(2920, 3171), Point(2920, 3166), Point(2920, 3161), Point(2917, 3157), Point(2914, 3153), Point(2909, 3150), Point(2905, 3147)];//path from fish to store
-       customTPA2 := [Point(2925, 3179), Point(2925, 3174), Point(2923, 3169), Point(2918, 3169), Point(2914, 3166), Point(2914, 3161), Point(2914, 3156), Point(2916, 3151), Point(2921, 3151), Point(2926, 3151), Point(2931, 3151), Point(2936, 3148), Point(2940, 3145), Point(2945, 3147)];//path to tree from fish
-      setLength(locationTreeObjects, 1);
-      with locationTreeObjects[0] do begin
+    end;
+    20..21:begin
+      daLocation.canCook := true;
+      daLocation.canBank := true;
+      daLocation.isSell := true;
+
+      setLength(daLocation.TreeObjects, 1);
+      with daLocation.TreeObjects[0] do begin
         Offset := [0, 0, 200];
-        Tile := Point(2945, 3148);
-        AliveIDs := [1276];
-        DeadIDs := [];
-        LogIDs := [1511];
-      end;
-      setLength(locationFish, 6);
-      locationFish[0].ID := 327;
-      locationFish[0].fishType := 0;  //raw
-      locationFish[1].ID := 345;
-      locationFish[1].fishType := 0;
-      locationFish[2].ID := 325;
-      locationFish[2].fishType := 1;  //cook
-      locationFish[3].ID := 347;
-      locationFish[3].fishType := 1;
-      locationFish[4].ID := 369;
-      locationFish[4].fishType := 2; //burnt
-      locationFish[5].ID := 357;
-      locationFish[5].fishType := 2;
-     end;
-    18: begin
-       JobString := 'Karamja caging (sell)';
-       BankLocations := [Point(2904, 3148)];
-       bankOffset := [Point(0, 0)];
-       FishLocations := [Point(2924, 3178)];
-       PathToBank := [Point(2944, 3146), Point(2939, 3146), Point(2934, 3146), Point(2929, 3148), Point(2924, 3148), Point(2919, 3150), Point(2914, 3150), Point(2909, 3150), Point(2905, 3147)]; //from tree
-       PathToFish := [Point(2905, 3149), Point(2910, 3149), Point(2915, 3150), Point(2915, 3155), Point(2919, 3159), Point(2923, 3162), Point(2923, 3167), Point(2923, 3172), Point(2924, 3177)]; //from store
-       FishingAnimationIDs := [619];
-       EquipmentIDs := [301];
-       FishspotIDs := [1522];
-       FishspotName := 'Cage';
-       canCook := true;
-       canBank := true;
-       customIDs1 := [518, 519{general store salesmen}];//'Trade'
-       customTPA1 := [Point(2924, 3179), Point(2924, 3174), Point(2920, 3171), Point(2920, 3166), Point(2920, 3161), Point(2917, 3157), Point(2914, 3153), Point(2909, 3150), Point(2905, 3147)];//path from fish to store
-       customTPA2 := [Point(2925, 3179), Point(2925, 3174), Point(2923, 3169), Point(2918, 3169), Point(2914, 3166), Point(2914, 3161), Point(2914, 3156), Point(2916, 3151), Point(2921, 3151), Point(2926, 3151), Point(2931, 3151), Point(2936, 3148), Point(2940, 3145), Point(2945, 3147)];//path to tree from fish
-      setLength(locationTreeObjects, 1);
-      with locationTreeObjects[0] do begin
-        Offset := [0, 0, 200];
-        Tile := Point(2945, 3148);
-        AliveIDs := [1276];
-        DeadIDs := [];
-        LogIDs := [1511];
-      end;
-      setLength(locationFish, 3);
-      locationFish[0].ID := 381;
-      locationFish[0].fishType := 2;
-      locationFish[1].ID := 379;
-      locationFish[1].fishType := 1;
-      locationFish[2].ID := 377;
-      locationFish[2].fishType := 0;
-     end;
-    19: begin
-       JobString := 'Karamja harpooning (sell)';
-       BankLocations := [Point(2904, 3148)];
-       bankOffset := [Point(0, 0)];
-       FishLocations := [Point(2924, 3178)];
-       PathToBank := [Point(2944, 3146), Point(2939, 3146), Point(2934, 3146), Point(2929, 3148), Point(2924, 3148), Point(2919, 3150), Point(2914, 3150), Point(2909, 3150), Point(2905, 3147)]; //from tree
-       PathToFish := [Point(2905, 3149), Point(2910, 3149), Point(2915, 3150), Point(2915, 3155), Point(2919, 3159), Point(2923, 3162), Point(2923, 3167), Point(2923, 3172), Point(2924, 3177)]; //from store
-       FishingAnimationIDs := [618, 5108];
-       EquipmentIDs := [311];
-       FishspotIDs := [1522];
-       FishspotName := 'Harpoon';
-       canCook := true;
-       canBank := true;
-       customIDs1 := [518, 519{general store salesmen}];//'Trade'
-       customTPA1 := [Point(2924, 3179), Point(2924, 3174), Point(2920, 3171), Point(2920, 3166), Point(2920, 3161), Point(2917, 3157), Point(2914, 3153), Point(2909, 3150), Point(2905, 3147)];//path from fish to store
-       customTPA2 := [Point(2925, 3179), Point(2925, 3174), Point(2923, 3169), Point(2918, 3169), Point(2914, 3166), Point(2914, 3161), Point(2914, 3156), Point(2916, 3151), Point(2921, 3151), Point(2926, 3151), Point(2931, 3151), Point(2936, 3148), Point(2940, 3145), Point(2945, 3147)];//path to tree from fish
-      setLength(locationTreeObjects, 1);
-      with locationTreeObjects[0] do begin
-        Offset := [0, 0, 200];
-        Tile := Point(2945, 3148);
-        AliveIDs := [1276];
-        DeadIDs := [];
-        LogIDs := [1511];
-      end;
-      setLength(locationFish, 6);
-      locationFish[0].ID := 371;
-      locationFish[0].fishType := 0;  //raw
-      locationFish[1].ID := 359;
-      locationFish[1].fishType := 0;
-      locationFish[2].ID := 361;
-      locationFish[2].fishType := 1;  //cook
-      locationFish[3].ID := 373;
-      locationFish[3].fishType := 1;
-      locationFish[4].ID := 375;
-      locationFish[4].fishType := 2; //burnt
-      locationFish[5].ID := 367;
-      locationFish[5].fishType := 2;
-     end;
-     20: begin
-       JobString := 'Rasolo luring (sell)';
-       BaitIDs := [314];
-       BankLocations := [Point(2535, 3430)];
-       bankOffset := [Point(0, 0)];
-       FishLocations := [Point(2533, 3411)];
-       FishingAnimationIDs := [623, 622];
-       EquipmentIDs  := [309];
-       FishSpotIDs := [1508];
-       FishspotName := 'Lure';
-       canCook := true;
-       canBank := true;
-       customIDs1 := [679{Rasolo guy who 'Trade'}];
-       setLength(locationTreeObjects, 1);
-      with locationTreeObjects[0] do begin
-        Offset := [0, 0, 200];
+        TileOffset := [0, -1];
         Tile := Point(2535, 3414);
         AliveIDs := [1278];
-        DeadIDs := [];
-        LogIDs := [1511];
+        DeadIDs := [1342];
+        Options := ['Chop down Tree'];
+        Name := 'Tree';
       end;
-       setLength(locationFish, 5);
-      locationFish[0].ID := 343;
-      locationFish[0].fishType := 2;
-      locationFish[1].ID := 329;
-      locationFish[1].fishType := 1;
-      locationFish[2].ID := 333;
-      locationFish[2].fishType := 1;
-      locationFish[3].ID := 335;
-      locationFish[3].fishType := 0;
-      locationFish[4].ID := 331;
-      locationFish[4].fishType := 0;
-     end;
-     21: begin
-       JobString := 'Rasolo baitting (sell)';
-       BaitIDs := [313];
-       BankLocations := [Point(2535, 3430)];
-       bankOffset := [Point(0, 0)];
-       FishLocations := [Point(2533, 3411)];
-       FishingAnimationIDs := [623, 622];
-       EquipmentIDs  := [307];
-       FishSpotIDs := [1508];
-       FishspotName := 'Bait';
-       canCook := true;
-       canBank := true;
-       customIDs1 := [679{Rasolo guy who 'Trade'}];
-       setLength(locationTreeObjects, 1);
-      with locationTreeObjects[0] do begin
-        Offset := [0, 0, 200];
-        Tile := Point(2535, 3414);
-        AliveIDs := [1278];
-        DeadIDs := [];
-        LogIDs := [1511];
+
+      setLength(daLocation.BankNPCs, 1);
+      with daLocation.BankNPCs[0] do begin
+        Locations := [Point(2535, 3430)];
+        Names := [];
+        Plane := 0;
+        IDs := [679{Rasolo guy who 'Trade'}];
+        Options := ['Trade'];
       end;
-       setLength(locationFish, 6);
-      locationFish[0].ID := 327;
-      locationFish[0].fishType := 0;  //raw
-      locationFish[1].ID := 345;
-      locationFish[1].fishType := 0;
-      locationFish[2].ID := 325;
-      locationFish[2].fishType := 1;  //cook
-      locationFish[3].ID := 347;
-      locationFish[3].fishType := 1;
-      locationFish[4].ID := 369;
-      locationFish[4].fishType := 2; //burnt
-      locationFish[5].ID := 357;
-      locationFish[5].fishType := 2;
-     end;
-     22: begin
-       JobString := 'Shilo luring';
-       BaitIDs := [314];
-       BankLocations := [Point(2852, 2954)];
-       bankOffset := [Point(0, 0)];
-       FishLocations := [Point(2835, 2969), Point(2862, 2969)];
-       FishingAnimationIDs := [623, 622];
-       EquipmentIDs  := [309];
-       FishSpotIDs := [1515];
-       FishspotName := 'Lure';
-       canBank := true;
-       customIDs1 := [399{banker id}];
-       setLength(locationFish, 5);
-       locationFish[0].ID := 343;
-      locationFish[0].fishType := 2;
-      locationFish[1].ID := 329;
-      locationFish[1].fishType := 1;
-      locationFish[2].ID := 333;
-      locationFish[2].fishType := 1;
-      locationFish[3].ID := 335;
-      locationFish[3].fishType := 0;
-      locationFish[4].ID := 331;
-      locationFish[4].fishType := 0;
-     end;
-     23: begin
-       JobString := 'Shilo baitting';
-       BaitIDs := [313];
-       BankLocations := [Point(2852, 2954)];
-       bankOffset := [Point(0, 0)];
-       FishLocations := [Point(2835, 2969), Point(2862, 2969)];
-       FishingAnimationIDs := [623, 622];
-       EquipmentIDs  := [307];
-       FishSpotIDs := [1515];
-       FishspotName := 'Bait';
-       canBank := true;
-       customIDs1 := [399{banker id}];
-       setLength(locationFish, 6);
-      locationFish[0].ID := 327;
-      locationFish[0].fishType := 0;  //raw
-      locationFish[1].ID := 345;
-      locationFish[1].fishType := 0;
-      locationFish[2].ID := 325;
-      locationFish[2].fishType := 1;  //cook
-      locationFish[3].ID := 347;
-      locationFish[3].fishType := 1;
-      locationFish[4].ID := 369;
-      locationFish[4].fishType := 2; //burnt
-      locationFish[5].ID := 357;
-      locationFish[5].fishType := 2;
-     end;
-     24: begin
-       JobString := 'Otto''s Grotto heavy rodding';
-       BaitIDs := [314];
-       FishLocations := [Point(2499, 3509)];
-       FishingAnimationIDs := [622, 623];
-       EquipmentIDs  := [11323];
-       FishSpotIDs := [1542];
-       FishspotName := 'Use-rod';
-       canCook := true;
-       setLength(locationFish, 6);
-       locationFish[0].ID := 11326;
-       locationFish[0].fishType := 1;
-       locationFish[1].ID := 11324;
-       locationFish[1].fishType := 1;
-       locationFish[2].ID := 11334;
-       locationFish[2].fishType := 1;
-       locationFish[3].ID := 11332;
-       locationFish[3].fishType := 0;
-       locationFish[4].ID := 11330;
-       locationFish[4].fishType := 0;
-       locationFish[5].ID := 11328;
-       locationFish[5].fishType := 0;
-     end;
-     25: begin
-       JobString := 'Piscatoris small netting';
-       BankLocations := [Point(2330, 3689)];
-       bankOffset := [Point(0, 0)];
-       FishLocations := [Point(2317, 3698), Point(2335, 3697), Point(2349, 3698)];
-       FishingAnimationIDs := [621];
-       EquipmentIDs  := [303];
-       FishSpotIDs := [4316];
-       FishspotName := 'Net';
-       canBank := true;
-	     customIDs1 := [4293{banker ids}];
-       setLength(locationFish, 1);
-       locationFish[0].ID := 7944;
-       locationFish[0].fishType := 0;
-     end;
-     26: begin
-       JobString := 'Piscatoris harpooning';
-       BankLocations := [Point(2330, 3689)];
-       bankOffset := [Point(0, 0)];
-       FishLocations := [Point(2317, 3698), Point(2335, 3697), Point(2349, 3698)];
-       FishingAnimationIDs := [618, 5108];
-       EquipmentIDs  := [311];
-       FishSpotIDs := [4316];
-       FishspotName := 'Harpoon';
-       canBank := true;
-	     customIDs1 := [4293{banker ids}];
-       setLength(locationFish, 2);
-       locationFish[0].ID := 359;
-       locationFish[0].fishType := 0;
-       locationFish[1].ID := 371;
-       locationFish[1].fishType := 0;
-     end;
-     27:begin
-       JobString := 'Powerfish small netting';
-       EquipmentIDs  := [303];
-       FishingAnimationIDs := [621];
-       FishspotName := 'Net';
-       FishSpotIDs := [1525, 1518, 1521, 1544, 1530, 1523];
-       setLength(locationFish, 2);
-       locationFish[0].ID := 317;
-       locationFish[0].fishType := 0;
-       locationFish[1].ID := 321;
-       locationFish[1].fishType := 0;
-     end;
-     28:begin
-       progFish := true;
-       JobString := 'Progressive fishing';
-       EquipmentIDs  := [311, 303, 301];
-       setLength(locationFish, 5);
-       locationFish[0].ID := 317;
-       locationFish[0].fishType := 0;
-       locationFish[1].ID := 321;
-       locationFish[1].fishType := 0;
-       locationFish[2].ID := 359;
-       locationFish[2].fishType := 0;
-       locationFish[3].ID := 371;
-       locationFish[3].fishType := 0;
-      locationFish[4].ID := 377;
-      locationFish[4].fishType := 0;
-     end;
-     29:begin
-       JobString := 'Zulrah Eels';
-       BaitIDs := [313];
-       FishLocations := [Point(2192, 3069)];
-       FishingAnimationIDs := [623, 622];
-       EquipmentIDs  := [307];
-       FishSpotIDs := [6488];
-       FishspotName := 'Bait';
-       canCook := true;
-       setLength(locationFish, 2);
-      locationFish[0].ID := 13339;
-      locationFish[0].fishType := 0;  //raw
-      locationFish[1].ID := 12934;
-      locationFish[1].fishType := 1;  //cook
-     end;
-  end;
 
-  for i:=0 to high(locationFish) do begin
-    locationFish[i].caught := 0;
-    locationFish[i].price := getPriceGE(locationFish[i].ID);
-  end;
+      case job of
+        20:begin
+          daLocation.Name := 'Rasolo luring (sell)';
+          daLocation.ID := 20;
+          setLength(daLocation.FishNPCs, 1);
+          with daLocation.FishNPCs[0] do begin
+            Names := [];
+            BaitIDs := [314];
+            AnimationIDs := [622, 623];
+            EquipmentIDs := [309];
+            IDs := [1508];
+            Locations := [Point(2533, 3411)];
+            Options := ['Lure'];
+            setLength(RawFishes, 2);
+            with RawFishes[0] do
+              ID := 335;
+            with RawFishes[1] do
+              ID := 331;
+            setLength(CookedFishes, 2);
+            with CookedFishes[0] do
+              ID := 329;
+            with CookedFishes[1] do
+              ID := 333;
+            setLength(BurntFishes, 1);
+            with BurntFishes[0] do
+              ID := 343;
+          end;
+        end;
+        21:begin
+          daLocation.Name := 'Rasolo baiting (sell)';
+          daLocation.ID := 21;
+          setLength(daLocation.FishNPCs, 1);
+          with daLocation.FishNPCs[0] do begin
+            Names := [];
+            BaitIDs := [313];
+            AnimationIDs := [622, 623];
+            EquipmentIDs := [307];
+            IDs := [1508];
+            Locations := [Point(2533, 3411)];
+            Options := ['Bait'];
+            setLength(RawFishes, 2);
+            with RawFishes[0] do
+              ID := 335;
+            with RawFishes[1] do
+              ID := 331;
+            setLength(CookedFishes, 2);
+            with CookedFishes[0] do
+              ID := 349;
+            with CookedFishes[1] do
+              ID := 351;
+            setLength(BurntFishes, 1);
+            with BurntFishes[0] do
+              ID := 343;
+          end;
+        end;
+      end;
+    end;
+    22..23:begin
+      daLocation.canBank := true;
 
-  for i:=0 to 1000 do begin
-    if(not FileExists(ScriptPath+'ineedbot''s AIO Fisher proggy '+toStr(i)+'.png'))then begin
-      ProggieLocation := ScriptPath+'ineedbot''s AIO Fisher proggy '+toStr(i)+'.png';
-      i:=1000;
+      setLength(daLocation.BankNPCs, 1);
+      with daLocation.BankNPCs[0] do begin
+        Locations := [Point(2852, 2954)];
+        Names := [];
+        Plane := 0;
+        IDs := [399];
+        Options := ['Bank B'];
+      end;
+
+      case job of
+        22:begin
+          daLocation.Name := 'Shilo luring';
+          daLocation.ID := 22;
+          setLength(daLocation.FishNPCs, 1);
+          with daLocation.FishNPCs[0] do begin
+            Names := [];
+            BaitIDs := [314];
+            AnimationIDs := [622, 623];
+            EquipmentIDs := [309];
+            IDs := [1515];
+            Locations := [Point(2835, 2969), Point(2862, 2969)];
+            Options := ['Lure'];
+            setLength(RawFishes, 2);
+            with RawFishes[0] do
+              ID := 335;
+            with RawFishes[1] do
+              ID := 331;
+            setLength(CookedFishes, 2);
+            with CookedFishes[0] do
+              ID := 329;
+            with CookedFishes[1] do
+              ID := 333;
+            setLength(BurntFishes, 1);
+            with BurntFishes[0] do
+              ID := 343;
+          end;
+        end;
+        23:begin
+          daLocation.Name := 'Shilo baiting';
+          daLocation.ID := 23;
+          setLength(daLocation.FishNPCs, 1);
+          with daLocation.FishNPCs[0] do begin
+            Names := [];
+            BaitIDs := [313];
+            AnimationIDs := [622, 623];
+            EquipmentIDs := [307];
+            IDs := [1515];
+            Locations := [Point(2835, 2969), Point(2862, 2969)];
+            Options := ['Bait'];
+            setLength(RawFishes, 2);
+            with RawFishes[0] do
+              ID := 335;
+            with RawFishes[1] do
+              ID := 331;
+            setLength(CookedFishes, 2);
+            with CookedFishes[0] do
+              ID := 349;
+            with CookedFishes[1] do
+              ID := 351;
+            setLength(BurntFishes, 1);
+            with BurntFishes[0] do
+              ID := 343;
+          end;
+        end;
+      end;
+    end;
+    24:begin
+      daLocation.canCook := true;
+      daLocation.Name := 'Otto''s Grotto heavy rodding';
+      daLocation.ID := 24;
+      setLength(daLocation.FishNPCs, 1);
+      with daLocation.FishNPCs[0] do begin
+        Names := [];
+        BaitIDs := [314];
+        AnimationIDs := [622, 623];
+        EquipmentIDs := [11323];
+        IDs := [1542];
+        Locations := [Point(2499, 3509)];
+        Options := ['Use-rod'];
+        setLength(RawFishes, 3);
+        with RawFishes[0] do
+          ID := 11328;
+        with RawFishes[1] do
+          ID := 11330;
+        with RawFishes[2] do
+          ID := 11332;
+        setLength(CookedFishes, 3);
+        with CookedFishes[0] do
+          ID := 11326;
+        with CookedFishes[1] do
+          ID := 11324;
+        with CookedFishes[2] do
+          ID := 11334;
+      end;
+    end;
+    25..26:begin
+      daLocation.canBank := true;
+
+      setLength(daLocation.BankNPCs, 1);
+      with daLocation.BankNPCs[0] do begin
+        Locations := [Point(2330, 3689)];
+        Names := [];
+        Plane := 0;
+        IDs := [4293];
+        Options := ['Bank B'];
+      end;
+
+      case job of
+        25:begin
+          daLocation.Name := 'Piscatoris small netting';
+          daLocation.ID := 25;
+          setLength(daLocation.FishNPCs, 1);
+          with daLocation.FishNPCs[0] do begin
+            Names := [];
+            BaitIDs := [];
+            AnimationIDs := [621];
+            EquipmentIDs := [303];
+            IDs := [4316];
+            Locations := [Point(2317, 3698), Point(2335, 3697), Point(2349, 3698)];
+            Options := ['Net'];
+            setLength(RawFishes, 1);
+            with RawFishes[0] do
+              ID := 7944;
+          end;
+        end;
+        26:begin
+          daLocation.Name := 'Piscatoris harpooning';
+          daLocation.ID := 26;
+          setLength(daLocation.FishNPCs, 1);
+          with daLocation.FishNPCs[0] do begin
+            Names := [];
+            BaitIDs := [];
+            AnimationIDs := [618, 5108];
+            EquipmentIDs := [311];
+            IDs := [4316];
+            Locations := [Point(2317, 3698), Point(2335, 3697), Point(2349, 3698)];
+            Options := ['Harpoon'];
+            setLength(RawFishes, 2);
+            with RawFishes[0] do
+              ID := 359;
+            with RawFishes[1] do
+              ID := 371;
+          end;
+        end;
+      end;
+    end;
+    27:begin
+      daLocation.Name := 'Powerfish small netting';
+      daLocation.ID := 27;
+      setLength(daLocation.FishNPCs, 1);
+      with daLocation.FishNPCs[0] do begin
+        Names := [];
+        BaitIDs := [];
+        AnimationIDs := [621];
+        EquipmentIDs := [303];
+        IDs := [1525, 1518, 1521, 1544, 1530, 1523];
+        Locations := [];
+        Options := ['Net'];
+        setLength(RawFishes, 2);
+        with RawFishes[0] do
+          ID := 317;
+        with RawFishes[1] do
+          ID := 321;
+      end;
+    end;
+    28:begin
+      daLocation.isDynamic := true;
+      daLocation.Name := 'Progressive fishing';
+      setLength(daLocation.FishNPCs, 1);
+      with daLocation.FishNPCs[0] do begin
+        Names := [];
+        BaitIDs := [];
+        AnimationIDs := [];
+        EquipmentIDs := [];
+        IDs := [];
+        Locations := [];
+        Options := [];
+        setLength(RawFishes, 5);
+        with RawFishes[0] do
+          ID := 377;
+        with RawFishes[1] do
+          ID := 317;
+        with RawFishes[2] do
+          ID := 321;
+        with RawFishes[3] do
+          ID := 371;
+        with RawFishes[4] do
+          ID := 359;
+
+        setLength(CookedFishes, 5);
+        with CookedFishes[0] do
+          ID := 379;
+        with CookedFishes[1] do
+          ID := 315;
+        with CookedFishes[2] do
+          ID := 319;
+        with CookedFishes[3] do
+          ID := 361;
+        with CookedFishes[4] do
+          ID := 373;
+
+        setLength(BurntFishes, 5);
+        with BurntFishes[0] do
+          ID := 381;
+        with BurntFishes[1] do
+          ID := 323;
+        with BurntFishes[2] do
+          ID := 7954;
+        with BurntFishes[3] do
+          ID := 375;
+        with BurntFishes[4] do
+          ID := 367;
+      end;
+    end;
+    29:begin
+      daLocation.Name := 'Zulrah Eels';
+      daLocation.ID := 29;
+      daLocation.canCook := true;
+      setLength(daLocation.FishNPCs, 1);
+      with daLocation.FishNPCs[0] do begin
+        Names := [];
+        BaitIDs := [313];
+        AnimationIDs := [623, 622];
+        EquipmentIDs := [307];
+        IDs := [6488];
+        Locations := [Point(2192, 3069)];
+        Options := ['Bait'];
+        setLength(RawFishes, 1);
+        with RawFishes[0] do
+          ID := 13339;
+        setLength(CookedFishes, 1);
+        with CookedFishes[0] do
+          ID := 12934;
+      end;
     end;
   end;
+
+  for i:=0 to high(daLocation.FishNPCs) do begin
+    for h:=0 to high(daLocation.FishNPCs[h].RawFishes) do
+      daLocation.FishNPCs[i].RawFishes[h].price := getPriceGE(daLocation.FishNPCs[i].RawFishes[h].ID);
+    for h:=0 to high(daLocation.FishNPCs[h].BurntFishes) do
+      daLocation.FishNPCs[i].BurntFishes[h].price := getPriceGE(daLocation.FishNPCs[i].BurntFishes[h].ID);
+    for h:=0 to high(daLocation.FishNPCs[h].CookedFishes) do
+      daLocation.FishNPCs[i].CookedFishes[h].price := getPriceGE(daLocation.FishNPCs[i].CookedFishes[h].ID);
+  end;
+
+  for i:=0 to 1000 do
+    if not FileExists(ScriptPath+'ineedbot''s AIO Fisher proggy '+inttoStr(i)+'.png') then begin
+      ProggieLocation := ScriptPath+'ineedbot''s AIO Fisher proggy '+inttoStr(i)+'.png';
+      break;
+    end;
   doProggy;
 
   if disableCook then
-    canCook := false;
+    daLocation.canCook := false;
   if disableBank then
-    canBank := false;
+    daLocation.canBank := false;
 end;
 
 procedure FreeDTMZ;
@@ -2870,394 +3351,279 @@ end;
 
 procedure setupPlayer;
 begin
-  //setFixedClient;
-  //setBrightness(4);
-  //toggleDataOrbs(true);
-  //toggleRoofRemoval(true);
-  //setCompass('N');
-  //setAngle(ANGLE_HIGH);
   Reflect.Compass.Make('n');
   Reflect.Compass.MakePitch(10);
   LastXPCheck.restart;
 end;
 
 procedure goToBank;
-var RsTIle : TPoint;
-    i, nearestBank : integer;
+var RsTIle, nearestNPCTile : TPoint;
+    i, h : integer;
+    nearestBank : BankLocation;
 begin
-  case Job of
+  if not daLocation.canBank or ((length(daLocation.BankLocations) = 0) and (length(daLocation.BankNPCs) = 0)) then
+    exit;
+
+  if Reflect.Bank.IsOpen or Reflect.Bank.IsPinOpen or R_DepositMenuOpen(false)
+  or R_SellMenuOpen(false) or R_PinSettingsOpen(false) then
+    exit;
+
+  case daLocation.ID of
     14..15:begin //karm depo
-      if canBank then begin
-        if TReflectionTiles.NearTile(customTPA3[3], 50) and (TReflectionTiles.GetPlane = 0) then begin
-          UpdateScreen('Going to go pay-fare.');
-          RsTIle := TReflectionTiles.TileToMM(customTPA1[0]);
-          if R_TileOnMM(customTPA1[0], RSTile) then begin
-            ReflectPlayer.WalkPathMM(customTPA1, false); //safe
-            ReflectPlayer.FFlag(2+randomrange(-2,2), 5000+random(500));
-            sleepScript(random(2000));
-          end;
-          if not R_TileOnMS(customTPA3[3], RSTile) then begin
-            ReflectPlayer.BlindWalkMM(customTPA3[3], 5);
-            ReflectPlayer.FFlag(2+randomrange(-2,2), 5000+random(500));
-            sleepScript(random(2000));
-          end;
-          UpdateScreen('Paying fare...');
-          R_TryInteractNPC([customIDs1[3]], 'Pay-Fare', false, 5);
-          ReflectPlayer.FFlag(0, 5000+random(500));
-          doConversation(['Can I journey on this ship?', 'Search away, I have nothing to hide.', 'Ok.', 'Yes please.']);
-          sleepScript(6000+random(500));
+      if TReflectionTiles.NearTile(daLocation.customTPAs[2][3], 50) and (TReflectionTiles.GetPlane = 0) then begin
+        UpdateScreen('Going to go pay-fare.');
+        RsTIle := TReflectionTiles.TileToMM(daLocation.customTPAs[0][0]);
+        if R_TileOnMM(daLocation.customTPAs[0][0], RSTile) then begin
+          ReflectPlayer.WalkPathMM(daLocation.customTPAs[0], false);
+          ReflectPlayer.FFlag(2+randomrange(-2,2), 5000+random(500));
+          sleepScript(random(2000));
         end;
-        if TReflectionTiles.NearTile(customTPA3[1], 50) and (TReflectionTiles.GetPlane = 1) then begin
-          UpdateScreen('Crossing plank...');
-          if not R_TileOnMS(customTPA3[1], RSTile) then begin
-            ReflectPlayer.BlindWalkMM(customTPA3[1], 5);
-            ReflectPlayer.FFlag(2+randomrange(-2,2), 5000+random(500));
-            sleepScript(2500+random(500));
-          end;
-          if R_InteractTile(customTPA3[1], 'Cross') then begin
-            ReflectPlayer.FFlag(2+randomrange(-2,2), 5000+random(500));
-            sleepScript(2500+random(500));
-          end;
+        if not R_TileOnMS(daLocation.customTPAs[2][3], RSTile) then begin
+          ReflectPlayer.BlindWalkMM(daLocation.customTPAs[2][3], 5);
+          ReflectPlayer.FFlag(2+randomrange(-2,2), 5000+random(500));
+          sleepScript(random(2000));
         end;
-        if TReflectionTiles.NearTile(customTPA3[2], 50) and (TReflectionTiles.GetPlane = 1) then begin
-          UpdateScreen('Crossing plank...');
-          if not R_TileOnMS(customTPA3[2], RSTile) then begin
-            ReflectPlayer.BlindWalkMM(customTPA3[2], 5);
-            ReflectPlayer.FFlag(2+randomrange(-2,2), 5000+random(500));
-            sleepScript(2500+random(500));
-          end;
-          if R_InteractTile(customTPA3[2], 'Cross') then begin
-            ReflectPlayer.FFlag(2+randomrange(-2,2), 5000+random(500));
-            sleepScript(2500+random(500));
-          end;
+        UpdateScreen('Paying fare...');
+        R_TryInteractNPC([daLocation.customIDs[0][3]], 'Pay-Fare', false, 5);
+        ReflectPlayer.FFlag(0, 5000+random(500));
+        doConversation(['Can I journey on this ship?', 'Search away, I have nothing to hide.', 'Ok.', 'Yes please.']);
+        sleepScript(6000+random(500));
+      end;
+      if TReflectionTiles.NearTile(daLocation.customTPAs[2][1], 50) and (TReflectionTiles.GetPlane = 1) then begin
+        UpdateScreen('Crossing plank...');
+        if not R_TileOnMS(daLocation.customTPAs[2][1], RSTile) then begin
+          ReflectPlayer.BlindWalkMM(daLocation.customTPAs[2][1], 5);
+          ReflectPlayer.FFlag(2+randomrange(-2,2), 5000+random(500));
+          sleepScript(2500+random(500));
         end;
-        if TReflectionTiles.NearTile(customTPA3[0], 50) and (TReflectionTiles.GetPlane = 0) then begin
-          UpdateScreen('Going to depo box.');
-          if R_TileOnMM(PathToBank[0], RSTile) then begin
-            ReflectPlayer.WalkPathMM(PathToBank, false);
-            ReflectPlayer.FFlag(2+randomrange(-2,2), 5000+random(500));
-            sleepScript(random(2000));
-          end;
-          if not R_TileOnMS(BankLocations[0], RSTile) then begin
-            ReflectPlayer.BlindWalkMM(Point(BankLocations[0].x + bankOffset[0].x, BankLocations[0].y + bankOffset[0].y), 5);
-            ReflectPlayer.FFlag(2+randomrange(-2,2), 5000+random(500));
-            sleepScript(random(2000));
-          end;
+        if R_InteractTile(daLocation.customTPAs[2][1], 'Cross') then begin
+          ReflectPlayer.FFlag(2+randomrange(-2,2), 5000+random(500));
+          sleepScript(2500+random(500));
         end;
-      end else begin
-        RsTIle := TReflectionTiles.GetGlobalTile;
-        updateScreen('Running away.');
-        ReflectPlayer.BlindWalkMM(point(RsTIle.x, RsTIle.y-15), 5);
-        ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
-        sleepScript(random(1500));
+      end;
+      if TReflectionTiles.NearTile(daLocation.customTPAs[2][2], 50) and (TReflectionTiles.GetPlane = 1) then begin
+        UpdateScreen('Crossing plank...');
+        if not R_TileOnMS(daLocation.customTPAs[2][2], RSTile) then begin
+          ReflectPlayer.BlindWalkMM(daLocation.customTPAs[2][2], 5);
+          ReflectPlayer.FFlag(2+randomrange(-2,2), 5000+random(500));
+          sleepScript(2500+random(500));
+        end;
+        if R_InteractTile(daLocation.customTPAs[2][2], 'Cross') then begin
+          ReflectPlayer.FFlag(2+randomrange(-2,2), 5000+random(500));
+          sleepScript(2500+random(500));
+        end;
+      end;
+      if TReflectionTiles.NearTile(daLocation.customTPAs[2][0], 50) and (TReflectionTiles.GetPlane = 0) then begin
+        UpdateScreen('Going to depo box.');
+        if R_TileOnMM(daLocation.PathToBank[0], RSTile) then begin
+          ReflectPlayer.WalkPathMM(daLocation.PathToBank, false);
+          ReflectPlayer.FFlag(2+randomrange(-2,2), 5000+random(500));
+          sleepScript(random(2000));
+        end;
+        if not R_TileOnMS(daLocation.BankLocations[0].Tile, RSTile) then begin
+          ReflectPlayer.BlindWalkMM(Point(daLocation.BankLocations[0].Tile.x + daLocation.BankLocations[0].TileOffset[0], daLocation.BankLocations[0].Tile.y + daLocation.BankLocations[0].TileOffset[1]), 5);
+          ReflectPlayer.FFlag(2+randomrange(-2,2), 5000+random(500));
+          sleepScript(random(2000));
+        end;
       end;
     end;
     else begin
-      if canBank and (high(BankLocations) > -1) then begin
-        nearestBank := -1;
-        RsTIle := TReflectionTiles.GetGlobalTile;
-        for i:=0 to high(BankLocations) do begin
-          if(nearestBank = -1) then begin
-            nearestBank := i;
-          end else begin
-            if(distance(BankLocations[i].x, BankLocations[i].y, RsTIle.x, RsTIle.y) <
-              distance(BankLocations[nearestBank].x, BankLocations[nearestBank].y, RsTIle.x, RsTIle.y)) then
-                nearestBank := i;
-          end;
-        end;
-        if Reflect.Bank.IsOpen or Reflect.Bank.IsPinOpen or R_DepositMenuOpen or
-        R_TileOnMS(BankLocations[nearestBank], RSTile) or R_SellMenuOpen then
-          exit;
-        if(high(PathToBank) > -1) then begin
-          if R_TileOnMM(PathToBank[0], RSTile) then begin
-            updateScreen('Going to bank.');
-            ReflectPlayer.WalkPathMM(PathToBank, false);
-            ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
-            sleepScript(random(1500));
-          end else begin
-            updateScreen('Going to bank.');
-            ReflectPlayer.BlindWalkMM(Point(BankLocations[nearestBank].x + bankOffset[nearestBank].x, BankLocations[nearestBank].y + bankOffset[nearestBank].y), 5);
-            ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
-            sleepScript(random(1500));
-          end;
-        end else begin
+      if (length(daLocation.PathToBank) <> 0) then begin
+        if R_TileOnMM(daLocation.PathToBank[0], RSTile) then begin
           updateScreen('Going to bank.');
-          ReflectPlayer.BlindWalkMM(Point(BankLocations[nearestBank].x + bankOffset[nearestBank].x, BankLocations[nearestBank].y + bankOffset[nearestBank].y), 5);
+          ReflectPlayer.WalkPathMM(daLocation.PathToBank, false);
           ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
           sleepScript(random(1500));
+          exit;
         end;
+      end;
+
+      if (length(daLocation.BankNPCs) = 0) then begin
+        nearestBank.Tile.x := -1;
+        for i:=0 to high(daLocation.BankLocations) do
+          if (TReflectionTiles.DistanceFromTile(daLocation.BankLocations[i].Tile) < TReflectionTiles.DistanceFromTile(nearestBank.Tile)) or (nearestBank.Tile.x = -1) then
+            nearestBank := daLocation.BankLocations[i];
+
+        updateScreen('Going to bank.');
+        ReflectPlayer.BlindWalkMM(Point(nearestBank.Tile.x + nearestBank.TileOffset[0], nearestBank.Tile.y + nearestBank.TileOffset[1]), 5);
+        ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
+        sleepScript(random(1500));
       end else begin
-        RsTIle := TReflectionTiles.GetGlobalTile;
-        updateScreen('Running away.');
-        case runDirection of
-          'n':begin
-            ReflectPlayer.BlindWalkMM(point(RsTIle.x, RsTIle.y+15), 5);
-          end;
-          's':begin
-            ReflectPlayer.BlindWalkMM(point(RsTIle.x, RsTIle.y-15), 5);
-          end;
-          'w':begin
-            ReflectPlayer.BlindWalkMM(point(RsTIle.x-15, RsTIle.y), 5);
-          end;
-          'e':begin
-            ReflectPlayer.BlindWalkMM(point(RsTIle.x+15, RsTIle.y), 5);
-          end;
-          else begin
-            case random(8) of
-              0:ReflectPlayer.BlindWalkMM(point(RsTIle.x, RsTIle.y-15), 5);
-              1:ReflectPlayer.BlindWalkMM(point(RsTIle.x, RsTIle.y+15), 5);
-              2:ReflectPlayer.BlindWalkMM(point(RsTIle.x+15, RsTIle.y), 5);
-              3:ReflectPlayer.BlindWalkMM(point(RsTIle.x-15, RsTIle.y), 5);
-              4:ReflectPlayer.BlindWalkMM(point(RsTIle.x+15, RsTIle.y-15), 5);
-              5:ReflectPlayer.BlindWalkMM(point(RsTIle.x-15, RsTIle.y+15), 5);
-              6:ReflectPlayer.BlindWalkMM(point(RsTIle.x-15, RsTIle.y-15), 5);
-              7:ReflectPlayer.BlindWalkMM(point(RsTIle.x+15, RsTIle.y+15), 5);
-            end;
-          end;
-        end;
+        nearestNPCTile.x := -1;
+        for i:=0 to high(daLocation.BankNPCs) do
+          for h:=0 to high(daLocation.BankNPCs[i].Locations) do
+            if (TReflectionTiles.DistanceFromTile(daLocation.BankNPCs[i].Locations[h]) < TReflectionTiles.DistanceFromTile(nearestNPCTile)) or (nearestNPCTile.x = -1) then
+              nearestNPCTile := daLocation.BankNPCs[i].Locations[h];
+
+        updateScreen('Going to bank npc.');
+        ReflectPlayer.BlindWalkMM(nearestNPCTile, 5);
         ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
         sleepScript(random(1500));
       end;
     end;
-  end;
+  end
 end;
 
 procedure openBank;
-var RsTIle : TPoint;
-    i, nearestBank : integer;
+var RsTIle, nearestNPCTile : TPoint;
+    i, h : integer;
+    nearestBank : BankLocation;
+    nearestNPC : BankNPC;
 begin
-  case Job of
-    25..26:begin //pict
-      if canBank then begin
-        if Reflect.Bank.IsOpen or R_DepositMenuOpen or Reflect.Bank.IsPinOpen then
-          exit;
-        Reflect.Compass.Make('n');
-        Reflect.Compass.MakePitch(10);
-        if not R_TileOnMS(BankLocations[0], RSTile) then begin
-          updateScreen('Going to bank.');
-          ReflectPlayer.BlindWalkMM(Point(BankLocations[0].x + bankOffset[0].x, BankLocations[0].y + bankOffset[0].y), 5);
-          ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
-          sleepScript(random(1500));
-        end;
-        updateScreen('Opening bank.');
-        if R_TryInteractNPC(customIDs1, 'Trade', false, 5) then begin
-          ReflectPlayer.FFlag(0, 5000+random(500));
-          sleepScript(1500+random(500));
-        end;
-      end;
-    end;
-    22..23:begin //shilo
-      if canBank then begin
-        if Reflect.Bank.IsOpen or R_DepositMenuOpen or Reflect.Bank.IsPinOpen then
-          exit;
-        Reflect.Compass.Make('n');
-        Reflect.Compass.MakePitch(10);
-        if not R_TileOnMS(BankLocations[0], RSTile) then begin
-          updateScreen('Going to bank.');
-          ReflectPlayer.BlindWalkMM(Point(BankLocations[0].x + bankOffset[0].x, BankLocations[0].y + bankOffset[0].y), 5);
-          ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
-          sleepScript(random(1500));
-        end;
-        updateScreen('Opening bank.');
-        if R_TryInteractNPC(customIDs1, 'Trade', false, 5) then begin
-          ReflectPlayer.FFlag(0, 5000+random(500));
-          sleepScript(1500+random(500));
-        end;
-      end;
-    end;
-    16..19, 20..21:begin //karm sell  rasolo
-      if canBank then begin
-        if R_SellMenuOpen then
-          exit;
-        Reflect.Compass.Make('n');
-        Reflect.Compass.MakePitch(10);
-        if not R_TileOnMS(BankLocations[0], RSTile) then begin
-          updateScreen('Going to bank.');
-          ReflectPlayer.BlindWalkMM(Point(BankLocations[0].x + bankOffset[0].x, BankLocations[0].y + bankOffset[0].y), 5);
-          ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
-          sleepScript(random(1500));
-        end;
-        updateScreen('Opening general store.');
-        if R_TryInteractNPC(customIDs1, 'Trade', false, 5) then begin
-          ReflectPlayer.FFlag(0, 5000+random(500));
-          sleepScript(1500+random(500));
-        end;
-      end;
-    end;
-    14..15:begin   //karm
-      if canBank then begin
-        if Reflect.Bank.IsOpen or R_DepositMenuOpen or Reflect.Bank.IsPinOpen then
-          exit;
-        nearestBank := -1;
-        for i:=0 to high(BankLocations) do begin
-          if(nearestBank = -1) then begin
-            nearestBank := i;
-          end else begin
-            RsTIle := TReflectionTiles.GetGlobalTile;
-            if(distance(BankLocations[i].x, BankLocations[i].y, RsTIle.x, RsTIle.y) <
-              distance(BankLocations[nearestBank].x, BankLocations[nearestBank].y, RsTIle.x, RsTIle.y)) then
-                nearestBank := i;
-          end;
-        end;
-        Reflect.Compass.Make('n');
-        Reflect.Compass.MakePitch(10);
-        if not R_TileOnMS(BankLocations[nearestBank], RSTile) then begin
-          updateScreen('Going to bank.');
-          ReflectPlayer.BlindWalkMM(Point(BankLocations[0].x + bankOffset[0].x, BankLocations[0].y + bankOffset[0].y), 5);
-          ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
-          sleepScript(random(1500));
-        end;
-        if R_TileOnMS(BankLocations[nearestBank], RSTile) then begin
-          updateScreen('Opening bank.');
-          R_OpenBank(BankLocations[nearestBank]);
-          ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
-          sleepScript(random(1500));
-        end;
-      end;
-    end;
+  if not daLocation.canBank or ((length(daLocation.BankLocations) = 0) and (length(daLocation.BankNPCs) = 0)) then
+    exit;
+
+  if Reflect.Bank.IsOpen or Reflect.Bank.IsPinOpen or R_DepositMenuOpen(false)
+  or R_SellMenuOpen(false) or R_PinSettingsOpen(false) then
+    exit;
+
+  case daLocation.ID of
     else begin
-      if canBank and (high(BankLocations) > -1) then begin
-        if Reflect.Bank.IsOpen or R_DepositMenuOpen or Reflect.Bank.IsPinOpen then
-          exit;
-        nearestBank := -1;
-        RsTIle := TReflectionTiles.GetGlobalTile;
-        for i:=0 to high(BankLocations) do begin
-          if(nearestBank = -1) then begin
-            nearestBank := i;
-          end else begin
-            if(distance(BankLocations[i].x, BankLocations[i].y, RsTIle.x, RsTIle.y) <
-              distance(BankLocations[nearestBank].x, BankLocations[nearestBank].y, RsTIle.x, RsTIle.y)) then
-                nearestBank := i;
-          end;
-        end;
+      if (length(daLocation.BankNPCs) = 0) then begin
         Reflect.Compass.Make('n');
         Reflect.Compass.MakePitch(10);
-        if not R_TileOnMS(BankLocations[nearestBank], RSTile) then begin
+
+        nearestBank.Tile.x := -1;
+        for i:=0 to high(daLocation.BankLocations) do
+          if (TReflectionTiles.DistanceFromTile(daLocation.BankLocations[i].Tile) < TReflectionTiles.DistanceFromTile(nearestBank.Tile)) or (nearestBank.Tile.x = -1) then
+            nearestBank := daLocation.BankLocations[i];
+
+        if not R_TileOnMS(nearestBank.Tile, RSTile, nearestBank.Offset[0], nearestBank.Offset[1], nearestBank.Offset[2]) and (TReflectionTiles.GetPlane = nearestBank.Plane) then begin
           updateScreen('Going to bank.');
-          ReflectPlayer.BlindWalkMM(Point(BankLocations[0].x + bankOffset[0].x, BankLocations[0].y + bankOffset[0].y), 5);
+          ReflectPlayer.BlindWalkMM(Point(nearestBank.Tile.x + nearestBank.TileOffset[0], nearestBank.Tile.y + nearestBank.TileOffset[1]), 5);
           ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
           sleepScript(random(1500));
         end;
-        if R_TileOnMS(BankLocations[nearestBank], RSTile) then begin
+        if R_TileOnMS(nearestBank.Tile, RSTile, nearestBank.Offset[0], nearestBank.Offset[1], nearestBank.Offset[2]) and (TReflectionTiles.GetPlane = nearestBank.Plane) then begin
           updateScreen('Opening bank.');
-          R_OpenBank(BankLocations[nearestBank]);
-          ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
-          sleepScript(random(1500));
+          for i:=0 to high(nearestBank.Options) do
+            if R_InteractTile(nearestBank.Tile, nearestBank.Options[i], nearestBank.Offset[0], nearestBank.Offset[1], nearestBank.Offset[2], true) then
+              break;
+          ReflectPlayer.FFlag(0, 5000+random(500));
+          sleepScript(1500+random(500));
         end;
+      end else begin
+        nearestNPCTile.x := -1;
+        for i:=0 to high(daLocation.BankNPCs) do
+          for h:=0 to high(daLocation.BankNPCs[i].Locations) do
+            if (TReflectionTiles.DistanceFromTile(daLocation.BankNPCs[i].Locations[h]) < TReflectionTiles.DistanceFromTile(nearestNPCTile)) or (nearestNPCTile.x = -1) then begin
+              nearestNPCTile := daLocation.BankNPCs[i].Locations[h];
+              nearestNPC := daLocation.BankNPCs[i];
+            end;
+
+        updateScreen('Opening bank npc.');
+
+        for i:=0 to high(nearestNPC.Options) do
+          if R_TryInteractNPC(nearestNPC.IDs, nearestNPC.Options[i], false, 5) and (TReflectionTiles.GetPlane = nearestNPC.Plane) then begin
+            ReflectPlayer.FFlag(0, 5000+random(500));
+            sleepScript(1500+random(500));
+            break;
+          end;
       end;
     end;
   end;
 end;
 
 procedure goToFish;
-var RsTIle : TPoint;
-    i, farest : integer;
+var RsTIle, farest : TPoint;
+    i, h : integer;
 begin
-  case Job of
+  if length(daLocation.FishNPCs) = 0 then
+    exit;
+
+  case daLocation.ID of
     14..15:begin //karm depo
-      if canBank then begin
-        if TReflectionTiles.NearTile(customTPA3[0], 50) and (TReflectionTiles.GetPlane = 0) then begin
+      if daLocation.canBank then begin
+        if TReflectionTiles.NearTile(daLocation.customTPAs[2][0], 50) and (TReflectionTiles.GetPlane = 0) then begin
           UpdateScreen('Going to go pay-fare.');
-          if R_TileOnMM(customTPA2[0], RSTile) then begin
-            ReflectPlayer.WalkPathMM(customTPA2, false);
+          if R_TileOnMM(daLocation.customTPAs[1][0], RSTile) then begin
+            ReflectPlayer.WalkPathMM(daLocation.customTPAs[1], false);
             ReflectPlayer.FFlag(2+randomrange(-2,2), 5000+random(500));
             sleepScript(random(2000));
           end;
-          if not R_TileOnMS(customTPA3[0], RSTile) then begin
-            ReflectPlayer.BlindWalkMM(customTPA3[0], 5);
+          if not R_TileOnMS(daLocation.customTPAs[2][0], RSTile) then begin
+            ReflectPlayer.BlindWalkMM(daLocation.customTPAs[2][0], 5);
             ReflectPlayer.FFlag(2+randomrange(-2,2), 5000+random(500));
             sleepScript(random(2000));
           end;
           UpdateScreen('Paying fare...');
-          R_TryInteractNPC([customIDs1[0], customIDs1[1], customIDs1[2]], 'Pay-fare', false, 5);
+          R_TryInteractNPC([daLocation.customIDs[0][0], daLocation.customIDs[0][1], daLocation.customIDs[0][2]], 'Pay-fare', false, 5);
           ReflectPlayer.FFlag(0, 5000+random(500));
           doConversation(['Can I journey on this ship?', 'Search away, I have nothing to hide.', 'Ok.', 'Yes please.']);
           sleepScript(6000+random(500));
         end;
-        if TReflectionTiles.NearTile(customTPA3[1], 50) and (TReflectionTiles.GetPlane = 1) then begin
+        if TReflectionTiles.NearTile(daLocation.customTPAs[2][1], 50) and (TReflectionTiles.GetPlane = 1) then begin
           UpdateScreen('Crossing plank...');
-          if not R_TileOnMS(customTPA3[1], RSTile) then begin
-            ReflectPlayer.BlindWalkMM(customTPA3[1], 5);
+          if not R_TileOnMS(daLocation.customTPAs[2][1], RSTile) then begin
+            ReflectPlayer.BlindWalkMM(daLocation.customTPAs[2][1], 5);
             ReflectPlayer.FFlag(2+randomrange(-2,2), 5000+random(500));
             sleepScript(2500+random(500));
           end;
-          if R_InteractTile(customTPA3[1], 'Cross') then begin
+          if R_InteractTile(daLocation.customTPAs[2][1], 'Cross') then begin
             ReflectPlayer.FFlag(2+randomrange(-2,2), 5000+random(500));
             sleepScript(2500+random(500));
           end;
         end;
-        if TReflectionTiles.NearTile(customTPA3[2], 50) and (TReflectionTiles.GetPlane = 1) then begin
+        if TReflectionTiles.NearTile(daLocation.customTPAs[2][2], 50) and (TReflectionTiles.GetPlane = 1) then begin
           UpdateScreen('Crossing plank...');
-          if not R_TileOnMS(customTPA3[2], RSTile) then begin
-            ReflectPlayer.BlindWalkMM(customTPA3[2], 5);
+          if not R_TileOnMS(daLocation.customTPAs[2][2], RSTile) then begin
+            ReflectPlayer.BlindWalkMM(daLocation.customTPAs[2][2], 5);
             ReflectPlayer.FFlag(2+randomrange(-2,2), 5000+random(500));
             sleepScript(2500+random(500));
           end;
-          if R_InteractTile(customTPA3[2], 'Cross') then begin
+          if R_InteractTile(daLocation.customTPAs[2][2], 'Cross') then begin
             ReflectPlayer.FFlag(2+randomrange(-2,2), 5000+random(500));
             sleepScript(2500+random(500));
           end;
         end;
-        if TReflectionTiles.NearTile(customTPA3[3], 50) and (TReflectionTiles.GetPlane = 0) then begin
+        if TReflectionTiles.NearTile(daLocation.customTPAs[2][3], 50) and (TReflectionTiles.GetPlane = 0) then begin
           UpdateScreen('Going to fish spots.');
-          if R_TileOnMM(PathToFish[0], RSTile) then begin
-            ReflectPlayer.WalkPathMM(PathToFish, false);
-            ReflectPlayer.FFlag(2+randomrange(-2,2), 5000+random(500));
-            sleepScript(random(2000));
-          end;
-          if not R_TileOnMS(fishLocations[random(length(fishLocations))], RSTile) then begin
-            ReflectPlayer.BlindWalkMM(fishLocations[random(length(fishLocations))], 5);
+          if R_TileOnMM(daLocation.PathToFish[0], RSTile) then begin
+            ReflectPlayer.WalkPathMM(daLocation.PathToFish, false);
             ReflectPlayer.FFlag(2+randomrange(-2,2), 5000+random(500));
             sleepScript(random(2000));
           end;
         end;
-      end else begin
-        updateScreen('Going to fish spots.');
-        ReflectPlayer.BlindWalkMM(fishLocations[random(length(fishLocations))], 5);
-        ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
-        sleepScript(random(1500));
       end;
+      farest.x := -1;
+      for i:=0 to high(daLocation.FishNPCs) do
+        for h:=0 to high(daLocation.FishNPCs[i].Locations) do
+          if (TReflectionTiles.DistanceFromTile(daLocation.FishNPCs[i].Locations[h]) > TReflectionTiles.DistanceFromTile(farest)) or (farest.x = -1) then
+            farest := daLocation.FishNPCs[i].Locations[h];
+
+      updateScreen('Going to fish spots.');
+      ReflectPlayer.BlindWalkMM(farest, 5);
+      ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
+      sleepScript(random(1500));
     end;
     else begin
-      farest := -1;
-      RsTIle := TReflectionTiles.GetGlobalTile;
-      for i:=0 to high(fishLocations) do begin
-        if (farest = -1) then begin
-          farest := i;
-        end else begin
-          if (distance(fishLocations[i].X, fishLocations[i].Y, RSTIle.X, rsTile.Y) >
-          distance(fishLocations[farest].X, fishLocations[farest].Y, RSTIle.X, rsTile.Y)) then begin
-            farest := i;
-          end;
+      if (length(daLocation.PathToFish) <> 0) then begin
+        if R_TileOnMM(daLocation.PathToFish[0], RSTile) then begin
+          updateScreen('Going to fishies.');
+          ReflectPlayer.WalkPathMM(daLocation.PathToFish, false);
+          ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
+          sleepScript(random(1500));
+          exit;
         end;
       end;
-      if canBank and (high(PathToFish) > -1) then begin
-        if R_TileOnMM(PathToFish[0], RSTile) then begin
-          updateScreen('Going to fish spots.');
-          ReflectPlayer.WalkPathMM(PathToFish, false);
-          ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
-          sleepScript(random(1500));
-        end else begin
-          updateScreen('Going to fish spots.');
-          ReflectPlayer.BlindWalkMM(fishLocations[farest], 5);
-          ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
-          sleepScript(random(1500));
-        end;
-      end else begin
-        if(high(fishLocations) > -1) then begin
-          updateScreen('Going to fish spots.');
-          ReflectPlayer.BlindWalkMM(fishLocations[farest], 5);
-          ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
-          sleepScript(random(1500));
-        end;
-      end;
+
+      farest.x := -1;
+      for i:=0 to high(daLocation.FishNPCs) do
+        for h:=0 to high(daLocation.FishNPCs[i].Locations) do
+          if (TReflectionTiles.DistanceFromTile(daLocation.FishNPCs[i].Locations[h]) > TReflectionTiles.DistanceFromTile(farest)) or (farest.x = -1) then
+            farest := daLocation.FishNPCs[i].Locations[h];
+
+      updateScreen('Going to fish spots.');
+      ReflectPlayer.BlindWalkMM(farest, 5);
+      ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
+      sleepScript(random(1500));
     end;
   end;
 end;
 
 procedure doFishing;
 var _npcs : TReflectNPCArray;
-    i : integer;
+    i, h, j : integer;
     rsTile, npcTile : TPoint;
     found : boolean;
 begin
@@ -3275,13 +3641,14 @@ begin
     R_DidLevelUp(true);
     R_DidLevelUpExtra(true);
   end;
-  _npcs.GetAll;
-  found := false;
-  if(high(_npcs) > -1) then begin
+
+  for h:=0 to high(daLocation.FishNPCs) do begin
+    _npcs.GetAll;
     for i:=0 to high(_npcs) do begin
-      if inIntArray(FishSpotIDs, _npcs[i].GetID) then begin
+      if inIntArray(daLocation.FishNPCs[h].IDs, _npcs[i].GetID) then begin
         npcTile := _npcs[i].gettile;
         found := true;
+
         if not R_TileOnMS(npcTile, RSTile) then begin
           R_TryMakeTileOnMS(npcTile);
           if not R_TileOnMS(npcTile, RSTile) then begin
@@ -3291,38 +3658,54 @@ begin
             sleepScript(random(1000));
           end;
         end;
+
         R_CloseAllMenus;
         if R_TileOnMS(npcTile, RSTile) then begin
           updateScreen('Going to fish...');
-          if R_InteractTile(npcTile, FishspotName, 0, 0, 0, false) then begin
-            ReflectPlayer.FFlag(0, 5000+random(500));
-            sleepScript(1500+random(1000));
-            FishspotIndice := ReflectPlayer.GetInteractingIndex;
-            if(random(round(AntiAmount/350)) <> 0)then
-              TReflectionAntiban.MMouseOffClient('rand');
-          end;
+          for j:=0 to high(daLocation.FishNPCs[h].Options) do
+            if R_InteractTile(npcTile, daLocation.FishNPCs[h].Options[j], 0, 0, 0, false) then begin
+              ReflectPlayer.FFlag(0, 5000+random(500));
+              sleepScript(1500+random(1000));
+              FishspotIndice := ReflectPlayer.GetInteractingIndex;
+              if(random(round(AntiAmount/350)) <> 0)then
+                TReflectionAntiban.MMouseOffClient('rand');
+              break;
+            end;
         end;
-        i:= high(_npcs);
+        break;
+        break;
       end;
     end;
   end;
+
   if not found then
     GoToFish;
 end;
 
 procedure doDropping(forced:boolean=false);
 var _items : TReflectInvItemArray;
-    i, _id, _slot: integer;
+    i, _id: integer;
     tB : TBox;
     firstTim : boolean;
-    fishIDs : TIntegerArray;
+    rawFishIds, burntFishIDs, cookedFishIds, fishIDs, EquipmentIDs, BaitIDs : TIntegerArray;
 begin
   if not forced then
     doCount;
   updateScreen('Dropping items.');
   doProggy;
   firstTim := true;
-  fishIDs := getFishIDs;
+  rawFishIds := daLocation.getRawFishIDs;
+  BurntFishIds := daLocation.getBurntFishIDs;
+  CookedFishIds := daLocation.getCookedFishIDs;
+  setLength(fishIDs, length(rawFishIds)+length(BurntFishIds)+length(CookedFishIds));
+  for i:=0 to high(rawFishIds) do
+    fishIDs[i] := rawFishIds[i];
+  for i:=0 to high(BurntFishIds) do
+    fishIDs[i+length(rawFishIds)] := BurntFishIds[i];
+  for i:=0 to high(CookedFishIds) do
+    fishIDs[i+length(rawFishIds)+length(BurntFishIds)] := CookedFishIds[i];
+  BaitIDs := daLocation.getBaitIDs;
+  EquipmentIDs := daLocation.getEquipmentIDs;
   exitMenu;
   while ReflectPlayer.isLoggedIn and (firstTim or TReflectionInventory.Contains(fishIDs))
   and not ReflectPlayer.IsUnderAttack and not anySlotActivated do begin
@@ -3331,13 +3714,12 @@ begin
     randomHandler;
     _items.GetAll;
     for i:=0 to high(_items) do begin
-      _slot := _items[i].getinvslot;
       _id := _items[i].getid;
       if ReflectPlayer.isLoggedIn and ((not inIntArray(KnifeIDs, _id) and not inIntArray(AxeIDs, _id) and
       not inIntArray(CoinsIDs, _id) and not inIntArray(TinderIDs, _id) and
       not inIntArray(BaitIDs, _id) and not inIntArray(EquipmentIDs, _id) and not dropOnly) or (dropOnly and inIntArray(fishIDs, _id)))
-      and itemInSlot(_slot) and not anySlotActivated and not ReflectPlayer.IsUnderAttack then begin
-        tB := TReflectionInventory.invBox(_slot);
+      and itemInSlot(_items[i].getinvslot) and not anySlotActivated and not ReflectPlayer.IsUnderAttack then begin
+        tB := _items[i].GetBox;
         if not MouseKeys then begin
           Reflect.Mouse.Move(tB, mouse_right);
           Reflect.Text.ChooseOption('Drop', 2500);
@@ -3354,110 +3736,122 @@ end;
 
 procedure doBank;
 var _items : TReflectInvItemArray;
-    i, count : integer;
+    i, count, _id : integer;
     tim : TReflectTimer;
     tB : TBox;
     firstTim : Boolean;
-    fishIDs : TIntegerArray;
+    rawFishIds, burntFishIDs, cookedFishIds, fishIDs, EquipmentIDs, BaitIDs : TIntegerArray;
 begin
+  if not daLocation.canBank then
+    exit;
+
   firstTim := true;
-  case Job of
-    16..19, 20..21:begin //sell
-      if canBank then begin
-        if not R_SellMenuOpen then
-          exit;
-        doCount;
-        updateScreen('Selling items.');
-        doProggy;
-        fishIDs := getFishIDs;
-        while ReflectPlayer.isLoggedIn and (TReflectionInventory.Contains(fishIDs) or firstTim)
-         and R_SellMenuOpen and not ReflectPlayer.IsUnderAttack do begin
-          updateScreen('Selling items.');
-          _items.GetAll;
-          for i:=0 to high(_items) do begin
-            if ReflectPlayer.isLoggedIn and ((not inIntArray(KnifeIDs, _items[i].getid) and not inIntArray(AxeIDs, _items[i].getid) and
-            not inIntArray(CoinsIDs, _items[i].getid) and not inIntArray(TinderIDs, _items[i].getid) and
-            not inIntArray(BaitIDs, _items[i].getid) and not inIntArray(EquipmentIDs, _items[i].getid) and not dropOnly) or (dropOnly and inIntArray(fishIDs, _items[i].getid)))
-            and itemInSlot(_items[i].getinvslot) and R_SellMenuOpen and not ReflectPlayer.IsUnderAttack then begin
-              count := Reflect.Inv.Count;
-              tB := _items[i].getbox;
-              Reflect.Mouse.Move(tB, mouse_right);
-              sleepScript(100+random(100));
-              Reflect.Text.ChooseOption('Sell 50');
-              tim.restart;
-              while (tim.Elapsedtime < 2500) and (Reflect.Inv.Count = count) do
-                sleepScript(20 + Random(20));
-              sleepScript(500+random(250));
-              if pos('highly over-stocked', Reflect.Chat.GetTextOnLine(1)) > 1 then begin
-                R_SellMenuOpen(true);
-                sleepScript(1000+random(1500));
-                doDropping(true);
-                exit;
-              end;
-            end;
+  rawFishIds := daLocation.getRawFishIDs;
+  BurntFishIds := daLocation.getBurntFishIDs;
+  CookedFishIds := daLocation.getCookedFishIDs;
+  setLength(fishIDs, length(rawFishIds)+length(BurntFishIds)+length(CookedFishIds));
+  for i:=0 to high(rawFishIds) do
+    fishIDs[i] := rawFishIds[i];
+  for i:=0 to high(BurntFishIds) do
+    fishIDs[i+length(rawFishIds)] := BurntFishIds[i];
+  for i:=0 to high(CookedFishIds) do
+    fishIDs[i+length(rawFishIds)+length(BurntFishIds)] := CookedFishIds[i];
+  BaitIDs := daLocation.getBaitIDs;
+  EquipmentIDs := daLocation.getEquipmentIDs;
+
+  if daLocation.isSell then begin
+    if not R_SellMenuOpen then
+      exit;
+
+    doCount;
+    updateScreen('Selling items.');
+    doProggy;
+
+    while ReflectPlayer.isLoggedIn and (TReflectionInventory.Contains(fishIDs) or firstTim)
+    and R_SellMenuOpen do begin
+      updateScreen('Selling items.');
+      _items.GetAll;
+      for i:=0 to high(_items) do begin
+        _id := _items[i].getid;
+        if ReflectPlayer.isLoggedIn and ((not inIntArray(KnifeIDs, _id) and not inIntArray(AxeIDs, _id) and
+        not inIntArray(CoinsIDs, _id) and not inIntArray(TinderIDs, _id) and
+        not inIntArray(BaitIDs, _id) and not inIntArray(EquipmentIDs, _id) and not dropOnly) or (dropOnly and inIntArray(fishIDs, _id)))
+        and itemInSlot(_items[i].getinvslot) and R_SellMenuOpen then begin
+          count := Reflect.Inv.Count;
+          tB := _items[i].getbox;
+          Reflect.Mouse.Move(tB, mouse_right);
+          sleepScript(100+random(100));
+          Reflect.Text.ChooseOption('Sell 50');
+          tim.restart;
+          while (tim.Elapsedtime < 2500) and (Reflect.Inv.Count = count) do
+            sleepScript(20 + Random(20));
+          sleepScript(500+random(250));
+          if pos('highly over-stocked', Reflect.Chat.GetTextOnLine(1)) > 1 then begin
+            R_SellMenuOpen(true);
+            sleepScript(1000+random(1500));
+            doDropping(true);
+            exit;
           end;
-          firstTim := false;
         end;
-        if(random(2) = 1)then
-          R_SellMenuOpen(true);
-        sleepScript(random(1500));
-        doFishing;
       end;
+      firstTim := false;
+      if(random(2) = 1)then
+        R_SellMenuOpen(true);
+      sleepScript(random(1500));
+      doFishing;
     end;
-    else begin
-      if canBank then begin
-        if not Reflect.Bank.IsOpen and not R_DepositMenuOpen and not Reflect.Bank.IsPinOpen then
-          exit;
-        if Reflect.Bank.IsPinOpen then begin
-          Reflect.Bank.EnterPin(ReflectPlayer.Pin);
-          sleepScript(random(2500));
-        end;
-        if not Reflect.Bank.IsOpen and not R_DepositMenuOpen then
-          exit;
-        doCount;
-        updateScreen('Banking items.');
-        doProggy;
-        fishIDs := getFishIDs;
-        while ReflectPlayer.isLoggedIn and (TReflectionInventory.Contains(fishIDs) or firstTim)
-         and (Reflect.Bank.IsOpen or R_DepositMenuOpen) and not ReflectPlayer.IsUnderAttack do begin
-          updateScreen('Banking items.');
-          if not TReflectionInventory.Contains(KnifeIDs) and not TReflectionInventory.Contains(AxeIDs) and
-          not TReflectionInventory.Contains(CoinsIDs) and not TReflectionInventory.Contains(TinderIDs) and
-          not TReflectionInventory.Contains(BaitIDs) and not TReflectionInventory.Contains(EquipmentIDs) and (random(2) = 0) then begin
-            R_QuickDeposit('inv');
-            sleepScript(1000+random(1000));
-          end else begin
-            _items.GetAll;
-            for i:=0 to high(_items) do begin
-              if ReflectPlayer.isLoggedIn and not inIntArray(KnifeIDs, _items[i].getid) and not inIntArray(AxeIDs, _items[i].getid) and
-              not inIntArray(CoinsIDs, _items[i].getid) and not inIntArray(TinderIDs, _items[i].getid) and
-              not inIntArray(BaitIDs, _items[i].getid) and not inIntArray(EquipmentIDs, _items[i].getid)
-              and itemInSlot(_items[i].getinvslot) and (Reflect.Bank.IsOpen or R_DepositMenuOpen) and not ReflectPlayer.IsUnderAttack then begin
-                if not R_DepositMenuOpen then
-                  tB := _items[i].GetBox
-                else
-                  tB := depositItemBox(_items[i].GetInvSlot);
-                count := Reflect.Inv.Count;
-                Reflect.Mouse.Move(tB, mouse_right);
-                sleepScript(100+random(100));
-                Reflect.Text.ChooseOption('Deposit-All');
-                tim.restart;
-                while (tim.Elapsedtime < 2500) and (Reflect.Inv.Count = count) do
-                  sleepScript(20 + Random(20));
-                sleepScript(500+random(250));
-              end;
-            end;
+  end else begin
+    if not Reflect.Bank.IsOpen and not R_DepositMenuOpen and not Reflect.Bank.IsPinOpen then
+      exit;
+    if Reflect.Bank.IsPinOpen then begin
+      Reflect.Bank.EnterPin(ReflectPlayer.Pin);
+      sleepScript(random(2500));
+    end;
+    if not Reflect.Bank.IsOpen and not R_DepositMenuOpen then
+      exit;
+    doCount;
+    updateScreen('Banking items.');
+    doProggy;
+
+    while ReflectPlayer.isLoggedIn and (TReflectionInventory.Contains(fishIDs) or firstTim)
+    and (Reflect.Bank.IsOpen or R_DepositMenuOpen) do begin
+      updateScreen('Banking items.');
+      if not TReflectionInventory.Contains(KnifeIDs) and not TReflectionInventory.Contains(AxeIDs) and
+      not TReflectionInventory.Contains(CoinsIDs) and not TReflectionInventory.Contains(TinderIDs) and
+      not TReflectionInventory.Contains(BaitIDs) and not TReflectionInventory.Contains(EquipmentIDs) and (random(2) = 0) then begin
+        R_QuickDeposit('inv');
+        sleepScript(1000+random(1000));
+      end else begin
+        _items.GetAll;
+        for i:=0 to high(_items) do begin
+          _id := _items[i].getid;
+          if ReflectPlayer.isLoggedIn and not inIntArray(KnifeIDs, _id) and not inIntArray(AxeIDs, _id) and
+          not inIntArray(CoinsIDs, _id) and not inIntArray(TinderIDs, _id) and
+          not inIntArray(BaitIDs, _id) and not inIntArray(EquipmentIDs, _id)
+          and itemInSlot(_items[i].getinvslot) and (Reflect.Bank.IsOpen or R_DepositMenuOpen) then begin
+            if not R_DepositMenuOpen then
+              tB := _items[i].GetBox
+            else
+              tB := depositItemBox(_items[i].GetInvSlot);
+            count := Reflect.Inv.Count;
+            Reflect.Mouse.Move(tB, mouse_right);
+            sleepScript(100+random(100));
+            Reflect.Text.ChooseOption('Deposit-All');
+            tim.restart;
+            while (tim.Elapsedtime < 2500) and (Reflect.Inv.Count = count) do
+              sleepScript(20 + Random(20));
+            sleepScript(500+random(250));
           end;
-          firstTim := false;
         end;
-        if(random(2) = 1)then begin
-          R_DepositMenuOpen(true);
-          Reflect.Bank.Close;
-        end;
-        sleepScript(random(1500));
-        doFishing;
       end;
+      firstTim := false;
     end;
+    if(random(2) = 1)then begin
+      R_DepositMenuOpen(true);
+      Reflect.Bank.Close;
+    end;
+    sleepScript(random(1500));
+    doFishing;
   end;
 end;
 
@@ -3466,46 +3860,43 @@ var rsTile : TPoint;
     i : integer;
     tempO : TReflectObject;
 begin
-  case Job of
-    24:begin //otto
-    end;
-    29:begin  //zul
-    end;
-    8..13:begin  //cath
+  if not daLocation.canCook or (length(daLocation.TreeObjects) = 0) then
+    exit;
+  case daLocation.ID of
+    14..19:begin
+      if R_TileOnMM(daLocation.customTPAs[0][0], RSTile) then begin
+        updateScreen('Going to bank.');
+        ReflectPlayer.WalkPathMM(daLocation.customTPAs[0], false);
+        ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
+        sleepScript(random(1500));
+        exit;
+      end;
+      updateScreen('Looking for tree...');
+      for i:=0 to high(daLocation.TreeObjects) do begin
+        tempO.GetAt(ObjGame, daLocation.TreeObjects[i].Tile);
+        if inIntArray(daLocation.TreeObjects[i].AliveIDs, tempO.getID) then begin
+          if not R_TileOnMS(daLocation.TreeObjects[i].Tile, RSTile, daLocation.TreeObjects[i].Offset[0], daLocation.TreeObjects[i].Offset[1], daLocation.TreeObjects[i].Offset[2]) then begin
+             updateScreen('Going to tree spot.');
+             ReflectPlayer.BlindWalkMM(Point(daLocation.TreeObjects[i].Tile.x+daLocation.TreeObjects[i].TileOffset[0], daLocation.TreeObjects[i].Tile.y+daLocation.TreeObjects[i].TileOffset[1]), 5);
+             ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
+             sleepScript(random(1000));
+          end;
+          break;
+        end;
+      end;
     end;
     else begin
-      if canCook and (high(LocationTreeObjects) > -1) then begin
-        case Job of
-          14..15:begin
-            if R_TileOnMM(customTPA1[0], RSTile) then begin
-              updateScreen('Going to tree spot.');
-              ReflectPlayer.WalkPathMM(customTPA1, false);  //safe
-              ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
-              sleepScript(random(2000));
-            end;
+      updateScreen('Looking for tree...');
+      for i:=0 to high(daLocation.TreeObjects) do begin
+        tempO.GetAt(ObjGame, daLocation.TreeObjects[i].Tile);
+        if inIntArray(daLocation.TreeObjects[i].AliveIDs, tempO.getID) then begin
+          if not R_TileOnMS(daLocation.TreeObjects[i].Tile, RSTile, daLocation.TreeObjects[i].Offset[0], daLocation.TreeObjects[i].Offset[1], daLocation.TreeObjects[i].Offset[2]) then begin
+             updateScreen('Going to tree spot.');
+             ReflectPlayer.BlindWalkMM(Point(daLocation.TreeObjects[i].Tile.x+daLocation.TreeObjects[i].TileOffset[0], daLocation.TreeObjects[i].Tile.y+daLocation.TreeObjects[i].TileOffset[1]), 5);
+             ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
+             sleepScript(random(1000));
           end;
-          16..19:begin
-            if R_TileOnMM(customTPA2[0], RSTile) then begin
-              updateScreen('Going to tree spot.');
-              ReflectPlayer.WalkPathMM(customTPA2, false);     //safe
-              ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
-              sleepScript(random(2000));
-            end;
-          end;
-        end;
-
-        updateScreen('Looking for tree...');
-        for i:=0 to high(LocationTreeObjects) do begin
-          tempO.GetAt(ObjGame, LocationTreeObjects[i].Tile);
-          if(inIntArray(LocationTreeObjects[i].AliveIDs, tempO.getID))then begin
-            if not R_TileOnMS(LocationTreeObjects[i].Tile, RSTile, LocationTreeObjects[i].Offset[0], LocationTreeObjects[i].Offset[1], LocationTreeObjects[i].Offset[2]) then begin
-               updateScreen('Going to tree spot.');
-               ReflectPlayer.BlindWalkMM(LocationTreeObjects[i].Tile, 5);
-               ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
-               sleepScript(random(1000));
-            end;
-            i := high(LocationTreeObjects);
-          end;
+          break;
         end;
       end;
     end;
@@ -3518,23 +3909,24 @@ var i :integer;
     rawFishIDs : TIntegerArray;
     tB : TBox;
 begin
-  case Job of
+  if not daLocation.canCook then
+    exit;
+
+  case daLocation.ID of
     8..13:begin  //cath
     end;
     else begin
-      if canCook then begin
-        rawFishIDs := getRawFishIDs;
-        for i:=0 to high(rawFishIDs) do begin
-          updateScreen('Dropping a raw fish...');
-          if(_item.Find(rawFishIDs[i]))then begin
-            Reflect.Gametab.Open(Gametab_Inventory);
-            sleepScript(500+random(500));
-            tB := _item.getbox;
-            Reflect.Mouse.Move(tB, mouse_right);
-            Reflect.Text.ChooseOption('Drop', 2500);
-            sleepScript(500+random(1000));
-            i:= high(rawFishIDs);
-          end;
+      rawFishIDs := daLocation.getRawFishIDs;
+      for i:=0 to high(rawFishIDs) do begin
+        updateScreen('Dropping a raw fish...');
+        if(_item.Find(rawFishIDs[i]))then begin
+          Reflect.Gametab.Open(Gametab_Inventory);
+          sleepScript(500+random(500));
+          tB := _item.getbox;
+          Reflect.Mouse.Move(tB, mouse_right);
+          Reflect.Text.ChooseOption('Drop', 2500);
+          sleepScript(500+random(1000));
+          break;
         end;
       end;
     end;
@@ -3544,43 +3936,38 @@ end;
 procedure chopTree;
 var rsTile : TPoint;
     tempO : TReflectObject;
-    i, objectID : integer;
-    LogIDs : TIntegerArray;
+    i, objectID, h : integer;
 begin
-  case Job of
-    8..13:begin //cath
-    end;
-    24:begin //otto
-    end;
-    29:begin  //zul
-    end;
+  if not daLocation.canCook or (length(daLocation.TreeObjects) = 0) then
+    exit;
+
+  case daLocation.ID of
     else begin
-      if canCook and (high(LocationTreeObjects) > -1) then begin
-        updateScreen('Looking for tree...');
-        for i:=0 to high(LocationTreeObjects) do begin
-          tempO.GetAt(ObjGame, LocationTreeObjects[i].Tile);
-          if(inIntArray(LocationTreeObjects[i].AliveIDs, tempO.getID) and not TReflectionInventory.IsFull)then begin
-            if R_TileOnMS(LocationTreeObjects[i].Tile, RSTile, LocationTreeObjects[i].Offset[0], LocationTreeObjects[i].Offset[1], LocationTreeObjects[i].Offset[2]) then begin
-              updateScreen('Going to chop tree.');
-              if R_InteractTile(LocationTreeObjects[i].Tile, 'Chop', LocationTreeObjects[i].Offset[0], LocationTreeObjects[i].Offset[1], LocationTreeObjects[i].Offset[2]) then begin
+      updateScreen('Looking for tree...');
+      for i:=0 to high(daLocation.TreeObjects) do begin
+        tempO.GetAt(ObjGame, daLocation.TreeObjects[i].Tile);
+        if inIntArray(daLocation.TreeObjects[i].AliveIDs, tempO.getID) and not TReflectionInventory.IsFull then begin
+          if R_TileOnMS(daLocation.TreeObjects[i].Tile, RSTile, daLocation.TreeObjects[i].Offset[0], daLocation.TreeObjects[i].Offset[1], daLocation.TreeObjects[i].Offset[2]) then begin
+            updateScreen('Going to chop tree.');
+            for h:=0 to high(daLocation.TreeObjects[i].Options) do
+              if R_InteractTile(daLocation.TreeObjects[i].Tile, daLocation.TreeObjects[i].Options[h], daLocation.TreeObjects[i].Offset[0], daLocation.TreeObjects[i].Offset[1], daLocation.TreeObjects[i].Offset[2]) then begin
                 ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
                 sleepScript(1000+random(2500));
                 if(random(round(AntiAmount/1000)) = 1)then
                   TReflectionAntiban.MMouseOffClient('rand');
-                LogIDs := getLogIDs;
-                tempO.GetAt(ObjGame, LocationTreeObjects[i].Tile);
+                tempO.GetAt(ObjGame, daLocation.TreeObjects[i].Tile);
                 objectID := tempO.getId;
-                while ReflectPlayer.isLoggedIn and inIntArray(LocationTreeObjects[i].AliveIDs, objectID) and R_isDoingAnimation(WoodcuttingAnimationIDs, 1000)
+                while ReflectPlayer.isLoggedIn and inIntArray(daLocation.TreeObjects[i].AliveIDs, objectID) and R_isDoingAnimation(WoodcuttingAnimationIDs, 1000)
                 and not TReflectionInventory.Contains(LogIDs) and not ReflectPlayer.IsUnderAttack do begin
                   randomHandler;
                   updateScreen('Chopping tree...');
-                  tempO.GetAt(ObjGame, LocationTreeObjects[i].Tile);
+                  tempO.GetAt(ObjGame, daLocation.TreeObjects[i].Tile);
                   objectID := tempO.getId;
                 end;
+                break;
               end;
-            end;
-            i := high(LocationTreeObjects);
           end;
+          break;
         end;
       end;
     end;
@@ -3613,82 +4000,78 @@ var rsTile : TPoint;
     tinderFirst : boolean;
     tempO : TReflectObject;
     _item : TReflectInvItem;
-    LogIDs : TIntegerArray;
 begin
-  case Job of
-    8..13:begin//cath
-    end;
+  if not daLocation.canCook or (length(daLocation.FireLocations) <> 0) or not TReflectionInventory.Contains(TinderIDs) or not TReflectionInventory.Contains(LogIDs) then
+    exit;
+
+  case daLocation.ID of
     24:begin //otto
     end;
     29:begin  //zul
     end;
     else begin
-      LogIDs := getLogIds;
-      if(TReflectionInventory.Contains(LogIDs) and TReflectionInventory.Contains(TinderIDs) and canCook)then begin
-        RSTile := TReflectionTiles.GetGlobalTile;
-        tempO.GetAt(ObjGame, RSTile);
-        if inIntArray(deadObjIDs, tempO.getId) or tempO.Reference = 0 then begin
-          updateScreen('Going to make fire...');
-          Reflect.Gametab.Open(Gametab_Inventory);
-          if(random(2) = 1) then
-            tinderFirst := true
-          else
-            tinderFirst := false;
-          if not anySlotActivated then begin
-            if tinderFirst then begin
-              for i:=0 to high(TinderIDs) do begin
-                if(_item.Find(TinderIDs[i]))then begin
-                  Reflect.Mouse.Move(_item.getbox, mouse_left);
-                  i:= high(TinderIds);
-                  sleepScript(250+random(500));
-                end;
+      RSTile := TReflectionTiles.GetGlobalTile;
+      tempO.GetAt(ObjGame, RSTile);
+      if inIntArray(deadObjIDs, tempO.getId) or tempO.Reference = 0 then begin
+        updateScreen('Going to make fire...');
+        Reflect.Gametab.Open(Gametab_Inventory);
+        if(random(2) = 1) then
+          tinderFirst := true
+        else
+          tinderFirst := false;
+        if not anySlotActivated then begin
+          if tinderFirst then begin
+            for i:=0 to high(TinderIDs) do begin
+              if(_item.Find(TinderIDs[i]))then begin
+                Reflect.Mouse.Move(_item.getbox, mouse_left);
+                i:= high(TinderIds);
+                sleepScript(250+random(500));
               end;
-            end else begin
-              for i:=0 to high(LogIDs) do begin
-                if(_item.Find(LogIDs[i]))then begin
-                  Reflect.Mouse.Move(_item.getbox, mouse_left);
-                  i:= high(LogIDs);
-                  sleepScript(250+random(500));
-                end;
+            end;
+          end else begin
+            for i:=0 to high(LogIDs) do begin
+              if(_item.Find(LogIDs[i]))then begin
+                Reflect.Mouse.Move(_item.getbox, mouse_left);
+                i:= high(LogIDs);
+                sleepScript(250+random(500));
               end;
             end;
           end;
-          if anySlotActivated(true) then begin
-            if not tinderFirst then begin
-              for i:=0 to high(TinderIDs) do begin
-                if(_item.Find(TinderIDs[i]))then begin
-                  Reflect.Mouse.Move(_item.getbox, mouse_left);
-                  i:= high(TinderIds);
-                  sleepScript(250+random(500));
-                end;
-              end;
-            end else begin
-              for i:=0 to high(LogIDs) do begin
-                if(_item.Find(LogIDs[i]))then begin
-                  Reflect.Mouse.Move(_item.getbox, mouse_left);
-                  i:= high(LogIDs);
-                  sleepScript(250+random(500));
-                end;
-              end;
-            end;
-          end;
-          rsTile := TReflectionTiles.GetGlobalTile;
-          sleepScript(1000+random(1000));
-          if(random(round(AntiAmount/1000)) = 1)then
-            TReflectionAntiban.MMouseOffClient('rand');
-          while ReflectPlayer.isLoggedIn and TReflectionTiles.NearTile(rsTile, 1) and R_isDoingAnimation(FiremakingAnimationIDs, 1000)
-          and not ReflectPlayer.IsUnderAttack do begin
-            randomHandler;
-            updateScreen('Making fire...');
-          end;
-          sleepScript(1000+random(500));
-        end else begin
-          updateScreen('Looking for place for fire...'+tostr(tempO.getId));
-          RSTile := R_GetClosestPlaceForFire;
-          R_InteractTile(RSTile, 'Walk');
-          ReflectPlayer.FFlag(0, 5000+random(500));
-          sleepScript(1000+random(500));
         end;
+        if anySlotActivated(true) then begin
+          if not tinderFirst then begin
+            for i:=0 to high(TinderIDs) do begin
+              if(_item.Find(TinderIDs[i]))then begin
+                Reflect.Mouse.Move(_item.getbox, mouse_left);
+                i:= high(TinderIds);
+                sleepScript(250+random(500));
+              end;
+            end;
+          end else begin
+            for i:=0 to high(LogIDs) do begin
+              if(_item.Find(LogIDs[i]))then begin
+                Reflect.Mouse.Move(_item.getbox, mouse_left);
+                i:= high(LogIDs);
+                sleepScript(250+random(500));
+              end;
+            end;
+          end;
+        end;
+        sleepScript(1000+random(1000));
+        if(random(round(AntiAmount/1000)) = 1)then
+          TReflectionAntiban.MMouseOffClient('rand');
+        while ReflectPlayer.isLoggedIn and TReflectionTiles.NearTile(rsTile, 1) and R_isDoingAnimation(FiremakingAnimationIDs, 1000)
+        and not ReflectPlayer.IsUnderAttack do begin
+          randomHandler;
+          updateScreen('Making fire...');
+        end;
+        sleepScript(1000+random(500));
+      end else begin
+        updateScreen('Looking for place for fire...'+tostr(tempO.getId));
+        RSTile := R_GetClosestPlaceForFire;
+        R_InteractTile(RSTile, 'Walk');
+        ReflectPlayer.FFlag(0, 5000+random(500));
+        sleepScript(1000+random(500));
       end;
     end;
   end;
@@ -3699,25 +4082,18 @@ var FireObject : TReflectObject;
     found : boolean;
     i : integer;
     rsTile, objTile : TPoint;
+    closestFireTile : FireLocation;
 begin
-  case Job of
+  if not daLocation.canCook then
+    exit;
+
+  case daLocation.ID of
     24:begin //otto
     end;
     29:begin  //zul
     end;
-    8..13:begin //cath
-      if canCook then begin
-        if not R_TileOnMS(FireLocations[0], RSTile) then begin
-          updateScreen('Going to fire.');
-          ReflectPlayer.BlindWalkMM(Point(FireLocations[0].x, FireLocations[0].y-2), 5);
-          ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
-          sleepScript(random(1000));
-        end;
-      end;
-    end;
     else begin
-      if canCook then begin
-        found := false;
+      if (length(daLocation.FireLocations) = 0) then begin
         for i:=0 to high(FireIDs) do begin
           if FireObject.Find(ObjGame, FireIDs[i], FireCheckDistance) then begin
             found := true;
@@ -3733,6 +4109,17 @@ begin
             sleepScript(random(1000));
           end;
         end;
+      end else begin
+        closestFireTile.Tile.x := -1;
+        for i:=0 to high(daLocation.FireLocations) do
+          if (TReflectionTiles.DistanceFromTile(daLocation.FireLocations[i].Tile) < TReflectionTiles.DistanceFromTile(closestFireTile.Tile)) or (closestFireTile.Tile.x = -1) then
+            closestFireTile := daLocation.FireLocations[i];
+        if not R_TileOnMS(closestFireTile.Tile, RSTile, closestFireTile.Offset[0], closestFireTile.Offset[1], closestFireTile.Offset[2]) then begin
+          updateScreen('Going to fire.');
+          ReflectPlayer.BlindWalkMM(Point(closestFireTile.Tile.x+closestFireTile.TileOffset[0], closestFireTile.Tile.y+closestFireTile.TileOffset[1]), 5);
+          ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
+          sleepScript(random(1000));
+        end;
       end;
     end;
   end;
@@ -3745,37 +4132,19 @@ var FireObject : TReflectObject;
     rsTile, objTile : TPoint;
     _item : TReflectInvItem;
     RawFishIDs : TIntegerArray;
+    closestFireTile : FireLocation;
 begin
-  RawFishIDs := getRawFishIDs;
-  case Job of
+  RawFishIDs := daLocation.getRawFishIDs;
+  if not daLocation.canCook or not TReflectionInventory.Contains(RawFishIDs) then
+    exit;
+
+  case daLocation.ID of
     24:begin //otto
     end;
     29:begin  //zul
     end;
-    8..13:begin //cath
-      if canCook and TReflectionInventory.Contains(RawFishIDs) then begin
-        if R_TileOnMS(FireLocations[0], RSTile) then begin
-          updateScreen('Going to cook food.');
-          if not anySlotActivated then begin
-            for i:=0 to high(rawFishIds) do begin
-              if(_item.Find(rawFishIds[i]))then begin
-                Reflect.Mouse.Move(_item.getbox, mouse_left);
-                i:= high(rawFishIds);
-                sleepScript(250+random(500));
-              end;
-            end;
-          end;
-          if anySlotActivated(true) then begin
-            if R_InteractTile(FireLocations[0], 'Range') then begin
-              ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
-              sleepScript(1500+random(750));
-            end;
-          end;
-        end;
-      end;
-    end;
     else begin
-      if canCook and TReflectionInventory.Contains(RawFishIDs) then begin
+      if (length(daLocation.FireLocations) = 0) then begin
         found := false;
         for i:=0 to high(FireIDs) do begin
           if FireObject.Find(ObjGame, FireIDs[i], FireCheckDistance) then begin
@@ -3787,6 +4156,7 @@ begin
         if found then begin
           if R_TileOnMS(objTile, RSTile) then begin
             updateScreen('Going to cook food.');
+            Reflect.Gametab.Open(Gametab_Inventory);
             if not anySlotActivated then begin
               for i:=0 to high(rawFishIds) do begin
                 if(_item.Find(rawFishIds[i]))then begin
@@ -3797,11 +4167,39 @@ begin
               end;
             end;
             if anySlotActivated(true) then begin
-              if R_InteractTile(objTile, 'Fire') then begin
-                ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
-                sleepScript(1500+random(750));
+              for i:=0 to high(fireOptions) do
+                if R_InteractTile(objTile, FireOptions[i]) then begin
+                  ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
+                  sleepScript(1500+random(750));
+                  break;
+                end;
+            end;
+          end;
+        end;
+      end else begin
+        closestFireTile.Tile.x := -1;
+        for i:=0 to high(daLocation.FireLocations) do
+          if (TReflectionTiles.DistanceFromTile(daLocation.FireLocations[i].Tile) < TReflectionTiles.DistanceFromTile(closestFireTile.Tile)) or (closestFireTile.Tile.x = -1) then
+            closestFireTile := daLocation.FireLocations[i];
+        if R_TileOnMS(closestFireTile.Tile, RSTile, closestFireTile.Offset[0], closestFireTile.Offset[1], closestFireTile.Offset[2]) and (TReflectionTiles.GetPlane = closestFireTile.Plane) then begin
+          updateScreen('Going to cook food.');
+          Reflect.Gametab.Open(Gametab_Inventory);
+          if not anySlotActivated then begin
+            for i:=0 to high(rawFishIds) do begin
+              if(_item.Find(rawFishIds[i]))then begin
+                Reflect.Mouse.Move(_item.getbox, mouse_left);
+                i:= high(rawFishIds);
+                sleepScript(250+random(500));
               end;
             end;
+          end;
+          if anySlotActivated(true) then begin
+            for i:=0 to high(closestFireTile.Options) do
+              if R_InteractTile(closestFireTile.Tile, closestFireTile.Options[i], closestFireTile.Offset[0], closestFireTile.Offset[1], closestFireTile.Offset[2]) then begin
+                ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
+                sleepScript(1500+random(750));
+                break;
+              end;
           end;
         end;
       end;
@@ -3812,18 +4210,51 @@ end;
 procedure doFire;
 var x, y, i : integer;
     _item : TReflectInvItem;
-    RawFishIDs : TIntegerArray;
+    RawFishIDs, cookedFishIDs : TIntegerArray;
     _items : TReflectInvItemArray;
     W : TReflectWidget;
 begin
-  RawFishIDs := getRawFishIDs;
-  case Job of
-    29:begin  //zul
-      if canCook and TReflectionInventory.Contains(KnifeIDs) then begin
+  RawFishIDs := daLocation.getRawFishIDs;
+  cookedFishIDs := daLocation.getCookedFishIDs;
+  if not daLocation.canCook or not TReflectionInventory.Contains(RawFishIDs) then
+    exit;
+
+  case daLocation.ID of
+    24:begin //otto
+      if daLocation.canCook and TReflectionInventory.Contains(KnifeIDs) then begin
         while ReflectPlayer.isLoggedIn and TReflectionInventory.Contains(RawFishIDs) and not ReflectPlayer.IsUnderAttack do begin
           Reflect.Gametab.Open(Gametab_Inventory);
           updateScreen('Knifing fish...');
-          if TReflectionInventory.IsFull and not _item.Find(LocationFish[1].ID) then
+          if TReflectionInventory.IsFull and not TReflectionInventory.Contains(cookedFishIDs) then
+            dropARawFish;
+          if not anySlotActivated then begin
+            for i:=0 to high(KnifeIDs) do begin
+              if(_item.Find(KnifeIDs[i]))then begin
+                Reflect.Mouse.Move(_item.getbox, mouse_left);
+                i:= high(rawFishIds);
+                sleepScript(250+random(500));
+              end;
+            end;
+          end;
+          if anySlotActivated(true) then begin
+            for i:=0 to high(rawFishIds) do begin
+              if(_item.Find(rawFishIds[i]))then begin
+                Reflect.Mouse.Move(_item.getbox, mouse_left);
+                i:= high(rawFishIds);
+                sleepScript(500+random(500));
+              end;
+            end;
+          end;
+          randomHandler;
+        end;
+      end;
+    end;
+    29:begin  //zul
+      if daLocation.canCook and TReflectionInventory.Contains(KnifeIDs) then begin
+        while ReflectPlayer.isLoggedIn and TReflectionInventory.Contains(RawFishIDs) and not ReflectPlayer.IsUnderAttack do begin
+          Reflect.Gametab.Open(Gametab_Inventory);
+          updateScreen('Knifing fish...');
+          if TReflectionInventory.IsFull and not TReflectionInventory.Contains(cookedFishIDs) then
             dropARawFish;
           if not anySlotActivated then begin
             for i:=0 to high(KnifeIDs) do begin
@@ -3851,51 +4282,20 @@ begin
         end;
       end;
     end;
-    24:begin //otto
-      if canCook and TReflectionInventory.Contains(KnifeIDs) then begin
-        while ReflectPlayer.isLoggedIn and TReflectionInventory.Contains(RawFishIDs) and not ReflectPlayer.IsUnderAttack do begin
-          Reflect.Gametab.Open(Gametab_Inventory);
-          updateScreen('Knifing fish...');
-          if TReflectionInventory.IsFull and not _item.Find(LocationFish[2].ID) then
-            dropARawFish;
-          if not anySlotActivated then begin
-            for i:=0 to high(KnifeIDs) do begin
-              if(_item.Find(KnifeIDs[i]))then begin
-                Reflect.Mouse.Move(_item.getbox, mouse_left);
-                i:= high(rawFishIds);
-                sleepScript(250+random(500));
-              end;
-            end;
-          end;
-          if anySlotActivated(true) then begin
-            for i:=0 to high(rawFishIds) do begin
-              if(_item.Find(rawFishIds[i]))then begin
-                Reflect.Mouse.Move(_item.getbox, mouse_left);
-                i:= high(rawFishIds);
-                sleepScript(500+random(500));
-              end;
-            end;
-          end;
-          randomHandler;
-        end;
-      end;
-    end;
     else begin
-      if canCook then begin
-        W.GetWidget(Widget_Cook_Container, Cook_Options);
-        if W.NotNull then begin
-          if W.Interact('Cook All') then begin
-            sleepScript(1000+random(2500));
-            if(random(round(AntiAmount/350)) <> 1)then
-              TReflectionAntiban.MMouseOffClient('rand');
-            while ReflectPlayer.isLoggedIn and R_isDoingAnimation(CookingAnimationIDs, 1000) and TReflectionInventory.Contains(rawFishIDs)
-            and not ReflectPlayer.IsUnderAttack do begin
-              randomHandler;
-              updateScreen('Cooking food...');
-            end;
+      W.GetWidget(Widget_Cook_Container, Cook_Options);
+      if W.NotNull then begin
+        if W.Interact('Cook All') then begin
+          sleepScript(1000+random(2500));
+          if(random(round(AntiAmount/350)) <> 1)then
+            TReflectionAntiban.MMouseOffClient('rand');
+          while ReflectPlayer.isLoggedIn and R_isDoingAnimation(CookingAnimationIDs, 1000) and TReflectionInventory.Contains(rawFishIDs)
+          and not ReflectPlayer.IsUnderAttack do begin
+            randomHandler;
+            updateScreen('Cooking food...');
           end;
-          W.Free;
         end;
+        W.Free;
       end;
     end;
   end;
@@ -3905,9 +4305,9 @@ procedure doCooking;
 var FireObject : TReflectObject;
     i : integer;
     found : boolean;
-    logIDs, RawFishIDs : TIntegerArray;
+    RawFishIDs : TIntegerArray;
 begin
-  RawFishIDs := getRawFishIDs;
+  RawFishIDs := daLocation.getRawFishIDs;
   if TReflectionInventory.Contains(rawFishIDs) then begin
     found := false;
     for i:=0 to high(FireIDs) do begin
@@ -3917,7 +4317,6 @@ begin
       end;
     end;
     if not found then begin
-      logIDs := getLogIds;
       if not TReflectionInventory.Contains(LogIDs) then begin
         goToTree;
 
@@ -3934,10 +4333,59 @@ begin
   end;
 end;
 
+procedure runAway;
+var RSTile : TPoint;
+begin
+  RsTIle := TReflectionTiles.GetGlobalTile;
+  updateScreen('Running away.');
+  if length(daLocation.RunDirections) = 0 then begin
+    case random(8) of
+      0:ReflectPlayer.BlindWalkMM(point(RsTIle.x, RsTIle.y-15), 5);
+      1:ReflectPlayer.BlindWalkMM(point(RsTIle.x, RsTIle.y+15), 5);
+      2:ReflectPlayer.BlindWalkMM(point(RsTIle.x+15, RsTIle.y), 5);
+      3:ReflectPlayer.BlindWalkMM(point(RsTIle.x-15, RsTIle.y), 5);
+      4:ReflectPlayer.BlindWalkMM(point(RsTIle.x+15, RsTIle.y-15), 5);
+      5:ReflectPlayer.BlindWalkMM(point(RsTIle.x-15, RsTIle.y+15), 5);
+      6:ReflectPlayer.BlindWalkMM(point(RsTIle.x-15, RsTIle.y-15), 5);
+      7:ReflectPlayer.BlindWalkMM(point(RsTIle.x+15, RsTIle.y+15), 5);
+    end;
+  end else begin
+    case daLocation.RunDirections[random(length(daLocation.RunDirections))] of
+      'n':begin
+        ReflectPlayer.BlindWalkMM(point(RsTIle.x, RsTIle.y+15), 5);
+      end;
+      's':begin
+        ReflectPlayer.BlindWalkMM(point(RsTIle.x, RsTIle.y-15), 5);
+      end;
+      'w':begin
+        ReflectPlayer.BlindWalkMM(point(RsTIle.x-15, RsTIle.y), 5);
+      end;
+      'e':begin
+        ReflectPlayer.BlindWalkMM(point(RsTIle.x+15, RsTIle.y), 5);
+      end;
+      else begin
+        case random(8) of
+          0:ReflectPlayer.BlindWalkMM(point(RsTIle.x, RsTIle.y-15), 5);
+          1:ReflectPlayer.BlindWalkMM(point(RsTIle.x, RsTIle.y+15), 5);
+          2:ReflectPlayer.BlindWalkMM(point(RsTIle.x+15, RsTIle.y), 5);
+          3:ReflectPlayer.BlindWalkMM(point(RsTIle.x-15, RsTIle.y), 5);
+          4:ReflectPlayer.BlindWalkMM(point(RsTIle.x+15, RsTIle.y-15), 5);
+          5:ReflectPlayer.BlindWalkMM(point(RsTIle.x-15, RsTIle.y+15), 5);
+          6:ReflectPlayer.BlindWalkMM(point(RsTIle.x-15, RsTIle.y-15), 5);
+          7:ReflectPlayer.BlindWalkMM(point(RsTIle.x+15, RsTIle.y+15), 5);
+        end;
+      end;
+    end;
+  end;
+  ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
+  sleepScript(random(1500));
+end;
+
 procedure doChecks;
-var i, tInt : integer;
+var i, h, tInt : integer;
     coins : TReflectInvItem;
     foundCoins : boolean;
+    BaitIDs : TIntegerArray;
 begin
   updateScreen('');
   randomHandler;
@@ -3947,6 +4395,7 @@ begin
   if(TReflectLocalPlayer.GetRunEnergy >= RunAmount) and not TReflectLocalPlayer.IsRunOn then
     R_ToggleRun(true);
 
+  BaitIDs := daLocation.getBaitIDs;
   if(high(BaitIDs) > -1) and not TReflectionInventory.Contains(BaitIDs) then begin
     UpdateScreen('No bait left.');
     daLogger.Status('No bait left.', []);
@@ -3956,7 +4405,7 @@ begin
     exit;
   end;
 
-  if ((Job = 14) or (Job = 15)) and canBank then begin
+  if ((daLocation.ID = 14) or (daLocation.ID = 15)) and daLocation.canBank then begin
     foundCoins := false;
     for i:=0 to high(CoinsIDs) do begin
       if coins.Find(CoinsIDs[i]) then begin
@@ -3975,13 +4424,9 @@ begin
   end;
 
   if ReflectPlayer.IsUnderAttack then begin
-    UpdateScreen('Under attack! Running away to bank.');
+    UpdateScreen('Under attack! Running away.');
     daLogger.Status('Under attack!', []);
-    GoToBank;
-    if canBank then begin
-      openBank;
-      doBank;
-    end;
+    runAway;
     sleepScript(5000+random(2500));
     exit;
   end;
@@ -4005,9 +4450,15 @@ begin
   if (tim.Elapsedtime > tim2)then begin
     tim.restart;
     tim2 := 50000 + random(400000);
-    tInt := 0;
-    for i:=0 to high(locationFish) do
-      tInt := tInt + (locationFish[i].caught * locationFish[i].price);
+
+    for i:=0 to high(daLocation.FishNPCs) do begin
+      for h:=0 to high(daLocation.FishNPCs[i].RawFishes) do
+        tInt := tInt + (daLocation.FishNPCs[i].RawFishes[h].price*daLocation.FishNPCs[i].RawFishes[h].caught);
+      for h:=0 to high(daLocation.FishNPCs[i].CookedFishes) do
+        tInt := tInt + (daLocation.FishNPCs[i].CookedFishes[h].price*daLocation.FishNPCs[i].CookedFishes[h].caught);
+      for h:=0 to high(daLocation.FishNPCs[i].BurntFishes) do
+        tInt := tInt + (daLocation.FishNPCs[i].BurntFishes[h].price*daLocation.FishNPCs[i].BurntFishes[h].caught);
+    end;
 
     statsServer.IncreaseVariable('67', (TReflectLocalPlayer.GetSkillExp(SKILL_FISHING)-statsFishXP));
     statsServer.IncreaseVariable('78', (TReflectLocalPlayer.GetSkillExp(SKILL_COOKING)-statsCookXP));
@@ -4015,7 +4466,7 @@ begin
     statsServer.IncreaseVariable('79', (TReflectLocalPlayer.GetSkillExp(SKILL_FIREMAKING)-statsFireXP));
     statsServer.IncreaseVariable('81', (TReflectLocalPlayer.GetSkillExp(SKILL_AGILITY)-statsAgilXP));
     statsServer.IncreaseVariable('71', (TReflectLocalPlayer.GetSkillExp(SKILL_STRENGTH)-statsStrXP));
-    if canBank and not inIntArray([16,17,18,19,20,21], job) then
+    if daLocation.canBank and not inIntArray([16,17,18,19,20,21], daLocation.ID) then
       statsServer.IncreaseVariable('44', (tInt - statsProfit));
 
     statsFishXP := TReflectLocalPlayer.GetSkillExp(SKILL_FISHING);
@@ -4032,8 +4483,14 @@ begin
   end;
 
   tInt := 0;
-  for i:=0 to high(locationFish) do
-    tInt := tInt + locationFish[i].caught;
+  for i:=0 to high(daLocation.FishNPCs) do begin
+    for h:=0 to high(daLocation.FishNPCs[i].RawFishes) do
+      tInt := tInt + daLocation.FishNPCs[i].RawFishes[h].caught;
+    for h:=0 to high(daLocation.FishNPCs[i].CookedFishes) do
+      tInt := tInt + daLocation.FishNPCs[i].CookedFishes[h].caught;
+    for h:=0 to high(daLocation.FishNPCs[i].BurntFishes) do
+      tInt := tInt + daLocation.FishNPCs[i].BurntFishes[h].caught;
+  end;
   if(tInt >= AmountAmount) and (AmountAmount > -1) then begin
     UpdateScreen('Caught more or equal to given amount to catch.');
     daLogger.Status('Caught more or equal to given amount to catch.', []);
@@ -4073,18 +4530,18 @@ begin
     setupScript;
     repeat
       if ReflectPlayer.IsLoggedIn then begin
-        if progFish then
-          progFishing;
+        if daLocation.isDynamic then
+          dynFishing;
         if isInvFullScript then begin
           if useFakeWaitTime and wasWorking then begin
             updateScreen('Doing fake ''antiban'' wait.');
             sleepScript(1000+random(7500));
           end;
           wasWorking := false;
-          if canCook and hasRawFish then begin
+          if daLocation.canCook and TReflectionInventory.Contains(daLocation.getRawFishIDs) then begin
             doCooking;
           end else begin
-            if canBank then begin
+            if daLocation.canBank then begin
               goToBank;
               openBank;
               doBank;
@@ -4094,7 +4551,7 @@ begin
           end;
         end else begin
           if not((FishspotIndice = ReflectPlayer.GetInteractingIndex) and (FishspotIndice > -1))
-          or (not BarbFish and not inIntArray(FishingAnimationIDs, ReflectPlayer.GetAnimation))
+          or (not BarbFish and not inIntArray(daLocation.getAnimationIDs, ReflectPlayer.GetAnimation))
           or (BarbFish and not (ReflectPlayer.GetAnimation <> -1)) then begin
             doFishing;
           end else begin

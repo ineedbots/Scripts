@@ -1,7 +1,6 @@
 //Feel free to use code, MAKE SURE TO GIVE CREDIT WHERE DUE! -ineedbot
 const
-      fVersion = 2.03;
-      fWhatsNew = 'Fixes FFlag from halting the entire script, speed ups.';
+      fVersion = 2.04;
 
       fScriptPage = 'https://raw.githubusercontent.com/ineedbots/Scripts/master/%5BReflection%5D%20ineedbot''s%20functions.simba';
 
@@ -139,12 +138,13 @@ type TReflectDoor = record
      Tile : TPoint;
      IDs : TIntegerArray;
      Offset : array[0..2] of integer;
+     TileOffset : array[0..1] of integer;
 end;
 
 var SmartUserAgent, ProggieLocation, me_name, SoundString, fScript : string;
     daLogger : TReflectLogger;
     ReflectPlayer : TReflectLocalPlayer;
-    breakIn, breakFor, breakinRandom, breakForRandom, AntiAmount, chatTimeOften, closeAllOften, updateAllOften, me_indice, dismissAllOften, lookForChatOften, checkForLevelOften : integer;
+    breakInFinal, breakIn, breakFor, breakinRandom, breakForRandom, AntiAmount, chatTimeOften, closeAllOften, updateAllOften, me_indice, dismissAllOften, lookForChatOften, checkForLevelOften : integer;
     breakInTimer, breakForTimer, closeAllTimer, updateAllTimer, tim3, dismissAllTimer, lookForChatTimer, checkForLevelTimer, updateScreenTimer : TReflectTimer;
     rewardIDs : TIntegerArray;
     chatTimers : array of TReflectTimer;
@@ -162,6 +162,7 @@ end;
 
 procedure sleepScript(tim : integer);
 begin
+  sleep(tim);
 end;
 
 Function getDirectoryName(Directory, Path: String): String;
@@ -1544,7 +1545,7 @@ begin
   tObj.GetAt(ObjBoundary, daDoor.Tile);
   if inIntArray(daDoor.IDs, tObj.GetID) then begin
     if not R_TileOnMS(daDoor.Tile, tP, daDoor.Offset[0], daDoor.Offset[1], daDoor.Offset[2]) then
-      ReflectPlayer.BlindWalkMM(daDoor.Tile, 1);
+      ReflectPlayer.BlindWalkMM(Point(daDoor.Tile.x+daDoor.TileOffset[0], daDoor.Tile.y+daDoor.TileOffset[1]), 1);
     updateScreen('Opening door.');
     result := R_InteractTile(daDoor.Tile, 'Open', daDoor.Offset[0], daDoor.Offset[1], daDoor.Offset[2]);
     ReflectPlayer.FFlag(0, 2500+random(500));
@@ -1611,7 +1612,24 @@ begin
 end;
 
 procedure doBreakCheck;
+var breakForFinal : integer;
+    breakForTimer : TReflectTimer;
 begin
+  if breakInTimer.Elapsedtime < breakInFinal then
+    exit;
+
+  breakForFinal := breakFor + randomRange(-breakForRandom, breakForRandom);
+  breakForTimer.restart;
+
+  updateScreen('Taking a break.');
+  daLogger.Status('Its been '+TReflectionTime.msToTime(breakInFinal, TIME_FORMAL)+'. Taking a '+TReflectionTime.msToTime(breakForFinal, TIME_FORMAL)+' long break.', []);
+  ReflectPlayer.LogOut;
+  while breakForTimer.Elapsedtime < breakForFinal do
+    sleepScript(50+random(500));
+
+  breakInTimer.restart;
+  breakInFinal := breakIn + randomRange(-breakInRandom, breakInRandom);
+  daLogger.Status('Break time is up. Next break in '+TReflectionTime.msToTime(breakInFinal, TIME_FORMAL), []);
 end;
 
 function getNearPlayersAmount:integer;
@@ -2436,7 +2454,6 @@ begin
       end;
       CloseFile(ThisFile);
       daLogger.Status('Successfully downloaded new functions to '+FileNew+'. Please rerun this script.', []);
-      daLogger.Status('Whats new fScript: '+between('fWhatsNew = ''', ''';', fScript), []);
   end else begin
     if(fVersion = NetworkVersion)then begin
     end else begin

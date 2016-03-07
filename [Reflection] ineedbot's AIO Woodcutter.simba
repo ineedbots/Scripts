@@ -4,8 +4,7 @@ program newLapeCutter;
 {$i Reflection/Reflection.Simba}
 {$i [Reflection] ineedbot's functions.simba}
 
-const Version = 4.02;
-      whatsNew = 'Temp fix for getting stuck while trying to open bank.';
+const Version = 4.03;
 
       PicturePage = 'http://pastebin.com/raw/mJtA7u8d';
       ScriptPage = 'https://raw.githubusercontent.com/ineedbots/Scripts/master/%5BReflection%5D%20ineedbot''s%20AIO%20Woodcutter.simba';
@@ -239,7 +238,7 @@ begin
   end;
   daLogger.Status('ineedbot''s Woodcutter:  Local Version: '+FloatToStr(Version)+'  Network Version: '+FloatToStr(NetworkVersion), []);
   if(Version < NetworkVersion) or forceUpdate then begin
-    FileNew := ScriptPath + '[AL][Reflection] ineedbot''s AIO Woodcutter.simba';
+    FileNew := ScriptPath + '[Reflection] ineedbot''s AIO Woodcutter.simba';
     ThisFile := Rewritefile(FileNew, true);
     try
         WriteFileString(ThisFile, script);
@@ -252,7 +251,6 @@ begin
       end;
       CloseFile(ThisFile);
       daLogger.Status('Successfully downloaded new script to '+FileNew+'. Please reopen this script.', []);
-      daLogger.Status('Whats new script: '+between('whatsNew = ''', ''';', Script), []);
       TerminateScript;
   end else begin
     if(Version = NetworkVersion)then begin
@@ -1185,7 +1183,7 @@ procedure ShowFormModal();
 {$IFNDEF CODEINSIGHT}
 native;
 {$ENDIF}
-var i, breakIn, breakInRandom, breakForRandom, breakFor : integer;
+var i : integer;
     strings : TStringArray;
 begin
   InitForm;
@@ -1485,7 +1483,13 @@ begin
     end;
   end;
 
+  breakIn := breakIn*60000;
+  breakInRandom := breakInRandom*60000;
+  breakFor := breakFor*60000;
+  breakForRandom := breakForRandom*60000;
+
   breakInTimer.restart;
+  breakInFinal := breakIn + randomRange(-breakInRandom, breakInRandom);
 
   SoundString := SoundBox.getText;
 
