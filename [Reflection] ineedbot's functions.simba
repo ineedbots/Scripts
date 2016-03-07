@@ -1,7 +1,7 @@
 //Feel free to use code, MAKE SURE TO GIVE CREDIT WHERE DUE! -ineedbot
 const
-      fVersion = 2.01;
-      fWhatsNew = 'Rewrite.';
+      fVersion = 2.02;
+      fWhatsNew = 'Fixes FFlag from halting the entire script.';
 
       fScriptPage = 'https://raw.githubusercontent.com/ineedbots/Scripts/master/%5BReflection%5D%20ineedbot''s%20functions.simba';
 
@@ -406,6 +406,22 @@ begin
     tb := w.GetBounds;
     Reflect.Mouse.Move(tb);
   end;
+end;
+
+function TReflectLocalPlayer.FFlag(
+  TileDist: Integer; Timeout: Integer = 15000): Boolean;override;
+var
+  Timer: TReflectTimer;
+begin
+  Timer.Start;
+  while Distance(Self.GetTile.X, Self.GetTile.Y, Self.GetDestination.X,
+      Self.GetDestination.Y) > TileDist do
+  begin
+    if (Timeout > 0) and (Timer.ElapsedTime > Timeout) then
+      Exit(False);
+    Wait(RandomRange(200, 250));
+  end;
+  Exit(True);
 end;
 
 function TReflectionGametab.Current: Integer;override;

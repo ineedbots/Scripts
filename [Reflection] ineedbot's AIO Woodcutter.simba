@@ -5,7 +5,7 @@ program newLapeCutter;
 {$i [Reflection] ineedbot's functions.simba}
 
 const Version = 4.01;
-      whatsNew = 'Rewrite.';
+      whatsNew = 'Misc fixes.';
 
       PicturePage = 'http://pastebin.com/raw/mJtA7u8d';
       ScriptPage = 'https://raw.githubusercontent.com/ineedbots/Scripts/master/%5BReflection%5D%20ineedbot''s%20AIO%20Woodcutter.simba';
