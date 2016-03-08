@@ -4,7 +4,7 @@ program newLapeFisher;
 {$i Reflection/Reflection.Simba}
 {$i [Reflection] ineedbot's functions.simba}
 
-const Version = 5.1;
+const Version = 5.11;
 
       PicturePage = 'http://pastebin.com/raw/hs3w81WZ';
       ScriptPage = 'https://raw.githubusercontent.com/ineedbots/Scripts/master/%5BReflection%5D%20ineedbot''s%20AIO%20Fisher.simba';
@@ -1714,7 +1714,7 @@ var currentFishXP, currentFishLevel, currentCookXP, currentAgilXP, currentStrXP,
     rsTIle, rsTile2 : TPoint;
     FishLocations : TPointArray;
     tempBox : TBox;
-    BaitIDs, EquipmentIDs, rawFishIDs, cookedFishIDs, burntFishIDs, FishspotIDs : TIntegerArray;
+    BaitIDs, EquipmentIDs, rawFishIDs, cookedFishIDs, burntFishIDs, FishspotIDs, BankNPCIDs : TIntegerArray;
 begin
   graphicOpti.DrawClear(0);
 
@@ -1843,14 +1843,42 @@ begin
   end;
 
   FishspotIDs := daLocation.getFishIDs;
+  for i:=0 to high(daLocation.BankNPCs) do
+    for h:=0 to high(daLocation.BankNPCs[i].IDs) do begin
+      setLength(BankNPCIDs, length(BankNPCIDs)+1);
+      BankNPCIDs[high(BankNPCIDs)] := daLocation.BankNPCs[i].IDs[h];
+    end;
   _npcs.GetAll;
   for i:=0 to high(_npcs) do begin
-    if(inIntArray(FishspotIDs, _npcs[i].getid))then begin
+    tempInt := _npcs[i].getid;
+    if(inIntArray(FishspotIDs, tempInt))then begin
       rsTile2 := _npcs[i].gettile;
       if R_TileOnMM(rsTile2, RSTile) then begin
         graphicOpti.DrawEllipse(RSTile, 5, 5, clYellow, false);
         if R_TileOnMS(rsTile2, RSTile) then
           graphicOpti.DrawClippedText(_npcs[i].getname, 'upchars07', RSTile, true, clYellow);
+      end;
+    end else if(inIntArray(BankNPCIDs, tempInt))then begin
+      rsTile2 := _npcs[i].gettile;
+      if R_TileOnMM(rsTile2, RSTile) then begin
+        graphicOpti.DrawEllipse(RSTile, 5, 5, clBlue, false);
+        if R_TileOnMS(rsTile2, RSTile) then
+          graphicOpti.DrawClippedText(_npcs[i].getname, 'upchars07', RSTile, true, clBlue);
+      end;
+    end;
+  end;
+
+  for i:=0 to high(daLocation.DoorObjects) do begin
+    if R_TileOnMM(daLocation.DoorObjects[i].Tile, RSTile) then begin
+      graphicOpti.DrawEllipse(RSTile, 5, 5, clGray, false);
+      if R_TileOnMS(daLocation.DoorObjects[i].Tile, RSTile, daLocation.DoorObjects[i].Offset[0], daLocation.DoorObjects[i].Offset[1], daLocation.DoorObjects[i].Offset[2]) then begin
+        tempObject.GetAt(ObjBoundary, daLocation.DoorObjects[i].Tile);
+        tempInt := tempObject.GetId;
+        if inIntArray(daLocation.DoorObjects[i].IDs, tempInt) then begin
+          graphicOpti.DrawClippedText('Closed door', 'upchars07', RSTile, true, clGray);
+        end else begin
+          graphicOpti.DrawClippedText('Opened door', 'upchars07', RSTile, true, clGray);
+        end;
       end;
     end;
   end;
@@ -1912,7 +1940,7 @@ begin
   if ((rawCaught + cookedCaught + burntCaught) > 0) then begin
     graphicOpti.DrawClippedText('Caught: '+intToStr(rawCaught + cookedCaught + burntCaught)+'('+InttoStr(round(((rawCaught + cookedCaught + burntCaught)*3600)/(GetTimeRunning/1000)))+')', 'upchars07', Point(5, tempInt), true, 65280);
     tempInt:=tempInt+15;
-    if daLocation.canBank and not inIntArray([16,17,18,19,20,21], daLocation.ID) then begin
+    if daLocation.canBank and not daLocation.isSell then begin
       for i := 0 to high(daLocation.FishNPCs) do begin
         for h:=0 to high(daLocation.FishNPCs[i].RawFishes) do
           tInt := tInt + (daLocation.FishNPCs[i].RawFishes[h].price * rawCaught);
@@ -2461,7 +2489,7 @@ begin
             BaitIDs := [];
             AnimationIDs := [620];
             EquipmentIDs := [305];
-            IDs := [1520];
+            IDs := [1511];
             Locations := [Point(2604, 3420)];
             Options := ['Net'];
             setLength(RawFishes, 3);
@@ -2494,7 +2522,7 @@ begin
             BaitIDs := [];
             AnimationIDs := [619];
             EquipmentIDs := [301];
-            IDs := [1519];
+            IDs := [1510];
             Locations := [Point(2604, 3420)];
             Options := ['Cage'];
             setLength(RawFishes, 1);
@@ -2517,7 +2545,7 @@ begin
             BaitIDs := [];
             AnimationIDs := [618, 5108];
             EquipmentIDs := [311];
-            IDs := [1519];
+            IDs := [1510];
             Locations := [Point(2604, 3420)];
             Options := ['Harpoon'];
             setLength(RawFishes, 2);
@@ -2546,7 +2574,7 @@ begin
             BaitIDs := [];
             AnimationIDs := [618, 5108];
             EquipmentIDs := [311];
-            IDs := [1520];
+            IDs := [1511];
             Locations := [Point(2604, 3420)];
             Options := ['Harpoon'];
             setLength(RawFishes, 1);
@@ -2659,7 +2687,7 @@ begin
             BaitIDs := [];
             AnimationIDs := [620];
             EquipmentIDs := [305];
-            IDs := [1511];
+            IDs := [1520];
             Locations := [Point(2846, 3430)];
             Options := ['Net'];
             setLength(RawFishes, 3);
@@ -2692,7 +2720,7 @@ begin
             BaitIDs := [];
             AnimationIDs := [619];
             EquipmentIDs := [301];
-            IDs := [1510];
+            IDs := [1519];
             Locations := [Point(2846, 3430)];
             Options := ['Cage'];
             setLength(RawFishes, 1);
@@ -2715,7 +2743,7 @@ begin
             BaitIDs := [];
             AnimationIDs := [618, 5108];
             EquipmentIDs := [311];
-            IDs := [1510];
+            IDs := [1519];
             Locations := [Point(2846, 3430)];
             Options := ['Harpoon'];
             setLength(RawFishes, 2);
@@ -2744,7 +2772,7 @@ begin
             BaitIDs := [];
             AnimationIDs := [618, 5108];
             EquipmentIDs := [311];
-            IDs := [1511];
+            IDs := [1520];
             Locations := [Point(2846, 3430)];
             Options := ['Harpoon'];
             setLength(RawFishes, 1);
