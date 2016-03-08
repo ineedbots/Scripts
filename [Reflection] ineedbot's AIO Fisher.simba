@@ -4,7 +4,7 @@ program newLapeFisher;
 {$i Reflection/Reflection.Simba}
 {$i [Reflection] ineedbot's functions.simba}
 
-const Version = 5.11;
+const Version = 5.12;
 
       PicturePage = 'http://pastebin.com/raw/hs3w81WZ';
       ScriptPage = 'https://raw.githubusercontent.com/ineedbots/Scripts/master/%5BReflection%5D%20ineedbot''s%20AIO%20Fisher.simba';
@@ -3049,7 +3049,7 @@ begin
         Names := [];
         Plane := 0;
         IDs := [679{Rasolo guy who 'Trade'}];
-        Options := ['Trade'];
+        Options := ['Trade R'];
       end;
 
       case job of
@@ -3216,7 +3216,7 @@ begin
         Names := [];
         Plane := 0;
         IDs := [4293];
-        Options := ['Bank B'];
+        Options := ['Bank A'];
       end;
 
       case job of
@@ -3832,7 +3832,17 @@ begin
     if not Reflect.Bank.IsOpen and not R_DepositMenuOpen and not Reflect.Bank.IsPinOpen then
       exit;
     if Reflect.Bank.IsPinOpen then begin
-      Reflect.Bank.EnterPin(ReflectPlayer.Pin);
+      if length(ReflectPlayer.Pin) = 4 then
+        Reflect.Bank.EnterPin(ReflectPlayer.Pin)
+      else begin
+        Reflect.Bank.Close;
+        daLogger.Status('Invalid pin.', []);
+        UpdateScreen('Invalid pin.');
+        ReflectPlayer.Active := false;
+        ReflectPlayer.Logout;
+        sleepScript(2500);
+        exit;
+      end;
       sleepScript(random(2500));
     end;
     if not Reflect.Bank.IsOpen and not R_DepositMenuOpen then
@@ -4052,16 +4062,16 @@ begin
             for i:=0 to high(TinderIDs) do begin
               if(_item.Find(TinderIDs[i]))then begin
                 Reflect.Mouse.Move(_item.getbox, mouse_left);
-                i:= high(TinderIds);
                 sleepScript(250+random(500));
+                break;
               end;
             end;
           end else begin
             for i:=0 to high(LogIDs) do begin
               if(_item.Find(LogIDs[i]))then begin
                 Reflect.Mouse.Move(_item.getbox, mouse_left);
-                i:= high(LogIDs);
                 sleepScript(250+random(500));
+                break;
               end;
             end;
           end;
@@ -4071,16 +4081,16 @@ begin
             for i:=0 to high(TinderIDs) do begin
               if(_item.Find(TinderIDs[i]))then begin
                 Reflect.Mouse.Move(_item.getbox, mouse_left);
-                i:= high(TinderIds);
                 sleepScript(250+random(500));
+                break;
               end;
             end;
           end else begin
             for i:=0 to high(LogIDs) do begin
               if(_item.Find(LogIDs[i]))then begin
                 Reflect.Mouse.Move(_item.getbox, mouse_left);
-                i:= high(LogIDs);
                 sleepScript(250+random(500));
+                break;
               end;
             end;
           end;
@@ -4178,7 +4188,7 @@ begin
           if FireObject.Find(ObjGame, FireIDs[i], FireCheckDistance) then begin
             found := true;
             objTile := FireObject.GetTile;
-            i := high(FireIDs);
+            break;
           end;
         end;
         if found then begin
@@ -4189,8 +4199,8 @@ begin
               for i:=0 to high(rawFishIds) do begin
                 if(_item.Find(rawFishIds[i]))then begin
                   Reflect.Mouse.Move(_item.getbox, mouse_left);
-                  i:= high(rawFishIds);
                   sleepScript(250+random(500));
+                  break;
                 end;
               end;
             end;
@@ -4216,8 +4226,8 @@ begin
             for i:=0 to high(rawFishIds) do begin
               if(_item.Find(rawFishIds[i]))then begin
                 Reflect.Mouse.Move(_item.getbox, mouse_left);
-                i:= high(rawFishIds);
                 sleepScript(250+random(500));
+                break;
               end;
             end;
           end;
@@ -4259,8 +4269,8 @@ begin
             for i:=0 to high(KnifeIDs) do begin
               if(_item.Find(KnifeIDs[i]))then begin
                 Reflect.Mouse.Move(_item.getbox, mouse_left);
-                i:= high(rawFishIds);
                 sleepScript(250+random(500));
+                break;
               end;
             end;
           end;
@@ -4268,8 +4278,8 @@ begin
             for i:=0 to high(rawFishIds) do begin
               if(_item.Find(rawFishIds[i]))then begin
                 Reflect.Mouse.Move(_item.getbox, mouse_left);
-                i:= high(rawFishIds);
                 sleepScript(500+random(500));
+                break;
               end;
             end;
           end;
@@ -4288,8 +4298,8 @@ begin
             for i:=0 to high(KnifeIDs) do begin
               if(_item.Find(KnifeIDs[i]))then begin
                 Reflect.Mouse.Move(_item.getbox, mouse_left);
-                i:= high(rawFishIds);
                 sleepScript(random(100));
+                break;
               end;
             end;
           end;
@@ -4300,10 +4310,10 @@ begin
               for x:=0 to high(rawFishIds) do
                 if(_items[i].GetID = rawFishIds[x]) then begin
                   _item := _items[i];
-                  i:=0;
-                  x:=high(rawFishIds);
                   Reflect.Mouse.Move(_item.getbox, mouse_left);
                   sleepScript(random(100));
+                  break;
+                  break;
                 end;
           end;
           randomHandler;
@@ -4341,7 +4351,7 @@ begin
     for i:=0 to high(FireIDs) do begin
       if FireObject.Find(ObjGame, FireIDs[i], FireCheckDistance) then begin
         found := true;
-        i := high(FireIDs);
+        break;
       end;
     end;
     if not found then begin
@@ -4438,7 +4448,7 @@ begin
     for i:=0 to high(CoinsIDs) do begin
       if coins.Find(CoinsIDs[i]) then begin
         foundCoins := true;
-        i := high(coinsIDs);
+        break;
       end;
     end;
     if not foundCoins or (Coins.getQuantity < 30) then begin
