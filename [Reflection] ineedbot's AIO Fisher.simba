@@ -4,7 +4,7 @@ program newLapeFisher;
 {$i Reflection/Reflection.Simba}
 {$i [Reflection] ineedbot's functions.simba}
 
-const Version = 5.12;
+const Version = 5.13;
 
       PicturePage = 'http://pastebin.com/raw/hs3w81WZ';
       ScriptPage = 'https://raw.githubusercontent.com/ineedbots/Scripts/master/%5BReflection%5D%20ineedbot''s%20AIO%20Fisher.simba';
@@ -1966,9 +1966,13 @@ begin
   if cpuLoadWait < 0 then begin
     sleep(tim);
   end else begin
-    _t.restart;
-    while (_t.Elapsedtime < tim) do
-      sleep(cpuLoadWait);
+    if cpuLoadWait = 0 then begin
+
+    end else begin
+      _t.restart;
+      while (_t.Elapsedtime < tim) do
+        sleep(cpuLoadWait);
+    end;
   end;
 end;
 
@@ -1976,7 +1980,8 @@ procedure updateScreen(_string:string);override;
 begin
   if (_string <> '') then
     scriptStatus := _string;
-  sleepScript(cpuLoadOften);
+  if cpuLoadOften > 0 then
+    sleepScript(cpuLoadOften);
   if updateScreenTimer.Elapsedtime > updateScreenOften then begin
     doUpdateScreen;
     updateScreenTimer.restart;
@@ -3388,6 +3393,7 @@ procedure goToBank;
 var RsTIle, nearestNPCTile : TPoint;
     i, h : integer;
     nearestBank : BankLocation;
+label normal;
 begin
   if not daLocation.canBank or ((length(daLocation.BankLocations) = 0) and (length(daLocation.BankNPCs) = 0)) then
     exit;
@@ -3415,7 +3421,7 @@ begin
         R_TryInteractNPC([daLocation.customIDs[0][3]], 'Pay-Fare', false, 5);
         ReflectPlayer.FFlag(0, 5000+random(500));
         doConversation(['Can I journey on this ship?', 'Search away, I have nothing to hide.', 'Ok.', 'Yes please.']);
-        sleepScript(6000+random(500));
+        sleepScript(3500+random(500));
       end;
       if TReflectionTiles.NearTile(daLocation.customTPAs[2][1], 50) and (TReflectionTiles.GetPlane = 1) then begin
         UpdateScreen('Crossing plank...');
@@ -3442,20 +3448,28 @@ begin
         end;
       end;
       if TReflectionTiles.NearTile(daLocation.customTPAs[2][0], 50) and (TReflectionTiles.GetPlane = 0) then begin
-        UpdateScreen('Going to depo box.');
-        if R_TileOnMM(daLocation.PathToBank[0], RSTile) then begin
-          ReflectPlayer.WalkPathMM(daLocation.PathToBank, false);
-          ReflectPlayer.FFlag(2+randomrange(-2,2), 5000+random(500));
-          sleepScript(random(2000));
-        end;
-        if not R_TileOnMS(daLocation.BankLocations[0].Tile, RSTile) then begin
-          ReflectPlayer.BlindWalkMM(Point(daLocation.BankLocations[0].Tile.x + daLocation.BankLocations[0].TileOffset[0], daLocation.BankLocations[0].Tile.y + daLocation.BankLocations[0].TileOffset[1]), 5);
-          ReflectPlayer.FFlag(2+randomrange(-2,2), 5000+random(500));
-          sleepScript(random(2000));
-        end;
+        goto normal;
       end;
     end;
     else begin
+      normal:
+      if (length(daLocation.BankNPCs) = 0) then begin
+        nearestBank.Tile.x := -1;
+        for i:=0 to high(daLocation.BankLocations) do
+          if (TReflectionTiles.DistanceFromTile(daLocation.BankLocations[i].Tile) < TReflectionTiles.DistanceFromTile(nearestBank.Tile)) or (nearestBank.Tile.x = -1) then
+            nearestBank := daLocation.BankLocations[i];
+        if R_TileOnMS(nearestBank.Tile, RSTile, nearestBank.Offset[0], nearestBank.Offset[1], nearestBank.Offset[2]) then
+          exit;
+      end else begin
+        nearestNPCTile.x := -1;
+        for i:=0 to high(daLocation.BankNPCs) do
+          for h:=0 to high(daLocation.BankNPCs[i].Locations) do
+            if (TReflectionTiles.DistanceFromTile(daLocation.BankNPCs[i].Locations[h]) < TReflectionTiles.DistanceFromTile(nearestNPCTile)) or (nearestNPCTile.x = -1) then
+              nearestNPCTile := daLocation.BankNPCs[i].Locations[h];
+        if R_TileOnMS(nearestNPCTile, RSTile) then
+          exit;
+      end;
+
       if (length(daLocation.PathToBank) <> 0) then begin
         if R_TileOnMM(daLocation.PathToBank[0], RSTile) then begin
           updateScreen('Going to bank.');
@@ -3489,7 +3503,7 @@ begin
         sleepScript(random(1500));
       end;
     end;
-  end
+  end;
 end;
 
 procedure openBank;
@@ -3497,6 +3511,8 @@ var RsTIle, nearestNPCTile : TPoint;
     i, h : integer;
     nearestBank : BankLocation;
     nearestNPC : BankNPC;
+    timer : TReflectTimer;
+label normal;
 begin
   if not daLocation.canBank or ((length(daLocation.BankLocations) = 0) and (length(daLocation.BankNPCs) = 0)) then
     exit;
@@ -3507,6 +3523,7 @@ begin
 
   case daLocation.ID of
     else begin
+      normal:
       if (length(daLocation.BankNPCs) = 0) then begin
         Reflect.Compass.Make('n');
         Reflect.Compass.MakePitch(10);
@@ -3516,19 +3533,26 @@ begin
           if (TReflectionTiles.DistanceFromTile(daLocation.BankLocations[i].Tile) < TReflectionTiles.DistanceFromTile(nearestBank.Tile)) or (nearestBank.Tile.x = -1) then
             nearestBank := daLocation.BankLocations[i];
 
-        if not R_TileOnMS(nearestBank.Tile, RSTile, nearestBank.Offset[0], nearestBank.Offset[1], nearestBank.Offset[2]) and (TReflectionTiles.GetPlane = nearestBank.Plane) then begin
+        if (TReflectionTiles.GetPlane <> nearestBank.Plane) then
+          exit;
+
+        if not R_TileOnMS(nearestBank.Tile, RSTile, nearestBank.Offset[0], nearestBank.Offset[1], nearestBank.Offset[2]) then begin
           updateScreen('Going to bank.');
           ReflectPlayer.BlindWalkMM(Point(nearestBank.Tile.x + nearestBank.TileOffset[0], nearestBank.Tile.y + nearestBank.TileOffset[1]), 5);
           ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
           sleepScript(random(1500));
         end;
-        if R_TileOnMS(nearestBank.Tile, RSTile, nearestBank.Offset[0], nearestBank.Offset[1], nearestBank.Offset[2]) and (TReflectionTiles.GetPlane = nearestBank.Plane) then begin
+        if R_TileOnMS(nearestBank.Tile, RSTile, nearestBank.Offset[0], nearestBank.Offset[1], nearestBank.Offset[2]) then begin
           updateScreen('Opening bank.');
           for i:=0 to high(nearestBank.Options) do
-            if R_InteractTile(nearestBank.Tile, nearestBank.Options[i], nearestBank.Offset[0], nearestBank.Offset[1], nearestBank.Offset[2], true) then
+            if R_InteractTile(nearestBank.Tile, nearestBank.Options[i], nearestBank.Offset[0], nearestBank.Offset[1], nearestBank.Offset[2], true) then begin
+              ReflectPlayer.FFlag(0, 5000+random(500));
+              Timer.Restart;
+              while not Reflect.Bank.IsOpen and not Reflect.Bank.IsPinOpen and not R_DepositMenuOpen(false)
+              and not R_SellMenuOpen(false) and not R_PinSettingsOpen(false) and (timer.ElapsedTime < 2500) do
+                sleepScript(50);
               break;
-          ReflectPlayer.FFlag(0, 5000+random(500));
-          sleepScript(1500+random(500));
+            end;
         end;
       end else begin
         nearestNPCTile.x := -1;
@@ -3539,12 +3563,17 @@ begin
               nearestNPC := daLocation.BankNPCs[i];
             end;
 
-        updateScreen('Opening bank npc.');
+        if (TReflectionTiles.GetPlane <> nearestNPC.Plane) then
+          exit;
 
+        updateScreen('Opening bank npc.');
         for i:=0 to high(nearestNPC.Options) do
-          if R_TryInteractNPC(nearestNPC.IDs, nearestNPC.Options[i], false, 5) and (TReflectionTiles.GetPlane = nearestNPC.Plane) then begin
+          if R_TryInteractNPC(nearestNPC.IDs, nearestNPC.Options[i], false, 5) then begin
             ReflectPlayer.FFlag(0, 5000+random(500));
-            sleepScript(1500+random(500));
+            Timer.Restart;
+            while not Reflect.Bank.IsOpen and not Reflect.Bank.IsPinOpen and not R_DepositMenuOpen(false)
+            and not R_SellMenuOpen(false) and not R_PinSettingsOpen(false) and (timer.ElapsedTime < 2500) do
+              sleepScript(50);
             break;
           end;
       end;
@@ -3555,6 +3584,7 @@ end;
 procedure goToFish;
 var RsTIle, farest : TPoint;
     i, h : integer;
+label normal;
 begin
   if length(daLocation.FishNPCs) = 0 then
     exit;
@@ -3578,7 +3608,7 @@ begin
           R_TryInteractNPC([daLocation.customIDs[0][0], daLocation.customIDs[0][1], daLocation.customIDs[0][2]], 'Pay-fare', false, 5);
           ReflectPlayer.FFlag(0, 5000+random(500));
           doConversation(['Can I journey on this ship?', 'Search away, I have nothing to hide.', 'Ok.', 'Yes please.']);
-          sleepScript(6000+random(500));
+          sleepScript(3500+random(500));
         end;
         if TReflectionTiles.NearTile(daLocation.customTPAs[2][1], 50) and (TReflectionTiles.GetPlane = 1) then begin
           UpdateScreen('Crossing plank...');
@@ -3604,27 +3634,14 @@ begin
             sleepScript(2500+random(500));
           end;
         end;
-        if TReflectionTiles.NearTile(daLocation.customTPAs[2][3], 50) and (TReflectionTiles.GetPlane = 0) then begin
-          UpdateScreen('Going to fish spots.');
-          if R_TileOnMM(daLocation.PathToFish[0], RSTile) then begin
-            ReflectPlayer.WalkPathMM(daLocation.PathToFish, false);
-            ReflectPlayer.FFlag(2+randomrange(-2,2), 5000+random(500));
-            sleepScript(random(2000));
-          end;
-        end;
-      end;
-      farest.x := -1;
-      for i:=0 to high(daLocation.FishNPCs) do
-        for h:=0 to high(daLocation.FishNPCs[i].Locations) do
-          if (TReflectionTiles.DistanceFromTile(daLocation.FishNPCs[i].Locations[h]) > TReflectionTiles.DistanceFromTile(farest)) or (farest.x = -1) then
-            farest := daLocation.FishNPCs[i].Locations[h];
 
-      updateScreen('Going to fish spots.');
-      ReflectPlayer.BlindWalkMM(farest, 5);
-      ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
-      sleepScript(random(1500));
+      end;
+      if TReflectionTiles.NearTile(daLocation.customTPAs[2][3], 50) and (TReflectionTiles.GetPlane = 0) then begin
+        goto normal;
+      end;
     end;
     else begin
+      normal:
       if (length(daLocation.PathToFish) <> 0) then begin
         if R_TileOnMM(daLocation.PathToFish[0], RSTile) then begin
           updateScreen('Going to fishies.');
@@ -3668,6 +3685,9 @@ begin
     updateScreen('Clicking level up!');
     R_DidLevelUp(true);
     R_DidLevelUpExtra(true);
+  end;
+
+  case daLocation.ID of
   end;
 
   for h:=0 to high(daLocation.FishNPCs) do begin
@@ -3897,33 +3917,23 @@ procedure goToTree;
 var rsTile : TPoint;
     i : integer;
     tempO : TReflectObject;
+label normal;
 begin
   if not daLocation.canCook or (length(daLocation.TreeObjects) = 0) then
     exit;
   case daLocation.ID of
     14..19:begin
       if R_TileOnMM(daLocation.customTPAs[0][0], RSTile) then begin
-        updateScreen('Going to bank.');
+        updateScreen('Going to tree.');
         ReflectPlayer.WalkPathMM(daLocation.customTPAs[0], false);
         ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
         sleepScript(random(1500));
         exit;
       end;
-      updateScreen('Looking for tree...');
-      for i:=0 to high(daLocation.TreeObjects) do begin
-        tempO.GetAt(ObjGame, daLocation.TreeObjects[i].Tile);
-        if inIntArray(daLocation.TreeObjects[i].AliveIDs, tempO.getID) then begin
-          if not R_TileOnMS(daLocation.TreeObjects[i].Tile, RSTile, daLocation.TreeObjects[i].Offset[0], daLocation.TreeObjects[i].Offset[1], daLocation.TreeObjects[i].Offset[2]) then begin
-             updateScreen('Going to tree spot.');
-             ReflectPlayer.BlindWalkMM(Point(daLocation.TreeObjects[i].Tile.x+daLocation.TreeObjects[i].TileOffset[0], daLocation.TreeObjects[i].Tile.y+daLocation.TreeObjects[i].TileOffset[1]), 5);
-             ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
-             sleepScript(random(1000));
-          end;
-          break;
-        end;
-      end;
+      goTo normal;
     end;
     else begin
+      normal:
       updateScreen('Looking for tree...');
       for i:=0 to high(daLocation.TreeObjects) do begin
         tempO.GetAt(ObjGame, daLocation.TreeObjects[i].Tile);
@@ -3946,6 +3956,7 @@ var i :integer;
     _item : TReflectInvItem;
     rawFishIDs : TIntegerArray;
     tB : TBox;
+label normal;
 begin
   if not daLocation.canCook then
     exit;
@@ -3954,6 +3965,7 @@ begin
     8..13:begin  //cath
     end;
     else begin
+      normal:
       rawFishIDs := daLocation.getRawFishIDs;
       for i:=0 to high(rawFishIDs) do begin
         updateScreen('Dropping a raw fish...');
@@ -3975,12 +3987,14 @@ procedure chopTree;
 var rsTile : TPoint;
     tempO : TReflectObject;
     i, objectID, h : integer;
+label normal;
 begin
   if not daLocation.canCook or (length(daLocation.TreeObjects) = 0) then
     exit;
 
   case daLocation.ID of
     else begin
+      normal:
       updateScreen('Looking for tree...');
       for i:=0 to high(daLocation.TreeObjects) do begin
         tempO.GetAt(ObjGame, daLocation.TreeObjects[i].Tile);
@@ -4038,6 +4052,7 @@ var rsTile : TPoint;
     tinderFirst : boolean;
     tempO : TReflectObject;
     _item : TReflectInvItem;
+label normal;
 begin
   if not daLocation.canCook or (length(daLocation.FireLocations) <> 0) or not TReflectionInventory.Contains(TinderIDs) or not TReflectionInventory.Contains(LogIDs) then
     exit;
@@ -4048,6 +4063,7 @@ begin
     29:begin  //zul
     end;
     else begin
+      normal:
       RSTile := TReflectionTiles.GetGlobalTile;
       tempO.GetAt(ObjGame, RSTile);
       if inIntArray(deadObjIDs, tempO.getId) or tempO.Reference = 0 then begin
@@ -4121,6 +4137,7 @@ var FireObject : TReflectObject;
     i : integer;
     rsTile, objTile : TPoint;
     closestFireTile : FireLocation;
+label normal;
 begin
   if not daLocation.canCook then
     exit;
@@ -4131,6 +4148,7 @@ begin
     29:begin  //zul
     end;
     else begin
+      normal:
       if (length(daLocation.FireLocations) = 0) then begin
         for i:=0 to high(FireIDs) do begin
           if FireObject.Find(ObjGame, FireIDs[i], FireCheckDistance) then begin
@@ -4171,6 +4189,7 @@ var FireObject : TReflectObject;
     _item : TReflectInvItem;
     RawFishIDs : TIntegerArray;
     closestFireTile : FireLocation;
+label normal;
 begin
   RawFishIDs := daLocation.getRawFishIDs;
   if not daLocation.canCook or not TReflectionInventory.Contains(RawFishIDs) then
@@ -4182,6 +4201,7 @@ begin
     29:begin  //zul
     end;
     else begin
+      normal:
       if (length(daLocation.FireLocations) = 0) then begin
         found := false;
         for i:=0 to high(FireIDs) do begin
@@ -4251,6 +4271,7 @@ var x, y, i : integer;
     RawFishIDs, cookedFishIDs : TIntegerArray;
     _items : TReflectInvItemArray;
     W : TReflectWidget;
+label normal;
 begin
   RawFishIDs := daLocation.getRawFishIDs;
   cookedFishIDs := daLocation.getCookedFishIDs;
@@ -4321,6 +4342,7 @@ begin
       end;
     end;
     else begin
+      normal:
       W.GetWidget(Widget_Cook_Container, Cook_Options);
       if W.NotNull then begin
         if W.Interact('Cook All') then begin
