@@ -2025,7 +2025,7 @@ begin
             Names := [];
             Plane := 0;
             IDs := [507, 506];
-            Options := ['Sell'];
+            Options := ['Trade S'];
           end;
           daLocation.isSell := true;
 
@@ -2071,7 +2071,7 @@ begin
             Names := [];
             Plane := 0;
             IDs := [507, 506];
-            Options := ['Sell'];
+            Options := ['Trade S'];
           end;
           daLocation.isSell := true;
 
@@ -3498,7 +3498,7 @@ begin
         Names := [];
         Plane := 0;
         IDs := [516, 517];
-        Options := ['Sell'];
+        Options := ['Trade'];
       end;
       daLocation.isSell := true;
 
@@ -4190,7 +4190,7 @@ begin
         Names := [];
         Plane := 0;
         IDs := [507, 506];
-        Options := ['Sell'];
+        Options := ['Trade'];
       end;
       daLocation.isSell := true;
 
