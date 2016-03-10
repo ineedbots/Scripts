@@ -4,7 +4,7 @@ program newLapeFisher;
 {$i Reflection/Reflection.Simba}
 {$i [Reflection] ineedbot's functions.simba}
 
-const Version = 5.14;
+const Version = 5.15;
 
       PicturePage = 'http://pastebin.com/raw/hs3w81WZ';
       ScriptPage = 'https://raw.githubusercontent.com/ineedbots/Scripts/master/%5BReflection%5D%20ineedbot''s%20AIO%20Fisher.simba';
@@ -4197,6 +4197,7 @@ var FireObject : TReflectObject;
     closestFireTile : FireLocation;
     timer : TReflectTimer;
     W : TReflectWidget;
+    tb : TBox;
 label normal;
 begin
   RawFishIDs := daLocation.getRawFishIDs;
@@ -4238,7 +4239,12 @@ begin
                   ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
                   timer.restart;
                   W.GetWidget(Widget_Cook_Container, Cook_Options);
-                  while (timer.elapsedTime < 2500) and not W.NotNull do begin
+                  while (timer.elapsedTime < 2500) do begin
+                    if not W.NotNull then begin
+                      tb := w.GetBounds;
+                      if tb.X1 > 0 then
+                        break;
+                    end;
                     W.Free;
                     sleepScript(50);
                     W.GetWidget(Widget_Cook_Container, Cook_Options);
@@ -4272,7 +4278,12 @@ begin
                 ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
                 timer.restart;
                 W.GetWidget(Widget_Cook_Container, Cook_Options);
-                while (timer.elapsedTime < 2500) and not W.NotNull do begin
+                while (timer.elapsedTime < 2500) do begin
+                  if not W.NotNull then begin
+                    tb := w.GetBounds;
+                    if tb.X1 > 0 then
+                      break;
+                  end;
                   W.Free;
                   sleepScript(50);
                   W.GetWidget(Widget_Cook_Container, Cook_Options);
@@ -4293,6 +4304,7 @@ var x, y, i : integer;
     RawFishIDs, cookedFishIDs : TIntegerArray;
     _items : TReflectInvItemArray;
     W : TReflectWidget;
+    tb : TBox;
 label normal;
 begin
   RawFishIDs := daLocation.getRawFishIDs;
@@ -4367,6 +4379,11 @@ begin
       normal:
       W.GetWidget(Widget_Cook_Container, Cook_Options);
       if W.NotNull then begin
+        tb := w.GetBounds;
+        if tb.X1 <= 0 then begin
+          w.Free;
+          exit;
+        end;
         if W.Interact('Cook All') then begin
           sleepScript(1000+random(2500));
           if(random(round(AntiAmount/350)) <> 1)then

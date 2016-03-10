@@ -1,6 +1,6 @@
 //Feel free to use code, MAKE SURE TO GIVE CREDIT WHERE DUE! -ineedbot
 const
-      fVersion = 2.05;
+      fVersion = 2.06;
 
       fScriptPage = 'https://raw.githubusercontent.com/ineedbots/Scripts/master/%5BReflection%5D%20ineedbot''s%20functions.simba';
 
@@ -246,11 +246,24 @@ begin
     Exit;
   World := Self.GetWorld;
   Reflect.Logger.Status('Using world %s.', [World]);
-  JavaString := getJavaPath(SmartShowConsole);
+  if SmartShowConsole then
+    JavaString := 'java.exe'
+  else
+    JavaString := 'javaw.exe';
 
   Self.Target := SmartSpawnClient(JavaString, StringReplace(PluginPath, '\',
     '/', [rfReplaceAll]), Format('http://oldschool%s.runescape.com/', [World]),
     'j1', Width, Height, '', SmartUserAgent, '', '');
+
+  if Self.Target = 0 then
+  begin
+    daLogger.Error('Error while finding default Java, searching for Java...', []);
+    JavaString := getJavaPath(SmartShowConsole);
+
+    Self.Target := SmartSpawnClient(JavaString, StringReplace(PluginPath, '\',
+      '/', [rfReplaceAll]), Format('http://oldschool%s.runescape.com/', [World]),
+      'j1', Width, Height, '', SmartUserAgent, '', '');
+  end;
   if Self.Target = 0 then
     Reflect.Logger.Fatal('Failed to spawn SMART client.');
   if not Self.Init then
