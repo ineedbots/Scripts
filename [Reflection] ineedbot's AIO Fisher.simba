@@ -4,7 +4,7 @@ program newLapeFisher;
 {$i Reflection/Reflection.Simba}
 {$i [Reflection] ineedbot's functions.simba}
 
-const Version = 5.13;
+const Version = 5.14;
 
       PicturePage = 'http://pastebin.com/raw/hs3w81WZ';
       ScriptPage = 'https://raw.githubusercontent.com/ineedbots/Scripts/master/%5BReflection%5D%20ineedbot''s%20AIO%20Fisher.simba';
@@ -255,25 +255,27 @@ begin
 end;
 
 procedure _OnChange2;
+var i : integer;
 begin
   FishBox.Clear;
   FishBox.setText('Fish method');
+  i := -1;
   case LocationBox.getItemIndex of
-    0:begin//draynor
+    (i:=i+1):begin//draynor
       FishBox.AddItem('Small net (cook) (bank)', nil);
       FishBox.AddItem('Bait (cook) (bank)', nil);
     end;
-    1:begin//Barb
+    (i:=i+1):begin//Barb
       FishBox.AddItem('Lure (cook) (bank)', nil);
       FishBox.AddItem('Bait (cook) (bank)', nil);
     end;
-    2:begin//fishg
+    (i:=i+1):begin//fishg
       FishBox.AddItem('Big net (cook) (bank)', nil);
       FishBox.AddItem('Cage (cook) (bank)', nil);
       FishBox.AddItem('Harpoon (cook) (bank)', nil);
       FishBox.AddItem('Harpoon (shark) (cook) (bank)', nil);
     end;
-    3:begin//cather
+    (i:=i+1):begin//cather
       FishBox.AddItem('Small net (cook) (bank)', nil);
       FishBox.AddItem('Bait (cook) (bank)', nil);
       FishBox.AddItem('Big net (cook) (bank)', nil);
@@ -281,7 +283,7 @@ begin
       FishBox.AddItem('Harpoon (cook) (bank)', nil);
       FishBox.AddItem('Harpoon (shark) (cook) (bank)', nil);
     end;
-    4:begin//karm
+    (i:=i+1):begin//karm
       FishBox.AddItem('Cage (cook) (bank)', nil);
       FishBox.AddItem('Harpoon (cook) (bank)', nil);
       FishBox.AddItem('Small net (cook) (sell)', nil);
@@ -290,26 +292,26 @@ begin
       FishBox.AddItem('Harpoon (cook) (sell)', nil);
       FishBox.AddItem('Proggresive fishing', nil);
     end;
-    5:begin//rasolo
+    (i:=i+1):begin//rasolo
       FishBox.AddItem('Lure (cook) (sell)', nil);
       FishBox.AddItem('Bait (cook) (sell)', nil);
     end;
-    6:begin//Shilo
+    (i:=i+1):begin//Shilo
       FishBox.AddItem('Lure (bank)', nil);
       FishBox.AddItem('Bait (bank)', nil);
     end;
-    7:begin//otto
+    (i:=i+1):begin//otto
       FishBox.AddItem('Heavy Rod (knife)', nil);
     end;
-    8:begin//pic
+    (i:=i+1):begin//pic
       FishBox.AddItem('Small net (bank)', nil);
       FishBox.AddItem('Harpoon (bank)', nil);
     end;
-    9:begin//power
-      FishBox.AddItem('Small net', nil);
-    end;
-    10:begin//zul
+    (i:=i+1):begin//zul
       FishBox.AddItem('Sacred Eels (knife)', nil);
+    end;
+    (i:=i+1):begin//power
+      FishBox.AddItem('Small net', nil);
     end;
   end;
 end;
@@ -677,8 +679,8 @@ begin
       AddItem('Shilo', nil);
       AddItem('Ottos', nil);
       AddItem('Piscatoris', nil);
-      AddItem('Powerfish', nil);
       AddItem('Zul-Andra', nil);
+      AddItem('Powerfish', nil);
   end;
  FishBox.init(DsgnForm);
   with FishBox do
@@ -1041,7 +1043,7 @@ procedure ShowFormModal();
 {$IFNDEF CODEINSIGHT}
 native;
 {$ENDIF}
-var i : integer;
+var i, h : integer;
     strings : TStringArray;
 begin
   InitForm;
@@ -1245,79 +1247,81 @@ begin
   else
     breakForRandom := 0;
 
+  i := -1;
+  h := -1;
   case LocationBox.getItemIndex of
-    0:begin//draynor
+    (i:=i+1):begin//draynor
       case FishBox.getItemIndex of
-        0:Job:=0;//net
-        1:Job:=1;//bait
+        (h:=h+1):Job:=0;//net
+        (h:=h+1):Job:=1;//bait
       end;
     end;
-    1:begin//barb
+    (i:=i+1):begin//barb
       case FishBox.getItemIndex of
-        0:Job:=2;//lure
-        1:Job:=3;//bait
+        (h:=h+1):Job:=2;//lure
+        (h:=h+1):Job:=3;//bait
       end;
     end;
-    2:begin//fishg
+    (i:=i+1):begin//fishg
       case FishBox.getItemIndex of
-        0:Job:=4;//bignet
-        1:Job:=5;//cage
-        2:Job:=6;//harp
-        3:Job:=7;//harpsh
+        (h:=h+1):Job:=4;//bignet
+        (h:=h+1):Job:=5;//cage
+        (h:=h+1):Job:=6;//harp
+        (h:=h+1):Job:=7;//harpsh
       end;
     end;
-    3:begin//cath
+    (i:=i+1):begin//cath
       case FishBox.getItemIndex of
-        0:Job:=8;//small
-        1:Job:=9;//bait
-        2:Job:=10;//bignet
-        3:Job:=11;//cage
-        4:Job:=12;//harp
-        5:Job:=13;//harpsh
+        (h:=h+1):Job:=8;//small
+        (h:=h+1):Job:=9;//bait
+        (h:=h+1):Job:=10;//bignet
+        (h:=h+1):Job:=11;//cage
+        (h:=h+1):Job:=12;//harp
+        (h:=h+1):Job:=13;//harpsh
       end;
     end;
-    4:begin//karm
+    (i:=i+1):begin//karm
       case FishBox.getItemIndex of
-        0:Job:=14;//cageb
-        1:Job:=15;//harpb
-        2:Job:=16;//small
-        3:Job:=17;//bait
-        4:Job:=18;//cage
-        5:Job:=19;//harp
-        6:Job:=28;//prog
+        (h:=h+1):Job:=14;//cageb
+        (h:=h+1):Job:=15;//harpb
+        (h:=h+1):Job:=16;//small
+        (h:=h+1):Job:=17;//bait
+        (h:=h+1):Job:=18;//cage
+        (h:=h+1):Job:=19;//harp
+        (h:=h+1):Job:=28;//prog
       end;
     end;
-    5:begin//rasolo
+    (i:=i+1):begin//rasolo
       case FishBox.getItemIndex of
-        0:Job:=20;//lure
-        1:Job:=21;//bait
+        (h:=h+1):Job:=20;//lure
+        (h:=h+1):Job:=21;//bait
       end;
     end;
-    6:begin//shilo
+    (i:=i+1):begin//shilo
       case FishBox.getItemIndex of
-        0:Job:=22;//lure
-        1:Job:=23;//bait
+        (h:=h+1):Job:=22;//lure
+        (h:=h+1):Job:=23;//bait
       end;
     end;
-    7:begin//otto
+    (i:=i+1):begin//otto
       case FishBox.getItemIndex of
-        0:Job:=24;//heavy
+        (h:=h+1):Job:=24;//heavy
       end;
     end;
-    8:begin//pic
+    (i:=i+1):begin//pic
       case FishBox.getItemIndex of
-        0:Job:=25;//small
-        1:Job:=26;//harpoon
+        (h:=h+1):Job:=25;//small
+        (h:=h+1):Job:=26;//harpoon
       end;
     end;
-    9:begin//power
+    (i:=i+1):begin//zul
       case FishBox.getItemIndex of
-        0:Job:=27;//small
+        (h:=h+1):Job:=29;//eel
       end;
     end;
-    10:begin//zul
+    (i:=i+1):begin//power
       case FishBox.getItemIndex of
-        0:Job:=29;//eel
+        (h:=h+1):Job:=27;//small
       end;
     end;
   end;
@@ -3393,6 +3397,7 @@ procedure goToBank;
 var RsTIle, nearestNPCTile : TPoint;
     i, h : integer;
     nearestBank : BankLocation;
+    didPath : boolean;
 label normal;
 begin
   if not daLocation.canBank or ((length(daLocation.BankLocations) = 0) and (length(daLocation.BankNPCs) = 0)) then
@@ -3470,7 +3475,7 @@ begin
           exit;
       end;
 
-      if (length(daLocation.PathToBank) <> 0) then begin
+      if (length(daLocation.PathToBank) <> 0) and not didPath then begin
         if R_TileOnMM(daLocation.PathToBank[0], RSTile) then begin
           updateScreen('Going to bank.');
           ReflectPlayer.WalkPathMM(daLocation.PathToBank, false);
@@ -3584,6 +3589,7 @@ end;
 procedure goToFish;
 var RsTIle, farest : TPoint;
     i, h : integer;
+    didPath : boolean;
 label normal;
 begin
   if length(daLocation.FishNPCs) = 0 then
@@ -3642,7 +3648,7 @@ begin
     end;
     else begin
       normal:
-      if (length(daLocation.PathToFish) <> 0) then begin
+      if (length(daLocation.PathToFish) <> 0) and not didPath then begin
         if R_TileOnMM(daLocation.PathToFish[0], RSTile) then begin
           updateScreen('Going to fishies.');
           ReflectPlayer.WalkPathMM(daLocation.PathToFish, false);
@@ -4189,6 +4195,8 @@ var FireObject : TReflectObject;
     _item : TReflectInvItem;
     RawFishIDs : TIntegerArray;
     closestFireTile : FireLocation;
+    timer : TReflectTimer;
+    W : TReflectWidget;
 label normal;
 begin
   RawFishIDs := daLocation.getRawFishIDs;
@@ -4228,7 +4236,14 @@ begin
               for i:=0 to high(fireOptions) do
                 if R_InteractTile(objTile, FireOptions[i]) then begin
                   ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
-                  sleepScript(1500+random(750));
+                  timer.restart;
+                  W.GetWidget(Widget_Cook_Container, Cook_Options);
+                  while (timer.elapsedTime < 2500) and not W.NotNull do begin
+                    W.Free;
+                    sleepScript(50);
+                    W.GetWidget(Widget_Cook_Container, Cook_Options);
+                  end;
+                  W.Free;
                   break;
                 end;
             end;
@@ -4255,7 +4270,14 @@ begin
             for i:=0 to high(closestFireTile.Options) do
               if R_InteractTile(closestFireTile.Tile, closestFireTile.Options[i], closestFireTile.Offset[0], closestFireTile.Offset[1], closestFireTile.Offset[2]) then begin
                 ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
-                sleepScript(1500+random(750));
+                timer.restart;
+                W.GetWidget(Widget_Cook_Container, Cook_Options);
+                while (timer.elapsedTime < 2500) and not W.NotNull do begin
+                  W.Free;
+                  sleepScript(50);
+                  W.GetWidget(Widget_Cook_Container, Cook_Options);
+                end;
+                W.Free;
                 break;
               end;
           end;
@@ -4395,20 +4417,12 @@ end;
 
 procedure runAway;
 var RSTile : TPoint;
+label _random;
 begin
   RsTIle := TReflectionTiles.GetGlobalTile;
   updateScreen('Running away.');
   if length(daLocation.RunDirections) = 0 then begin
-    case random(8) of
-      0:ReflectPlayer.BlindWalkMM(point(RsTIle.x, RsTIle.y-15), 5);
-      1:ReflectPlayer.BlindWalkMM(point(RsTIle.x, RsTIle.y+15), 5);
-      2:ReflectPlayer.BlindWalkMM(point(RsTIle.x+15, RsTIle.y), 5);
-      3:ReflectPlayer.BlindWalkMM(point(RsTIle.x-15, RsTIle.y), 5);
-      4:ReflectPlayer.BlindWalkMM(point(RsTIle.x+15, RsTIle.y-15), 5);
-      5:ReflectPlayer.BlindWalkMM(point(RsTIle.x-15, RsTIle.y+15), 5);
-      6:ReflectPlayer.BlindWalkMM(point(RsTIle.x-15, RsTIle.y-15), 5);
-      7:ReflectPlayer.BlindWalkMM(point(RsTIle.x+15, RsTIle.y+15), 5);
-    end;
+    goto _random;
   end else begin
     case daLocation.RunDirections[random(length(daLocation.RunDirections))] of
       'n':begin
@@ -4424,6 +4438,7 @@ begin
         ReflectPlayer.BlindWalkMM(point(RsTIle.x+15, RsTIle.y), 5);
       end;
       else begin
+        _random:
         case random(8) of
           0:ReflectPlayer.BlindWalkMM(point(RsTIle.x, RsTIle.y-15), 5);
           1:ReflectPlayer.BlindWalkMM(point(RsTIle.x, RsTIle.y+15), 5);

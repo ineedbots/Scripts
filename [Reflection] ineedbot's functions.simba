@@ -1,6 +1,6 @@
 //Feel free to use code, MAKE SURE TO GIVE CREDIT WHERE DUE! -ineedbot
 const
-      fVersion = 2.04;
+      fVersion = 2.05;
 
       fScriptPage = 'https://raw.githubusercontent.com/ineedbots/Scripts/master/%5BReflection%5D%20ineedbot''s%20functions.simba';
 
@@ -1397,45 +1397,6 @@ begin
       result := result + _items[i].GetQuantity;
 end;
 
-function R_OpenBank(tile : TPoint):boolean;
-var RSTile : TPoint;
-    tim : treflecttimer;
-    doWait : boolean;
-begin
-  if R_TileOnMS(Tile, RSTile) then begin
-    Reflect.Mouse.Move(rsTile, 5, 5);
-    if Reflect.Text.IsUpTextMulti(['Bank B', 'Bank C', 'Deposit B']) then begin
-      fastClick(mouse_left);
-      doWait := true;
-    end else begin
-      fastClick(mouse_right);
-      sleepScript(50);
-      if Reflect.Text.OptionExists('Bank') then begin
-        doWait := true;
-        if Reflect.Text.OptionExists('Banker') then
-          Reflect.Text.ChooseOption('Bank B')
-        else
-          Reflect.Text.ChooseOption('Bank');
-      end else begin
-        if Reflect.Text.OptionExists('Deposit') then begin
-          doWait := true;
-          Reflect.Text.ChooseOption('Deposit');
-        end else begin
-          Reflect.Text.ChooseOption('Open');
-        end;
-      end;
-    end;
-
-    if doWait then begin
-      tim.Restart;
-      while not result and (tim.Elapsedtime < 2500) do begin
-        sleepScript(50);
-        result := (R_PinSettingsOpen or Reflect.Bank.IsOpen or Reflect.Bank.isPinOpen or R_DepositMenuOpen);
-      end;
-    end;
-  end;
-end;
-
 function IsMenuOpen:boolean;
 var p : tpoint;
     tempTPA : TPointArray;
@@ -1557,13 +1518,15 @@ begin
 end;
 begin
   if wantOut then begin
-    if Reflect.Tiles.InPolygon(Self.TileEncompass) then begin
-      result := openDaDoor(self);
-    end;
+    if Reflect.Tiles.InPolygon(Self.TileEncompass) then
+      result := openDaDoor(self)
+    else
+      result := true;
   end else begin
-    if not Reflect.Tiles.InPolygon(Self.TileEncompass) then begin
-      result := openDaDoor(self);
-    end;
+    if not Reflect.Tiles.InPolygon(Self.TileEncompass) then
+      result := openDaDoor(self)
+    else
+      result := true;
   end;
 end;
 
