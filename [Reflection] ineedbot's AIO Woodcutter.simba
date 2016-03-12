@@ -4,7 +4,7 @@ program newLapeCutter;
 {$i Reflection/Reflection.Simba}
 {$i [Reflection] ineedbot's functions.simba}
 
-const Version = 4.1;
+const Version = 4.11;
 
       PicturePage = 'http://pastebin.com/raw/mJtA7u8d';
       ScriptPage = 'https://raw.githubusercontent.com/ineedbots/Scripts/master/%5BReflection%5D%20ineedbot''s%20AIO%20Woodcutter.simba';
@@ -1996,7 +1996,7 @@ begin
               daLocation.DoorObjects[1].Open(false);
               if not R_SellMenuOpen then begin
                 updateScreen('Trading Bob.');
-                R_TryInteractNPC([505], 'Trade', false, 5, 0, 0, 50);
+                R_TryInteractNPC([505], ['Trade'], false, 5, 0, 0, 50);
                 ReflectPlayer.FFlag(0, 5000+random(500));
                 sleepScript(random(1000));
               end;
@@ -3655,7 +3655,7 @@ begin
         Offset := [0, 0, 50];
         TileOffset := [0, 0];
         Tile := Point(3381, 3269);
-        Options := ['Bank B'];
+        Options := ['Open', 'Bank'];
         Plane := 0;
         Name := 'Bank';
       end;
@@ -4832,7 +4832,7 @@ begin
   fail.restart;
   while not TReflectionTiles.NearTile(daLocation.FireLanes[goodLane].StartFireTile, 1) and R_TileOnMS(daLocation.FireLanes[goodLane].StartFireTile, tP) and (fail.Elapsedtime < 10000) do begin
     updateScreen('Going to firelane tile.');
-    R_InteractTile(daLocation.FireLanes[goodLane].StartFireTile, 'Walk');
+    R_InteractTile(daLocation.FireLanes[goodLane].StartFireTile, ['Walk']);
     ReflectPlayer.FFlag(0, 5000+random(500));
     sleepScript(500+random(500));
   end;
@@ -4992,7 +4992,7 @@ begin
       while not TReflectionTiles.NearTile(tP, 1) and R_TileOnMS(tP, tP2) and (fail.Elapsedtime < 10000) do begin
         updateScreen('Going to fire spot tile...');
         FixActive;
-        R_InteractTile(tP, 'Walk');
+        R_InteractTile(tP, ['Walk']);
         ReflectPlayer.FFlag(0, 5000+random(500));
         sleepScript(500+random(500));
       end;
@@ -5082,7 +5082,7 @@ begin
           Sleepscript(random(2000));
         end;
         UpdateScreen('Going up stairs.');
-        if(R_InteractTile(daLocation.customTPAs[0][0], 'Climb-up'))then begin
+        if(R_InteractTile(daLocation.customTPAs[0][0], ['Climb-up']))then begin
           ReflectPlayer.FFlag(0, 2500+random(500));
           Sleepscript(random(2000));
         end;
@@ -5108,7 +5108,7 @@ begin
           Sleepscript(random(2000));
         end;
         UpdateScreen('Going up stairs.');
-        if(R_InteractTile(daLocation.customTPAs[0][0], 'Climb-up'))then begin
+        if(R_InteractTile(daLocation.customTPAs[0][0], ['Climb-up']))then begin
             ReflectPlayer.FFlag(0, 2500+random(500));
             Sleepscript(random(2000));
         end;
@@ -5229,15 +5229,13 @@ begin
         end;
         if R_TileOnMS(nearestBank.Tile, RSTile, nearestBank.Offset[0], nearestBank.Offset[1], nearestBank.Offset[2]) then begin
           updateScreen('Opening bank.');
-          for i:=0 to high(nearestBank.Options) do
-            if R_InteractTile(nearestBank.Tile, nearestBank.Options[i], nearestBank.Offset[0], nearestBank.Offset[1], nearestBank.Offset[2], true) then begin
-              ReflectPlayer.FFlag(0, 5000+random(500));
-              Timer.Restart;
-              while not Reflect.Bank.IsOpen and not Reflect.Bank.IsPinOpen and not R_DepositMenuOpen(false)
-              and not R_SellMenuOpen(false) and not R_PinSettingsOpen(false) and (timer.ElapsedTime < 2500) do
-                sleepScript(50);
-              break;
-            end;
+          if R_InteractTile(nearestBank.Tile, nearestBank.Options, nearestBank.Offset[0], nearestBank.Offset[1], nearestBank.Offset[2], true) then begin
+            ReflectPlayer.FFlag(0, 5000+random(500));
+            Timer.Restart;
+            while not Reflect.Bank.IsOpen and not Reflect.Bank.IsPinOpen and not R_DepositMenuOpen(false)
+            and not R_SellMenuOpen(false) and not R_PinSettingsOpen(false) and (timer.ElapsedTime < 2500) do
+              sleepScript(50);
+          end;
         end;
       end else begin
         nearestNPCTile.x := -1;
@@ -5252,15 +5250,13 @@ begin
           exit;
 
         updateScreen('Opening bank npc.');
-        for i:=0 to high(nearestNPC.Options) do
-          if R_TryInteractNPC(nearestNPC.IDs, nearestNPC.Options[i], false, 5) then begin
-            ReflectPlayer.FFlag(0, 5000+random(500));
-            Timer.Restart;
-            while not Reflect.Bank.IsOpen and not Reflect.Bank.IsPinOpen and not R_DepositMenuOpen(false)
-            and not R_SellMenuOpen(false) and not R_PinSettingsOpen(false) and (timer.ElapsedTime < 2500) do
-              sleepScript(50);
-            break;
-          end;
+        if R_TryInteractNPC(nearestNPC.IDs, nearestNPC.Options, false, 5) then begin
+          ReflectPlayer.FFlag(0, 5000+random(500));
+          Timer.Restart;
+          while not Reflect.Bank.IsOpen and not Reflect.Bank.IsPinOpen and not R_DepositMenuOpen(false)
+          and not R_SellMenuOpen(false) and not R_PinSettingsOpen(false) and (timer.ElapsedTime < 2500) do
+            sleepScript(50);
+        end;
       end;
     end;
   end;
@@ -5286,7 +5282,7 @@ begin
           Sleepscript(random(2000));
         end;
         UpdateScreen('Going down stairs.');
-        if(R_InteractTile(daLocation.customTPAs[0][0], 'Climb-down'))then begin
+        if(R_InteractTile(daLocation.customTPAs[0][0], ['Climb-down']))then begin
           ReflectPlayer.FFlag(0, 2500+random(500));
           Sleepscript(random(2000));
         end;
@@ -5303,7 +5299,7 @@ begin
           Sleepscript(random(2000));
         end;
         UpdateScreen('Going down stairs.');
-        if(R_InteractTile(daLocation.customTPAs[0][1], 'Climb-down'))then begin
+        if(R_InteractTile(daLocation.customTPAs[0][1], ['Climb-down']))then begin
           ReflectPlayer.FFlag(0, 2500+random(500));
           Sleepscript(random(2000));
         end;
@@ -5592,27 +5588,25 @@ begin
         reflect.mouse.move(Point(645, 432), 5, 5);
         FastClick(mouse_left);
       end;
-      for i:=0 to high(tempTree.Options) do
-        if R_InteractTile(tempTree.Tile, tempTree.Options[i], tempTree.Offset[0], tempTree.Offset[1], tempTree.Offset[2]) then begin
-          sleepScript(random(1000));
-          if(random(round(AntiAmount/200)) <> 0)then
-            TReflectionAntiban.MMouseOffClient('Random');
-          ReflectPlayer.FFlag(0, 5000+random(500));
-          sleepScript(1000+random(1000));
+      if R_InteractTile(tempTree.Tile, tempTree.Options, tempTree.Offset[0], tempTree.Offset[1], tempTree.Offset[2]) then begin
+        sleepScript(random(1000));
+        if(random(round(AntiAmount/200)) <> 0)then
+          TReflectionAntiban.MMouseOffClient('Random');
+        ReflectPlayer.FFlag(0, 5000+random(500));
+        sleepScript(1000+random(1000));
+        tempObject.GetAt(ObjGame, tempTree.Tile);
+        objectID := tempObject.GetId;
+        while ReflectPlayer.IsLoggedIn and inIntArray(TempTree.AliveIDs, objectID) and
+        (inIntArray(ChopAnimationIDs, ReflectPlayer.GetAnimation) or apeAtollIsChopping(tempTree.tile, tempTree.AliveIDs)) and
+        not TReflectionInventory.IsFull and
+        not ReflectPlayer.IsUnderAttack do begin
+          randomHandler;
+          UpdateScreen('Chopping tree...');
+          wasWorking := true;
           tempObject.GetAt(ObjGame, tempTree.Tile);
           objectID := tempObject.GetId;
-          while ReflectPlayer.IsLoggedIn and inIntArray(TempTree.AliveIDs, objectID) and
-          (inIntArray(ChopAnimationIDs, ReflectPlayer.GetAnimation) or apeAtollIsChopping(tempTree.tile, tempTree.AliveIDs)) and
-          not TReflectionInventory.IsFull and
-          not ReflectPlayer.IsUnderAttack do begin
-            randomHandler;
-            UpdateScreen('Chopping tree...');
-            wasWorking := true;
-            tempObject.GetAt(ObjGame, tempTree.Tile);
-            objectID := tempObject.GetId;
-          end;
-          break;
         end;
+      end;
     end;
   end;
 end;
@@ -5691,7 +5685,7 @@ begin
         end;
 
         UpdateScreen('Taking nest...');
-        if R_InteractTile(nestTile, 'Take B') then begin
+        if R_InteractTile(nestTile, ['Take B']) then begin
           inc(Nests);
           statsServer.IncreaseVariable('119', 1);
           ReflectPlayer.FFlag(0, 5000+random(500));

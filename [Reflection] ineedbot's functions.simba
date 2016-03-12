@@ -1,6 +1,6 @@
 //Feel free to use code, MAKE SURE TO GIVE CREDIT WHERE DUE! -ineedbot
 const
-      fVersion = 2.06;
+      fVersion = 2.07;
 
       fScriptPage = 'https://raw.githubusercontent.com/ineedbots/Scripts/master/%5BReflection%5D%20ineedbot''s%20functions.simba';
 
@@ -1430,56 +1430,59 @@ begin
   end;
 end;
 
-function R_InteractTile(tile:Tpoint; action:string; x:integer = 0; y:integer = 0; z:integer = 0; doSecond:boolean=true):boolean;
+function R_InteractTile(tile:Tpoint; actions:tstringarray; x:integer = 0; y:integer = 0; z:integer = 0; doSecond:boolean=true):boolean;
 var RSTile : TPoint;
     yaw : extended;
-    _x, _y, pitch : integer;
+    _x, _y, pitch, i : integer;
 begin
-  if R_TileOnMS(Tile, RSTile, x, y, z) then begin
-    getMousePos(_x, _y);
-    if not Reflect.Text.OptionExists(action) or (distance(_x, _y, rsTile.x, rsTile.y) > 5) then
-      Reflect.Mouse.Move(rsTile, 5, 5);
-    if(Reflect.Text.IsUpText(action)) then begin
-      FastClick(mouse_left);
-      {if not(action = 'Walk') then
-        result := didClick(true, 1000)
-      else
-        result := didClick(false, 1000);}
-      result := true;
-    end else begin
-      if Reflect.Text.OptionExists(action) then begin
-        FastClick(mouse_right);
-        result := Reflect.Text.ChooseOption(action);
+  if R_TileOnMS(Tile, RSTile, x, y, z) then
+    for i:=0 to high(actions) do begin
+      getMousePos(_x, _y);
+      if not Reflect.Text.OptionExists(actions[i]) or (distance(_x, _y, rsTile.x, rsTile.y) > 5) then
+        Reflect.Mouse.Move(rsTile, 5, 5);
+      if(Reflect.Text.IsUpText(actions[i])) then begin
+        FastClick(mouse_left);
+        result := true;
       end else begin
-        exitmenu;
-      end;
-      if not result and doSecond then begin
-        yaw := 360 - Reflect.Compass.AngleDeg;
-        pitch := round((Reflect.Compass.GetPitch - 128) / 25.5);
-        Reflect.Compass.Make('rand');
-        Reflect.Compass.MakePitch(9);
-        if R_TileOnMS(Tile, RSTile, x, y, z) then begin
-          Reflect.Mouse.Move(rsTile, 5, 5);
-          if(Reflect.Text.IsUpText(action)) then begin
-            FastClick(mouse_left);
-            result := true;
-          end else begin
-            if Reflect.Text.OptionExists(action) then begin
-              FastClick(mouse_right);
-              result := Reflect.Text.ChooseOption(action);
-            end else begin
-              exitmenu;
-            end;
-          end;
+        if Reflect.Text.OptionExists(actions[i]) then begin
+          FastClick(mouse_right);
+          result := Reflect.Text.ChooseOption(actions[i]);
+        end else begin
+          exitMenu;
         end;
-        Reflect.Compass.Make(yaw);
-        Reflect.Compass.MakePitch(pitch);
       end;
     end;
+
+  if not result and doSecond then begin
+    yaw := 360 - Reflect.Compass.AngleDeg;
+    pitch := round((Reflect.Compass.GetPitch - 128) / 25.5);
+    Reflect.Compass.Make('rand');
+    Reflect.Compass.MakePitch(9);
+
+    if R_TileOnMS(Tile, RSTile, x, y, z) then
+      for i:=0 to high(actions) do begin
+        getMousePos(_x, _y);
+        if not Reflect.Text.OptionExists(actions[i]) or (distance(_x, _y, rsTile.x, rsTile.y) > 5) then
+          Reflect.Mouse.Move(rsTile, 5, 5);
+        if(Reflect.Text.IsUpText(actions[i])) then begin
+          FastClick(mouse_left);
+          result := true;
+        end else begin
+          if Reflect.Text.OptionExists(actions[i]) then begin
+            FastClick(mouse_right);
+            result := Reflect.Text.ChooseOption(actions[i]);
+          end else begin
+            exitMenu;
+          end;
+        end;
+      end;
+
+    Reflect.Compass.Make(yaw);
+    Reflect.Compass.MakePitch(pitch);
   end;
 end;
 
-function R_InteractNPC(IDs:TIntegerArray; action:string; isFree:boolean; x:integer = 0; y:integer = 0; z:integer = 50):boolean;
+function R_InteractNPC(IDs:TIntegerArray; actions:tstringarray; isFree:boolean; x:integer = 0; y:integer = 0; z:integer = 50):boolean;
 var RsTile, npcTile : TPoint;
     i : integer;
     _npcs : TReflectNPCArray;
@@ -1494,19 +1497,19 @@ begin
         sleepScript(random(1500));
       end;
 
-      result := R_InteractTile(npcTile, action, x, y, z, false);
+      result := R_InteractTile(npcTile, actions, x, y, z, false);
       exit;
     end;
   end;
 end;
 
-function R_TryInteractNPC(IDs:TIntegerArray; action:string; isFree:boolean; tries:integer; x:integer = 0; y:integer = 0; z:integer = 50):boolean;
+function R_TryInteractNPC(IDs:TIntegerArray; actions:tstringarray; isFree:boolean; tries:integer; x:integer = 0; y:integer = 0; z:integer = 50):boolean;
 var i : integer;
 begin
   i := 0;
   result := false;
   while (i<tries) and not result and ReflectPlayer.isLoggedIn do begin
-    result := R_InteractNPC(IDs, action, isFree, x, y, z);
+    result := R_InteractNPC(IDs, actions, isFree, x, y, z);
     inc(i);
   end;
 end;
@@ -1521,7 +1524,7 @@ begin
     if not R_TileOnMS(daDoor.Tile, tP, daDoor.Offset[0], daDoor.Offset[1], daDoor.Offset[2]) then
       ReflectPlayer.BlindWalkMM(Point(daDoor.Tile.x+daDoor.TileOffset[0], daDoor.Tile.y+daDoor.TileOffset[1]), 1);
     updateScreen('Opening door.');
-    result := R_InteractTile(daDoor.Tile, 'Open', daDoor.Offset[0], daDoor.Offset[1], daDoor.Offset[2]);
+    result := R_InteractTile(daDoor.Tile, ['Open'], daDoor.Offset[0], daDoor.Offset[1], daDoor.Offset[2]);
     ReflectPlayer.FFlag(0, 2500+random(500));
     sleepScript(1500+random(1000));
   end else begin
@@ -1997,14 +2000,14 @@ begin
           wasWorking := false;
           if randomsStrings[j] = 'genie' then begin
             updateScreen('Talking to: '+name);
-            if R_InteractTile(tile, 'Talk', 0, 0, 50) then begin
+            if R_InteractTile(tile, ['Talk'], 0, 0, 50) then begin
               sleepScript(1000+random(1000));
               doConversation([]);
               daLogger.Status('Talked to random: '+name, []);
             end;
           end else begin
             updateScreen('Dismissing: '+name);
-            if R_InteractTile(tile, 'Dismiss', 0, 0, 50) then begin
+            if R_InteractTile(tile, ['Dismiss'], 0, 0, 50) then begin
               sleepScript(1000+random(1000));
               daLogger.Status('Dismissed random: '+name, []);
             end;
