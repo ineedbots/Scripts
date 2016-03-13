@@ -4,7 +4,7 @@ program newLapeFisher;
 {$i Reflection/Reflection.Simba}
 {$i [Reflection] ineedbot's functions.simba}
 
-const Version = 5.16;
+const Version = 5.17;
 
       PicturePage = 'http://pastebin.com/raw/hs3w81WZ';
       ScriptPage = 'https://raw.githubusercontent.com/ineedbots/Scripts/master/%5BReflection%5D%20ineedbot''s%20AIO%20Fisher.simba';
@@ -1495,43 +1495,31 @@ begin
 end;
 
 function Location.getBaitIDs : TIntegerArray;
-var i, h : integer;
+var i : integer;
 begin
   for i:=0 to high(self.FishNPCs) do
-    for h:=0 to high(self.FishNPCs[i].BaitIDs) do begin
-      setLength(result, length(result)+1);
-      result[high(result)] := self.FishNPCs[i].BaitIDs[h];
-    end;
+    result := combineIntArray(result, self.FishNPCs[i].BaitIDs);
 end;
 
 function Location.getAnimationIDs : TIntegerArray;
-var i, h : integer;
+var i : integer;
 begin
   for i:=0 to high(self.FishNPCs) do
-    for h:=0 to high(self.FishNPCs[i].AnimationIDs) do begin
-      setLength(result, length(result)+1);
-      result[high(result)] := self.FishNPCs[i].AnimationIDs[h];
-    end;
+    result := combineIntArray(result, self.FishNPCs[i].AnimationIDs);
 end;
 
 function Location.getEquipmentIDs : TIntegerArray;
-var i, h : integer;
+var i : integer;
 begin
   for i:=0 to high(self.FishNPCs) do
-    for h:=0 to high(self.FishNPCs[i].EquipmentIDs) do begin
-      setLength(result, length(result)+1);
-      result[high(result)] := self.FishNPCs[i].EquipmentIDs[h];
-    end;
+    result := combineIntArray(result, self.FishNPCs[i].EquipmentIDs);
 end;
 
 function Location.getFishIDs : TIntegerArray;
-var i, h : integer;
+var i : integer;
 begin
   for i:=0 to high(self.FishNPCs) do
-    for h:=0 to high(self.FishNPCs[i].IDs) do begin
-      setLength(result, length(result)+1);
-      result[high(result)] := self.FishNPCs[i].IDs[h];
-    end;
+    result := combineIntArray(result, self.FishNPCs[i].IDs);
 end;
 
 function Location.getFishLocations : TPointArray;
@@ -1709,11 +1697,12 @@ begin
 end;
 
 procedure doUpdateScreen;
-var currentFishXP, currentFishLevel, currentCookXP, currentAgilXP, currentStrXP, currentFireXP, currentWoodXP, tempInt, h, i, rawCaught, cookedCaught, burntCaught, tInt : integer;
+var TimeRunning, tempCheck, tempCheck2, currentFishXP, currentFishLevel, currentCookXP, currentAgilXP, currentStrXP, currentFireXP, currentWoodXP, tempInt, h, i, rawCaught, cookedCaught, burntCaught : integer;
     _items : TReflectInvItemArray;
     tempObject : TReflectObject;
     _eitems : TReflectWornEquipmentArray;
     _objects : TReflectObjectArray;
+    perHour : extended;
     _npcs : TReflectNPCArray;
     rsTIle, rsTile2 : TPoint;
     FishLocations : TPointArray;
@@ -1735,6 +1724,9 @@ begin
   rawFishIDs := daLocation.getRawFishIDs;
   cookedFishIDs := daLocation.getCookedFishIDs;
   burntFishIDs := daLocation.getBurntFishIDs;
+
+  TimeRunning := GetTimeRunning;
+  perHour := 3600000/TimeRunning;
 
   tempInt := TReflectionGametab.Current;
   if(tempInt = Gametab_Inventory)then begin
@@ -1909,28 +1901,40 @@ begin
   tempInt:=20;
   graphicOpti.DrawClippedText('Status: '+scriptStatus, 'upchars07', Point(5, tempInt), true, 65280);
   tempInt:=tempInt+15;
-  if ((currentFishXP-startFishXP) > 0) then begin
-    graphicOpti.DrawClippedText('Fishing XP gained: '+intToStr(currentFishXP-startFishXP)+'('+InttoStr(round(((CurrentFishXP-StartFishXP)*3600)/(GetTimeRunning/1000)))+'), level: '+intToStr(currentFishLevel)+'('+InttoStr(CurrentFishLevel-StartFishLevel)+') TTL: '+TReflectionTime.MsToTime(Round(varExpToGoal(currentFishXP, CurrentFishLevel+1)/(((CurrentFishXP-StartFishXP))/GetTimeRunning)), Time_Bare), 'upchars07', Point(5, tempInt), true, 65280);
+  tempCheck := currentFishXP-startFishXP;
+  if (tempCheck > 0) then begin
+    tempCheck2 := round(tempCheck*perHour);
+    graphicOpti.DrawClippedText('Fishing XP gained: '+intToStr(tempCheck)+'('+InttoStr(tempCheck2)+'), level: '+intToStr(currentFishLevel)+'('+InttoStr(CurrentFishLevel-StartFishLevel)+') TTL: '+TReflectionTime.MsToTime(Round(varExpToGoal(currentFishXP, CurrentFishLevel+1)/(tempCheck/GetTimeRunning)), Time_Bare), 'upchars07', Point(5, tempInt), true, 65280);
     tempInt:=tempInt+15;
   end;
-  if ((currentCookXP-startCookXP) > 0) then begin
-    graphicOpti.DrawClippedText('Cooking XP gained: '+intToStr(currentCookXP-startCookXP)+'('+InttoStr(round(((CurrentCookXP-StartCookXP)*3600)/(GetTimeRunning/1000)))+')', 'upchars07', Point(5, tempInt), true, 65280);
+  tempCheck := currentCookXP-startCookXP;
+  if (tempCheck > 0) then begin
+    tempCheck2 := round(tempCheck*perHour);
+    graphicOpti.DrawClippedText('Cooking XP gained: '+intToStr(tempCheck)+'('+InttoStr(tempCheck2)+')', 'upchars07', Point(5, tempInt), true, 65280);
     tempInt:=tempInt+15;
   end;
-  if ((currentWoodXP-startWoodXP) > 0) then begin
-    graphicOpti.DrawClippedText('Woodcutting XP gained: '+intToStr(currentWoodXP-startWoodXP)+'('+InttoStr(round(((CurrentWoodXP-StartWoodXP)*3600)/(GetTimeRunning/1000)))+')', 'upchars07', Point(5, tempInt), true, 65280);
+  tempCheck := currentWoodXP-startWoodXP;
+  if (tempCheck > 0) then begin
+    tempCheck2 := round(tempCheck*perHour);
+    graphicOpti.DrawClippedText('Woodcutting XP gained: '+intToStr(tempCheck)+'('+InttoStr(tempCheck2)+')', 'upchars07', Point(5, tempInt), true, 65280);
     tempInt:=tempInt+15;
   end;
-  if ((currentFireXP-startFireXP) > 0) then begin
-    graphicOpti.DrawClippedText('Firemaking XP gained: '+intToStr(currentFireXP-startFireXP)+'('+InttoStr(round(((CurrentFireXP-StartFireXP)*3600)/(GetTimeRunning/1000)))+')', 'upchars07', Point(5, tempInt), true, 65280);
+  tempCheck := currentFireXP-startFireXP;
+  if (tempCheck > 0) then begin
+    tempCheck2 := round(tempCheck*perHour);
+    graphicOpti.DrawClippedText('Firemaking XP gained: '+intToStr(tempCheck)+'('+InttoStr(tempCheck2)+')', 'upchars07', Point(5, tempInt), true, 65280);
     tempInt:=tempInt+15;
   end;
-  if ((currentAgilXP-startAgilXP) > 0) then begin
-    graphicOpti.DrawClippedText('Agility XP gained: '+intToStr(currentAgilXP-startAgilXP)+'('+InttoStr(round(((CurrentAgilXP-StartAgilXP)*3600)/(GetTimeRunning/1000)))+')', 'upchars07', Point(5, tempInt), true, 65280);
+  tempCheck := currentAgilXP-startAgilXP;
+  if (tempCheck > 0) then begin
+    tempCheck2 := round(tempCheck*perHour);
+    graphicOpti.DrawClippedText('Agility XP gained: '+intToStr(tempCheck)+'('+InttoStr(tempCheck2)+')', 'upchars07', Point(5, tempInt), true, 65280);
     tempInt:=tempInt+15;
   end;
-  if ((currentStrXP-startStrXP) > 0) then begin
-    graphicOpti.DrawClippedText('Strength XP gained: '+intToStr(currentStrXP-startStrXP)+'('+InttoStr(round(((CurrentStrXP-StartStrXP)*3600)/(GetTimeRunning/1000)))+')', 'upchars07', Point(5, tempInt), true, 65280);
+  tempCheck := currentStrXP-startStrXP;
+  if (tempCheck > 0) then begin
+    tempCheck2 := round(tempCheck*perHour);
+    graphicOpti.DrawClippedText('Strength XP gained: '+intToStr(tempCheck)+'('+InttoStr(tempCheck2)+')', 'upchars07', Point(5, tempInt), true, 65280);
     tempInt:=tempInt+15;
   end;
   for i := 0 to high(daLocation.FishNPCs) do begin
@@ -1941,25 +1945,33 @@ begin
     for h:=0 to high(daLocation.FishNPCs[i].BurntFishes) do
       burntCaught := burntCaught + daLocation.FishNPCs[i].BurntFishes[h].caught;
   end;
-  if ((rawCaught + cookedCaught + burntCaught) > 0) then begin
-    graphicOpti.DrawClippedText('Caught: '+intToStr(rawCaught + cookedCaught + burntCaught)+'('+InttoStr(round(((rawCaught + cookedCaught + burntCaught)*3600)/(GetTimeRunning/1000)))+')', 'upchars07', Point(5, tempInt), true, 65280);
+  tempCheck := rawCaught + cookedCaught + burntCaught;
+  if (tempCheck > 0) then begin
+    tempCheck2 := round(tempCheck*perHour);
+    graphicOpti.DrawClippedText('Caught: '+intToStr(tempCheck)+'('+InttoStr(tempCheck2)+')', 'upchars07', Point(5, tempInt), true, 65280);
     tempInt:=tempInt+15;
     if daLocation.canBank and not daLocation.isSell then begin
+      tempCheck := 0;
       for i := 0 to high(daLocation.FishNPCs) do begin
         for h:=0 to high(daLocation.FishNPCs[i].RawFishes) do
-          tInt := tInt + (daLocation.FishNPCs[i].RawFishes[h].price * rawCaught);
+          tempCheck := tempCheck + (daLocation.FishNPCs[i].RawFishes[h].price * rawCaught);
         for h:=0 to high(daLocation.FishNPCs[i].burntFishes) do
-          tInt := tInt + (daLocation.FishNPCs[i].burntFishes[h].price * burntCaught);
+          tempCheck := tempCheck + (daLocation.FishNPCs[i].burntFishes[h].price * burntCaught);
         for h:=0 to high(daLocation.FishNPCs[i].cookedFishes) do
-          tInt := tInt + (daLocation.FishNPCs[i].cookedFishes[h].price * cookedCaught);
+          tempCheck := tempCheck + (daLocation.FishNPCs[i].cookedFishes[h].price * cookedCaught);
       end;
-      graphicOpti.DrawClippedText('Profit: '+intToStr(tInt)+'('+InttoStr(round(((tInt)*3600)/(GetTimeRunning/1000)))+')', 'upchars07', Point(5, tempInt), true, 65280);
+      tempCheck2 := round(tempCheck*perHour);
+      graphicOpti.DrawClippedText('Profit: '+intToStr(tempCheck)+'('+InttoStr(tempCheck2)+')', 'upchars07', Point(5, tempInt), true, 65280);
       tempInt:=tempInt+15;
     end;
   end;
+  if useBreaks then begin
+    graphicOpti.DrawClippedText('Breaks taken: '+intToStr(breaks)+', next break in: '+TReflectionTime.msToTime(breakInFinal-breakInTimer.Elapsedtime, Time_Bare), 'upchars07', Point(5, tempInt), true, 65280);
+    tempInt:=tempInt+15;
+  end;
   graphicOpti.DrawClippedText('Current job: '+daLocation.Name+', bank:'+boolToStr(daLocation.canBank)+', cook:'+boolToStr(daLocation.canCook)+', barb:'+boolToStr(BarbFish), 'upchars07', Point(5, tempInt), true, 65280);
   tempInt:=tempInt+15;
-  graphicOpti.DrawClippedText('Ran for '+TReflectionTime.msToTime(getTimeRunning(), TIME_FORMAL)+'. Script version: '+floatToStr(version)+'('+floatToStr(fversion)+')', 'upchars07', Point(5, tempInt), true, 65280);
+  graphicOpti.DrawClippedText('Ran for '+TReflectionTime.msToTime(TimeRunning, TIME_FORMAL)+'. Script version: '+floatToStr(version)+'('+floatToStr(fversion)+')', 'upchars07', Point(5, tempInt), true, 65280);
 
   Reflect.Smart.Graphics.DrawBitmap(graphicOpti, Point(0, 0), true);
 end;
@@ -3746,13 +3758,8 @@ begin
   rawFishIds := daLocation.getRawFishIDs;
   BurntFishIds := daLocation.getBurntFishIDs;
   CookedFishIds := daLocation.getCookedFishIDs;
-  setLength(fishIDs, length(rawFishIds)+length(BurntFishIds)+length(CookedFishIds));
-  for i:=0 to high(rawFishIds) do
-    fishIDs[i] := rawFishIds[i];
-  for i:=0 to high(BurntFishIds) do
-    fishIDs[i+length(rawFishIds)] := BurntFishIds[i];
-  for i:=0 to high(CookedFishIds) do
-    fishIDs[i+length(rawFishIds)+length(BurntFishIds)] := CookedFishIds[i];
+  fishIDs := combineIntArray(CookedFishIDs, BurntFishIDs);
+  fishIDs := combineIntArray(fishIDs, rawFishIds);
   BaitIDs := daLocation.getBaitIDs;
   EquipmentIDs := daLocation.getEquipmentIDs;
   exitMenu;
@@ -3798,13 +3805,8 @@ begin
   rawFishIds := daLocation.getRawFishIDs;
   BurntFishIds := daLocation.getBurntFishIDs;
   CookedFishIds := daLocation.getCookedFishIDs;
-  setLength(fishIDs, length(rawFishIds)+length(BurntFishIds)+length(CookedFishIds));
-  for i:=0 to high(rawFishIds) do
-    fishIDs[i] := rawFishIds[i];
-  for i:=0 to high(BurntFishIds) do
-    fishIDs[i+length(rawFishIds)] := BurntFishIds[i];
-  for i:=0 to high(CookedFishIds) do
-    fishIDs[i+length(rawFishIds)+length(BurntFishIds)] := CookedFishIds[i];
+  fishIDs := combineIntArray(CookedFishIDs, BurntFishIDs);
+  fishIDs := combineIntArray(fishIDs, rawFishIds);
   BaitIDs := daLocation.getBaitIDs;
   EquipmentIDs := daLocation.getEquipmentIDs;
 
@@ -4233,7 +4235,7 @@ begin
                 timer.restart;
                 W.GetWidget(Widget_Cook_Container, Cook_Options);
                 while (timer.elapsedTime < 2500) do begin
-                  if not W.NotNull then begin
+                  if W.NotNull then begin
                     tb := w.GetBounds;
                     if tb.X1 > 0 then
                       break;

@@ -4,7 +4,7 @@ program newLapeCutter;
 {$i Reflection/Reflection.Simba}
 {$i [Reflection] ineedbot's functions.simba}
 
-const Version = 4.11;
+const Version = 4.12;
 
       PicturePage = 'http://pastebin.com/raw/mJtA7u8d';
       ScriptPage = 'https://raw.githubusercontent.com/ineedbots/Scripts/master/%5BReflection%5D%20ineedbot''s%20AIO%20Woodcutter.simba';
@@ -1565,8 +1565,9 @@ begin
 end;
 
 procedure doUpdateScreen;
-var currentWoodXp, CurrentWoodLevel, currentFletchXp, currentFireXP, tempInt, i, tI, h: integer;
+var currentWoodXp, CurrentWoodLevel, currentFletchXp, currentFireXP, tempInt, i, h, tempCheck, tempCheck2, TimeRunning: integer;
     _items : TReflectInvItemArray;
+    perHour : extended;
     _eitems : TReflectWornEquipmentArray;
     tB : TBox;
     tObj : TReflectObject;
@@ -1582,8 +1583,11 @@ begin
   currentWoodXP := TReflectLocalPlayer.GetSkillExp(SKILL_WOODCUTTING);
   currentFireXP := TReflectLocalPlayer.GetSkillExp(SKILL_FireMaking);
 
-  tI := TReflectionGametab.Current; //reflection's current tab takes 234 ms...
-  if tI = Gametab_Inventory then begin
+  TimeRunning := GetTimeRunning;
+  perHour := 3600000/TimeRunning;
+
+  tempInt := TReflectionGametab.Current; //reflection's current tab takes 234 ms...
+  if tempInt = Gametab_Inventory then begin
     _items.GetAll;
     for i:=0 to high(_items) do begin
       h := _items[i].getid;
@@ -1619,8 +1623,8 @@ begin
                       tB := _items[i].GetBox;
                       graphicOpti.DrawClippedText('Sticks', 'upchars07', Point(tB.x1 - 5, tB.y1), true, 65280);
                     end else begin
-                      for tI := 0 to high(DaLocation.Logs) do
-                        if h = DaLocation.Logs[tI].ID then begin
+                      for tempCheck := 0 to high(DaLocation.Logs) do
+                        if h = DaLocation.Logs[tempCheck].ID then begin
                           tB := _items[i].GetBox;
                           graphicOpti.DrawClippedText('Log', 'upchars07', Point(tB.x1 - 5, tB.y1), true, 65280);
                         end;
@@ -1634,7 +1638,7 @@ begin
       end;
     end;
   end else begin
-    if tI = Gametab_WornEquipment then begin
+    if tempInt = Gametab_WornEquipment then begin
       _eitems.GetAll; //takes a while to get aswell...
       for i:=0 to high(_eitems) do begin
         h := _eitems[i].ID; //also this needs to .getID
@@ -1741,31 +1745,43 @@ begin
   tempInt := 20;
   graphicOpti.DrawClippedText('Status: '+scriptStatus, 'upchars07', Point(5, tempInt), true, 65280);
   tempInt:=tempInt+15;
-  if ((currentWoodXP-startWoodXP) > 0) then begin
-    graphicOpti.DrawClippedText('Woodcutting XP gained: '+intToStr(currentWoodXP-startWoodXP)+'('+InttoStr(round(((CurrentWoodXP-StartWoodXP)*3600)/(GetTimeRunning/1000)))+'), level: '+intToStr(currentWoodLevel)+'('+InttoStr(CurrentWoodLevel-StartWoodLevel)+') TTL: '+TReflectionTime.msToTime(Round(varExpToGoal(CurrentWoodXP, CurrentWoodLevel+1)/(((CurrentWoodXP-startWoodXP))/GetTimeRunning)), Time_Bare), 'upchars07', Point(5, tempInt), true, 65280);
+  tempCheck := currentWoodXP-startWoodXP;
+  if (tempCheck > 0) then begin
+    tempCheck2 := Round(tempCheck*perHour);
+    graphicOpti.DrawClippedText('Woodcutting XP gained: '+intToStr(tempCheck)+'('+InttoStr(tempCheck2)+'), level: '+intToStr(currentWoodLevel)+'('+InttoStr(CurrentWoodLevel-StartWoodLevel)+') TTL: '+TReflectionTime.msToTime(Round(varExpToGoal(CurrentWoodXP, CurrentWoodLevel+1)/(((CurrentWoodXP-startWoodXP))/GetTimeRunning)), Time_Bare), 'upchars07', Point(5, tempInt), true, 65280);
     tempInt:=tempInt+15;
   end;
-  if ((currentFletchXP-startFletchXP) > 0) then begin
-    graphicOpti.DrawClippedText('Fletching XP gained: '+intToStr(currentFletchXP-startFletchXP)+'('+InttoStr(round(((CurrentFletchXP-StartFletchXP)*3600)/(GetTimeRunning/1000)))+')', 'upchars07', Point(5, tempInt), true, 65280);
+  tempCheck := currentFletchXP-startFletchXP;
+  if (tempCheck > 0) then begin
+    tempCheck2 := Round(tempCheck*perHour);
+    graphicOpti.DrawClippedText('Fletching XP gained: '+intToStr(tempCheck)+'('+InttoStr(tempCheck2)+')', 'upchars07', Point(5, tempInt), true, 65280);
     tempInt:=tempInt+15;
   end;
-  if ((currentFireXP-startFireXP) > 0) then begin
-    graphicOpti.DrawClippedText('Firemaking XP gained: '+intToStr(currentFireXP-startFireXP)+'('+InttoStr(round(((currentFireXP-startFireXP)*3600)/(GetTimeRunning/1000)))+')', 'upchars07', Point(5, tempInt), true, 65280);
+  tempCheck := currentFireXP-startFireXP;
+  if (tempCheck > 0) then begin
+    tempCheck2 := Round(tempCheck*perHour);
+    graphicOpti.DrawClippedText('Firemaking XP gained: '+intToStr(tempCheck)+'('+InttoStr(tempCheck2)+')', 'upchars07', Point(5, tempInt), true, 65280);
     tempInt:=tempInt+15;
   end;
-  tI := 0;
+  tempCheck := 0;
   for i:=0 to high(DaLocation.Logs) do
-    tI := tI + DaLocation.Logs[i].chopped;
-  if (tI > 0) then begin
-    graphicOpti.DrawClippedText('Chopped: '+intToStr(tI)+'('+InttoStr(round(((tI)*3600)/(GetTimeRunning/1000)))+'), nests: '+intToStr(nests), 'upchars07', Point(5, tempInt), true, 65280);
+    tempCheck := tempCheck + DaLocation.Logs[i].chopped;
+  if (tempCheck > 0) then begin
+    tempCheck2 := Round(tempCheck*perHour);
+    graphicOpti.DrawClippedText('Chopped: '+intToStr(tempCheck)+'('+InttoStr(tempCheck2)+'), nests: '+intToStr(nests), 'upchars07', Point(5, tempInt), true, 65280);
     tempInt:=tempInt+15;
     if daLocation.canBank and not daLocation.canFire and not daLocation.isSell and not daLocation.canFletch then begin
-      tI := 0;
+      tempCheck := 0;
       for i:=0 to high(DaLocation.Logs) do
-        tI := tI + (DaLocation.Logs[i].price*DaLocation.Logs[i].chopped);
-      graphicOpti.DrawClippedText('Profit: '+intToStr(tI)+'('+InttoStr(round(((tI)*3600)/(GetTimeRunning/1000)))+')', 'upchars07', Point(5, tempInt), true, 65280);
+        tempCheck := tempCheck + (DaLocation.Logs[i].price*DaLocation.Logs[i].chopped);
+      tempCheck2 := Round(tempCheck*perHour);
+      graphicOpti.DrawClippedText('Profit: '+intToStr(tempCheck)+'('+InttoStr(tempCheck2)+')', 'upchars07', Point(5, tempInt), true, 65280);
       tempInt:=tempInt+15;
     end;
+  end;
+  if useBreaks then begin
+    graphicOpti.DrawClippedText('Breaks taken: '+intToStr(breaks)+', next break in: '+TReflectionTime.msToTime(breakInFinal-breakInTimer.Elapsedtime, Time_Bare), 'upchars07', Point(5, tempInt), true, 65280);
+    tempInt:=tempInt+15;
   end;
   graphicOpti.DrawClippedText('Current job: '+daLocation.Name+', bank:'+boolToStr(daLocation.canBank)+', fletch:'+boolToStr(daLocation.canfletch)+', fire:'+boolToStr(daLocation.canfire), 'upchars07', Point(5, tempInt), true, 65280);
   tempInt:=tempInt+15;

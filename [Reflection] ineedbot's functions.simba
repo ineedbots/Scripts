@@ -1,6 +1,6 @@
 //Feel free to use code, MAKE SURE TO GIVE CREDIT WHERE DUE! -ineedbot
 const
-      fVersion = 2.07;
+      fVersion = 2.08;
 
       fScriptPage = 'https://raw.githubusercontent.com/ineedbots/Scripts/master/%5BReflection%5D%20ineedbot''s%20functions.simba';
 
@@ -144,7 +144,7 @@ end;
 var SmartUserAgent, ProggieLocation, me_name, SoundString, fScript : string;
     daLogger : TReflectLogger;
     ReflectPlayer : TReflectLocalPlayer;
-    breakInFinal, breakIn, breakFor, breakinRandom, breakForRandom, AntiAmount, chatTimeOften, closeAllOften, updateAllOften, me_indice, dismissAllOften, lookForChatOften, checkForLevelOften : integer;
+    breaks, breakInFinal, breakIn, breakFor, breakinRandom, breakForRandom, AntiAmount, chatTimeOften, closeAllOften, updateAllOften, me_indice, dismissAllOften, lookForChatOften, checkForLevelOften : integer;
     breakInTimer, breakForTimer, closeAllTimer, updateAllTimer, tim3, dismissAllTimer, lookForChatTimer, checkForLevelTimer, updateScreenTimer : TReflectTimer;
     rewardIDs : TIntegerArray;
     chatTimers : array of TReflectTimer;
@@ -291,41 +291,46 @@ end;
 
 function TReflectionChat.NpcChooseOption(Options: TStringArray): Boolean;Override;
 var
-  Wid, Child: TReflectWidget;
-  I, J, K, L: Integer;
+  Wid, Child : TReflectWidget;
+  I, J, K, L : Integer;
   daString : string;
 begin
   for I := 0 to 600 do
-    for J := 0 to 6 do begin
+    for J := 0 to 6 do
+    begin
       if not Wid.Exists(I, J) then
-          Continue;
+          Continue();
 
       Wid.GetWidget(I, J);
-      daString := Wid.GetText;
+      daString := Wid.GetText();
 
       for l:=0 to high(options) do
-        if pos(options[l], daString) > 0 then begin
-          Wid.Interact;
-          Wid.Free;
+        if pos(options[l], daString) > 0 then
+        begin
+          Wid.Interact();
+          Wid.Free();
           exit(true);
         end;
 
-      if Wid.HasChild then begin
-        for K := 0 to 6 do begin
+      if Wid.HasChild() then
+      begin
+        for K := 0 to 6 do
+        begin
           Child.GetChild(Wid, K);
-          daString := Child.GetText;
+          daString := Child.GetText();
           for l:=0 to high(options) do
-            if pos(options[l], daString) > 0 then begin
-              Child.Interact;
-              Child.Free;
-              Wid.Free;
+            if pos(options[l], daString) > 0 then
+            begin
+              Child.Interact();
+              Child.Free();
+              Wid.Free();
               exit(true);
             end;
 
-          Child.Free;
+          Child.Free();
         end;
       end;
-      Wid.Free;
+      Wid.Free();
     end;
 end;
 
@@ -1443,10 +1448,12 @@ begin
       if(Reflect.Text.IsUpText(actions[i])) then begin
         FastClick(mouse_left);
         result := true;
+        break;
       end else begin
         if Reflect.Text.OptionExists(actions[i]) then begin
           FastClick(mouse_right);
           result := Reflect.Text.ChooseOption(actions[i]);
+          break;
         end else begin
           exitMenu;
         end;
@@ -1467,10 +1474,12 @@ begin
         if(Reflect.Text.IsUpText(actions[i])) then begin
           FastClick(mouse_left);
           result := true;
+          break;
         end else begin
           if Reflect.Text.OptionExists(actions[i]) then begin
             FastClick(mouse_right);
             result := Reflect.Text.ChooseOption(actions[i]);
+            break;
           end else begin
             exitMenu;
           end;
@@ -1609,6 +1618,8 @@ begin
 
   breakInTimer.restart;
   breakInFinal := breakIn + randomRange(-breakInRandom, breakInRandom);
+  inc(breaks);
+  updateScreen('Break time is up.');
   daLogger.Status('Break time is up. Next break in '+TReflectionTime.msToTime(breakInFinal, TIME_FORMAL), []);
 end;
 
@@ -2712,6 +2723,8 @@ begin
   doFUpdate;
 
   setupAutoChat;
+
+  breaks := 0;
 
   randomsStrings := ['molly', 'niles', 'miles', 'giles', 'sandwich lady',
   'drunken dwarf', 'genie', 'highwayman', 'dr jekyll', 'cap''n hand', 'security guard',
