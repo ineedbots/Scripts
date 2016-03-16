@@ -1,6 +1,6 @@
 //Feel free to use code, MAKE SURE TO GIVE CREDIT WHERE DUE! -ineedbot
 const
-      fVersion = 2.08;
+      fVersion = 2.09;
 
       fScriptPage = 'https://raw.githubusercontent.com/ineedbots/Scripts/master/%5BReflection%5D%20ineedbot''s%20functions.simba';
 
@@ -273,6 +273,39 @@ begin
   end;
 end;
 
+function TReflectionInternals.CheckIncludeUpdate: Boolean;override;
+var
+  Full, TempRev, TempSubRev: string;
+  NewFile, tempRevInt, tempSubRevInt : Integer
+begin
+  Full := Reflect.Misc.GetPage('https://raw.githubusercontent.com/Elfyyy/OSR-Reflection/master/lib/internal/updating/Update.txt');
+  TempRev := Between('includerev = ''', '''', Full);
+  TempSubRev := Between('includesubrev = ''', '''', Full);
+
+  try
+    tempRevInt := StrToInt(TempRev);
+  except
+    begin
+      Reflect.Logger.Error('Failed get update version.', []);
+      exit;
+    end;
+  end;
+  try
+    tempSubRevInt := StrToInt(TempSubRev);
+  except
+    begin
+      Reflect.Logger.Error('Failed get update sub version.', []);
+      exit;
+    end;
+  end;
+
+  if (tempRevInt > IncludeRevision) or tempSubRevInt > SubRev then
+    begin
+        Reflect.Logger.Warn('Reflection Update Available');
+      Result := True;
+    end;
+end;
+
 function TReflectionText.GetUpText: string;override;
 var
   Options: TStringArray;
@@ -372,7 +405,7 @@ begin
   try
     webSource := getPage('http://services.runescape.com/m=itemdb_oldschool/viewitem?obj='+intToStr(id));
   except
-    daLogger.Error('Failed to connect to RuneScape database', []);
+    daLogger.Error('Failed to connect to grand exchange database', []);
     exit;
   end;
   sellSource := between('<h3>Current Guide Price <span title=''', '''', webSource);
@@ -386,7 +419,7 @@ begin
   if (Length(sellSource) > 0) then
     result := strToInt(sellSource)
   else
-    daLogger.Error('Failed to connect to RuneScape item id: '+intToStr(id), []);
+    daLogger.Error('Failed to get grand exchange price for item ID: '+intToStr(id), []);
 end;
 
 procedure hoverSkill(skill:integer);
@@ -1227,7 +1260,7 @@ begin
   end;
 end;
 
-procedure doProggy;
+procedure doProggy(where:string);
 var w, h, bmp, graphic : integer;
 begin
   graphic := Reflect.Smart.Graphics.ToBitmap(false);
@@ -1235,8 +1268,8 @@ begin
   bmp := bitmapFromClient(0, 0, w, h);
   SetTransparentColor(graphic, 0);
   fastDrawTransparent(0, 0, graphic, bmp);
-  saveBitmap(bmp, ProggieLocation);
-  daLogger.Status('Saved Proggy to: '+ProggieLocation, []);
+  saveBitmap(bmp, where);
+  daLogger.Status('Saved Proggy to: '+where, []);
   FreeBitmap(bmp);
 end;
 
@@ -1425,11 +1458,11 @@ begin
 end;
 
 procedure exitMenu;
-var tim : TReflectTimer;
+var timer : TReflectTimer;
     _x, _y : integer;
 begin
-  tim.Restart;
-  while IsMenuOpen and (tim.Elapsedtime < 2500) do begin
+  timer.Restart;
+  while IsMenuOpen and (timer.Elapsedtime < 2500) do begin
     getMousePos(_x, _y);
     Reflect.Mouse.Move(Point(_x, _y-10), 5, 5);
   end;
@@ -1527,6 +1560,7 @@ function TReflectDoor.Open(wantOut: boolean): boolean;
 function openDaDoor(daDoor:TReflectDoor):boolean;
 var tP : TPoint;
     tObj : TReflectObject;
+    timer : TReflectTimer;
 begin
   tObj.GetAt(ObjBoundary, daDoor.Tile);
   if inIntArray(daDoor.IDs, tObj.GetID) then begin
@@ -1535,10 +1569,15 @@ begin
     updateScreen('Opening door.');
     result := R_InteractTile(daDoor.Tile, ['Open'], daDoor.Offset[0], daDoor.Offset[1], daDoor.Offset[2]);
     ReflectPlayer.FFlag(0, 2500+random(500));
-    sleepScript(1500+random(1000));
+    timer.restart;
+    tObj.GetAt(ObjBoundary, daDoor.Tile);
+    while timer.Elapsedtime < 2500 and inIntArray(daDoor.IDs, tObj.GetID) do begin
+      sleepScript(50);
+      tObj.GetAt(ObjBoundary, daDoor.Tile);
+    end;
   end else begin
     result := true;
-    if not Reflect.Tiles.NearTile(daDoor.Tile, 25) then
+    if not Reflect.Tiles.NearTile(daDoor.Tile, 40) then
       ReflectPlayer.BlindWalkMM(daDoor.Tile, 1);
   end;
 end;
@@ -1602,19 +1641,26 @@ end;
 
 procedure doBreakCheck;
 var breakForFinal : integer;
-    breakForTimer : TReflectTimer;
+    breakForTimer, breakUpdate : TReflectTimer;
 begin
   if breakInTimer.Elapsedtime < breakInFinal then
     exit;
 
   breakForFinal := breakFor + randomRange(-breakForRandom, breakForRandom);
   breakForTimer.restart;
+  breakUpdate.restart;
 
-  updateScreen('Taking a break.');
+  updateScreen('Taking a break. '+TReflectionTime.msToTime((breakForFinal-breakForTimer.Elapsedtime), TIME_Bare)+' break time left.');
   daLogger.Status('Its been '+TReflectionTime.msToTime(breakInFinal, TIME_FORMAL)+'. Taking a '+TReflectionTime.msToTime(breakForFinal, TIME_FORMAL)+' long break.', []);
   ReflectPlayer.LogOut;
-  while breakForTimer.Elapsedtime < breakForFinal do
-    sleepScript(50+random(500));
+  while breakForTimer.Elapsedtime < breakForFinal do begin
+    updateScreen('Taking a break. '+TReflectionTime.msToTime((breakForFinal-breakForTimer.Elapsedtime), TIME_Bare)+' break time left.');
+    sleepScript(1500+random(5000));
+    if breakUpdate.Elapsedtime > 300000 then begin
+      breakUpdate.restart;
+      daLogger.Status(TReflectionTime.msToTime((breakForFinal-breakForTimer.Elapsedtime), TIME_FORMAL)+' break time left.', []);
+    end;
+  end;
 
   breakInTimer.restart;
   breakInFinal := breakIn + randomRange(-breakInRandom, breakInRandom);
@@ -2099,6 +2145,12 @@ begin
       end;
       wasWorking := false;
       updateScreen('Clicking level up!');
+
+      for i:=0 to 1000 do
+        if not FileExists(ScriptPath+'ineedbot''s clicking level up '+toStr(i)+'.png')then
+          break;
+      doProggy(ScriptPath+'ineedbot''s clicking level up '+toStr(i)+'.png');
+
       R_DidLevelUp(true);
       R_DidLevelUpExtra(true);
     end;
@@ -2426,7 +2478,7 @@ begin
     NetworkVersion := strToFloat(between('fVersion = ', ';', fscript));
   except
     begin
-      daLogger.Error('Failed get update version.', []);
+      daLogger.Error('Failed get update fversion.', []);
       exit;
     end;
   end;

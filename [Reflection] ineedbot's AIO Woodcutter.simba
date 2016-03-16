@@ -4,7 +4,7 @@ program newLapeCutter;
 {$i Reflection/Reflection.Simba}
 {$i [Reflection] ineedbot's functions.simba}
 
-const Version = 4.12;
+const Version = 4.13;
 
       PicturePage = 'http://pastebin.com/raw/mJtA7u8d';
       ScriptPage = 'https://raw.githubusercontent.com/ineedbots/Scripts/master/%5BReflection%5D%20ineedbot''s%20AIO%20Woodcutter.simba';
@@ -2309,7 +2309,7 @@ begin
           daLocation.Logs[0].ID := 1519;
 
           daLocation.canFire := true;
-          fireTiles := [Point(3102, 3237), Point(3102, 3238), Point(3102, 3239), Point(3111, 3235), Point(3115, 3234)];
+          fireTiles := [Point(3102, 3237), Point(3102, 3238), Point(3102, 3239), Point(3111, 3235), Point(3116, 3234)];
           endFireTiles := [Point(3085, 3237), Point(3085, 3238), Point(3080, 3239), Point(3090, 3235), Point(3090, 3234)];
           setLength(daLocation.FireLanes, length(fireTiles));
           for i:=0 to high(fireTiles) do begin
@@ -4649,7 +4649,7 @@ begin
       break;
     end;
   end;
-  doProggy;
+  doProggy(ProggieLocation);
 
   if disableBank then
     daLocation.canBank := false;
@@ -4775,7 +4775,7 @@ begin
   if not forced then
     doCount;
   updateScreen('Dropping items.');
-  doProggy;
+  doProggy(ProggieLocation);
   firstTim := true;
   logIDs := daLocation.getLogIDs;
   exitMenu;
@@ -4810,7 +4810,7 @@ end;
 
 procedure doFire;
 var goodLanes : TIntegerArray;
-    goodLane, h, activeID, count : integer;
+    goodLane, h, activeID, count, i : integer;
     tP, tP2 : TPoint;
     tB : TBox;
     fail, fail2, fail3 : TreflectTimer;
@@ -4821,21 +4821,27 @@ begin
   if not daLocation.canFire then
     exit;
 
-  goodLanes := getGoodFireLaneIndices;
   logIDs := daLocation.getLogIDs;
+  if not TReflectionInventory.Contains(LogIDs) then
+    exit;
+
+  if not TReflectionInventory.Contains(TinderIds) then
+    Exit;
+
+  goodLanes := getGoodFireLaneIndices;
 
   if high(goodLanes) <= -1 then begin
     doDropping(true);
     exit;
   end;
 
-  goodLane := goodLanes[random(length(goodLanes))];
+  goodLane := -1;
+  for i:=0 to high(goodLanes) do
+    if Reflect.Tiles.NearTile(daLocation.FireLanes[goodLanes[i]].StartFireTile, 1) then
+      goodLane := goodLanes[i];
 
-  if not TReflectionInventory.Contains(LogIDs) then
-    exit;
-
-  if not TReflectionInventory.Contains(TinderIds) then
-    Exit;
+  if goodLane = -1 then
+    goodLane := goodLanes[random(length(goodLanes))];
 
   fail.restart;
   while not R_TileOnMS(daLocation.FireLanes[goodLane].StartFireTile, tP) and (fail.Elapsedtime < 30000) do begin
@@ -4844,6 +4850,17 @@ begin
     ReflectPlayer.FFlag(0, 2500+random(500));
     sleepScript(500+random(500));
   end;
+
+  goodLanes := getGoodFireLaneIndices;
+
+  if high(goodLanes) <= -1 then begin
+    doDropping(true);
+    exit;
+  end;
+
+  for i:=0 to high(goodLanes) do
+    if Reflect.Tiles.DistanceFromTile(daLocation.FireLanes[goodLane].StartFireTile) > Reflect.Tiles.DistanceFromTile(daLocation.FireLanes[goodLanes[i]].StartFireTile) then
+      goodLane := goodLanes[i];
 
   fail.restart;
   while not TReflectionTiles.NearTile(daLocation.FireLanes[goodLane].StartFireTile, 1) and R_TileOnMS(daLocation.FireLanes[goodLane].StartFireTile, tP) and (fail.Elapsedtime < 10000) do begin
@@ -4862,7 +4879,7 @@ begin
     _Docount(count);
     updateScreen('Making fires...');
     randomHandler;
-    doProggy;
+    doProggy(ProggieLocation);
   end;
 
   while TReflectionInventory.Contains(LogIDs) and TReflectionInventory.Contains(TinderIds) and
@@ -5378,7 +5395,7 @@ begin
       exit;
     doCount;
     updateScreen('Selling items.');
-    doProggy;
+    doProggy(ProggieLocation);
     while ReflectPlayer.isLoggedIn and (TReflectionInventory.Contains(LogIDs) or firstTim) and
     R_SellMenuOpen do begin
     updateScreen('Selling items.');
@@ -5422,7 +5439,7 @@ begin
       exit;
     doCount;
     updateScreen('Banking items.');
-    doProggy;
+    doProggy(ProggieLocation);
     while ReflectPlayer.IsLoggedIn and (TReflectionInventory.Contains(LogIDs) or firstTim) and
     (Reflect.Bank.IsOpen or R_DepositMenuOpen) do begin
       updateScreen('Banking items.');
@@ -5498,6 +5515,12 @@ begin
   end;
   if R_DidLevelUp or R_DidLevelUpExtra then begin
     updateScreen('Clicking level up!');
+
+    for i:=0 to 1000 do
+      if not FileExists(ScriptPath+'ineedbot''s clicking level up '+toStr(i)+'.png')then
+        break;
+    doProggy(ScriptPath+'ineedbot''s clicking level up '+toStr(i)+'.png');
+
     R_DidLevelUp(true);
     R_DidLevelUpExtra(true);
   end;
