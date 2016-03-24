@@ -4,7 +4,7 @@ program newLapeCutter;
 {$i Reflection/Reflection.Simba}
 {$i [Reflection] ineedbot's functions.simba}
 
-const Version = 4.13;
+const Version = 4.14;
 
       PicturePage = 'http://pastebin.com/raw/mJtA7u8d';
       ScriptPage = 'https://raw.githubusercontent.com/ineedbots/Scripts/master/%5BReflection%5D%20ineedbot''s%20AIO%20Woodcutter.simba';
@@ -1586,7 +1586,7 @@ begin
   TimeRunning := GetTimeRunning;
   perHour := 3600000/TimeRunning;
 
-  tempInt := TReflectionGametab.Current; //reflection's current tab takes 234 ms...
+  tempInt := TReflectionGametab.CurrentColor;
   if tempInt = Gametab_Inventory then begin
     _items.GetAll;
     for i:=0 to high(_items) do begin
@@ -1872,6 +1872,7 @@ begin
   while ReflectPlayer.IsLoggedIn and (timer.Elapsedtime < 5000) and (invC = Reflect.Inv.Count) and
   not ReflectPlayer.IsUnderAttack and inIntArray(_ids, _id) do begin
     randomHandler;
+    FixActive;
     UpdateScreen('Chopping tree...');
     tObj.GetAt(ObjGame, _treeTile);
     _id := tObj.GetId;
@@ -1960,7 +1961,8 @@ begin
       if equ = 'Steel axe' then
         foundAxe := true;
       if (equ = 'Unarmed') and _item.Find('Bronze axe') then begin
-        Reflect.Gametab.Open(Gametab_Inventory);
+        if TReflectionGametab.CurrentColor <> Gametab_Inventory then
+          Reflect.Gametab.Open(Gametab_Inventory);
         Reflect.Mouse.Move(_item.getbox, mouse_left);
         sleepScript(1000+random(1000));
       end;
@@ -2001,7 +2003,8 @@ begin
                 _items.GetAll;
                 for i:=0 to high(_items) do begin
                   if inIntArray(LogIDs, _items[i].GetId) then begin
-                    Reflect.Gametab.Open(Gametab_Inventory);
+                    if TReflectionGametab.CurrentColor <> Gametab_Inventory then
+                      Reflect.Gametab.Open(Gametab_Inventory);
                     Reflect.Mouse.Move(_items[i].getbox, mouse_right);
                     Reflect.Text.ChooseOption('Drop', 2500);
                     sleepScript(random(1000));
@@ -2319,7 +2322,7 @@ begin
 
           daLocation.TreeLocations := [Point(3083, 3237)];
 
-          setLength(daLocation.TreeObjects, 5);
+          setLength(daLocation.TreeObjects, 2);
           with daLocation.TreeObjects[0] do begin
             Offset := [75, 125, 200];
             TileOffset := [2, 0];
@@ -2344,7 +2347,7 @@ begin
             Timer.Restart;
             Timer.StartTime := -1;
           end;
-          with daLocation.TreeObjects[2] do begin
+          {with daLocation.TreeObjects[2] do begin
             Offset := [75, 75, 200];
             TileOffset := [0, 2];
             Tile := Point(3088, 3234);
@@ -2379,7 +2382,7 @@ begin
             DeadIds := DeadWillowIDs;
             Timer.Restart;
             Timer.StartTime := -1;
-          end;
+          end; }
         end;
         10:begin
           daLocation.ID := 10;
@@ -4665,6 +4668,9 @@ procedure FreeDTMZ;
 begin
   graphicOpti.Free;
   daLogger.Status('Thanks for using ineedbot''s AIO Woodcutter v'+FloatToStr(Version)+'('+floatToStr(fversion)+')'+'! Please post your progress reports! Run time: '+TReflectionTime.msToTime(getTimeRunning(), TIME_FORMAL), []);
+  if useStats then
+    if statsServer.Commit then
+      daLogger.Status('Successfully sent heartbeat to ''stats.grats.pw''.', []);
 end;
 
 procedure setupPlayer;
@@ -4768,9 +4774,10 @@ end;
 procedure doDropping(forced:boolean=false);
 var _items : TReflectInvItemArray;
     i, _id, _slot : integer;
-    firstTim : boolean;
-    logIDs : TIntegerArray;
     tB : TBox;
+    tP : TPoint;
+    firstTim, didFirstInRow : boolean;
+    logIDs, dropPattern : TIntegerArray;
 begin
   if not forced then
     doCount;
@@ -4779,29 +4786,80 @@ begin
   firstTim := true;
   logIDs := daLocation.getLogIDs;
   exitMenu;
-  while ReflectPlayer.isLoggedIn and (TReflectionInventory.Contains(LogIDs) or firstTim)
+  dropPattern := [1, 5, 9, 13, 17, 21, 25, 2, 6, 10, 14, 18, 22, 26, 3, 7, 11, 15, 19, 23, 27, 4, 8, 12, 16, 20, 24, 28];
+  while ReflectPlayer.isLoggedIn and (firstTim or TReflectionInventory.Contains(logIDs))
   and not ReflectPlayer.IsUnderAttack and not anySlotActivated do begin
     updateScreen('Dropping items.');
+    if TReflectionGametab.CurrentColor <> Gametab_Inventory then
+      Reflect.Gametab.Open(Gametab_Inventory);
     randomHandler;
-    Reflect.Gametab.Open(Gametab_Inventory);
-    _items.GetAll;
-    for i:=0 to high(_items) do begin
-      _slot := _items[i].getinvslot;
-      _id := _items[i].getid;
-      if ReflectPlayer.isLoggedIn and ((not inIntArray(KnifeIDs, _id) and not inIntArray(AxeIDs, _id) and
-      not inIntArray(CoinsIDs, _id) and not inIntArray(ShaftIDs, _id) and not inIntArray(NestIDs, _id) and
-      not inIntArray(GreeGreeIDs, _id) and not inIntArray(TradingSticksIDs, _id) and not DropOnly) or (dropOnly and inIntArray(LogIDs, _id)))
-      and itemInSlot(_slot) and not anySlotActivated and
-      not ReflectPlayer.IsUnderAttack then begin
-        tB := TReflectionInventory.invBox(_slot);
-        if not MouseKeys then begin
-          Reflect.Mouse.Move(tB, mouse_right);
-          Reflect.Text.ChooseOption('Drop', 2500);
-        end else begin
-          MoveMouse(RandomRange(tb.X1, tb.X2), RandomRange(tb.y1, tb.y2));
-          fastClick(Mouse_right);
-          chooseOptionMultiFast('Drop');
+    _items.GetAllIncludeEmpty;
+    for i:=0 to high(dropPattern) do begin
+      if not ReflectPlayer.isLoggedIn then
+        break;
+      if ReflectPlayer.IsUnderAttack then
+        break;
+      if anySlotActivated then
+        break;
+
+      _slot := dropPattern[i]-1;
+
+      case _slot of
+        0..3: didFirstInRow := false;
+      end;
+
+      _id := _items[_slot].getid;
+      if _id <= 0 then
+        continue;
+      if not itemInSlot(_items[_slot].getinvslot) then
+        continue;
+
+      if dropOnly then begin
+        if not inIntArray(logIDs, _id) then
+          continue;
+      end else begin
+        if inIntArray(KnifeIDs, _id) then
+          continue;
+        if inIntArray(ShaftIDs, _id) then
+          continue;
+        if inIntArray(NestIDs, _id) then
+          continue;
+        if inIntArray(KnifeIDs, _id) then
+          continue;
+        if inIntArray(GreeGreeIDs, _id) then
+          continue;
+        if inIntArray(TradingSticksIDs, _id) then
+          continue;
+        if inIntArray(TinderIDs, _id) then
+          continue;
+        if inIntArray(CoinsIDs, _id) then
+          continue;
+        if inIntArray(AxeIDs, _id) then
+          continue;
+      end;
+
+      tB := _items[_slot].GetBox;
+      getMousePos(tP.x, tP.y);
+
+      if not MouseKeys then begin
+        if not PointInBox(tP, tB) then
+          Reflect.Mouse.Move(tB);
+        fastClick(Mouse_right);
+        Reflect.Text.ChooseOption('Drop', 2500);
+      end else begin
+        if not didFirstInRow then begin
+          didFirstInRow := true;
+          if not PointInBox(tP, tB) then begin
+            Reflect.Mouse.Move(tB);
+            getMousePos(tP.x, tP.y);
+          end;
         end;
+
+        if not PointInBox(tP, tB) then
+          MoveMouse(TReflectionMath.iGaussRange(tb.X1, tb.X2), TReflectionMath.iGaussRange(tb.y1, tb.y2));
+
+        fastClick(Mouse_right);
+        chooseOptionMultiFast('Drop');
       end;
     end;
     firstTim := false;
@@ -4885,7 +4943,7 @@ begin
   while TReflectionInventory.Contains(LogIDs) and TReflectionInventory.Contains(TinderIds) and
         (tP.Y = daLocation.FireLanes[goodLane].StartFireTile.Y) and (tP.X >= daLocation.FireLanes[goodLane].EndFireTile.x) and
         (tP.X <= daLocation.FireLanes[goodLane].StartFireTile.x) and ReflectPlayer.isLoggedIn and not ReflectPlayer.IsUnderAttack do begin
-    if Reflect.Gametab.Current <> Gametab_Inventory then
+    if Reflect.Gametab.CurrentColor <> Gametab_Inventory then
       Reflect.Gametab.Open(Gametab_Inventory);
     _obj.GetAt(ObjGame, tP);
     if not inIntArray(FireIDs, _obj.GetID) then begin
@@ -5044,7 +5102,8 @@ begin
   logIDs := daLocation.getLogIDs;
   while ReflectPlayer.IsLoggedIn and TReflectionInventory.Contains(LogIDs) and TReflectionInventory.Contains(KnifeIDs)
   and not ReflectPlayer.IsUnderAttack do begin
-    Reflect.Gametab.Open(Gametab_Inventory);
+    if TReflectionGametab.CurrentColor <> Gametab_Inventory then
+      Reflect.Gametab.Open(Gametab_Inventory);
     UpdateScreen('Going to fletch.');
     if not anySlotActivated then begin
       for i:=0 to high(KnifeIDs) do begin
@@ -5075,6 +5134,7 @@ begin
       while ReflectPlayer.IsLoggedIn and R_isDoingAnimation(FletchAnimationIDs, 1000) and
       not ReflectPlayer.IsUnderAttack do begin
         randomHandler;
+        FixActive;
         UpdateScreen('Fletching...');
       end;
     end;
@@ -5398,13 +5458,32 @@ begin
     doProggy(ProggieLocation);
     while ReflectPlayer.isLoggedIn and (TReflectionInventory.Contains(LogIDs) or firstTim) and
     R_SellMenuOpen do begin
-    updateScreen('Selling items.');
-    _items.GetAll;
-    for i:=0 to high(_items) do begin
-      _id := _items[i].getId;
-      if ReflectPlayer.IsLoggedIn and ((not inIntArray(KnifeIDs, _id) and not inIntArray(AxeIDs, _id) and
-      not inIntArray(CoinsIDs, _id) and not inIntArray(ShaftIDs, _id) and not dropOnly) or (dropOnly and inIntArray(LogIDs, _id)))
-      and itemInSlot(_items[i].getinvslot) and R_SellMenuOpen then begin
+      updateScreen('Selling items.');
+      _items.GetAll;
+      for i:=0 to high(_items) do begin
+        if not ReflectPlayer.IsLoggedIn then
+          break;
+        if not R_SellMenuOpen then
+          break;
+
+        if not itemInSlot(_items[i].getinvslot) then
+          continue;
+
+        _id := _items[i].getId;
+        if dropOnly then begin
+          if not inIntArray(LogIDs, _id) then
+            continue;
+        end else begin
+          if inIntArray(KnifeIDs, _id) then
+            continue;
+          if inIntArray(AxeIDs, _id) then
+            continue;
+          if inIntArray(CoinsIDs, _id) then
+            continue;
+          if inIntArray(ShaftIDs, _id) then
+            continue;
+        end;
+
         count := Reflect.Inv.Count;
         tB := _items[i].getbox;
         Reflect.Mouse.Move(tB, mouse_right);
@@ -5421,7 +5500,6 @@ begin
           exit;
         end;
       end;
-    end;
       firstTim := false;
     end;
     if(random(2) = 1)then
@@ -5450,23 +5528,41 @@ begin
       end else begin
         _items.GetAll;
         for i:=0 to high(_items) do begin
+          if not ReflectPlayer.IsLoggedIn then
+            break;
+          if not Reflect.Bank.IsOpen and not R_DepositMenuOpen then
+            break;
+
+          if not itemInSlot(_items[i].getinvslot) then
+            continue;
+
           _id := _items[i].getId;
-          if ReflectPlayer.IsLoggedIn and not inIntArray(KnifeIDs, _id) and not inIntArray(AxeIDs, _id) and
-          not inIntArray(CoinsIDs, _id) and not inIntArray(ShaftIDs, _id)
-          and itemInSlot(_items[i].getinvslot) and (Reflect.Bank.IsOpen or R_DepositMenuOpen) then begin
-            if not R_DepositMenuOpen then
-              tB := _items[i].GetBox
-            else
-              tB := depositItemBox(_items[i].GetInvSlot);
-            count := Reflect.Inv.Count;
-            Reflect.Mouse.Move(tB, mouse_right);
-            sleepScript(100+random(100));
-            Reflect.Text.ChooseOption('Deposit-All');
-            tim.restart;
-            while (tim.Elapsedtime < 2500) and (Reflect.Inv.Count = count) do
-              sleepScript(20 + Random(20));
-            sleepScript(500+random(250));
+          if dropOnly then begin
+            if not inIntArray(LogIDs, _id) then
+              continue;
+          end else begin
+            if inIntArray(KnifeIDs, _id) then
+              continue;
+            if inIntArray(AxeIDs, _id) then
+              continue;
+            if inIntArray(CoinsIDs, _id) then
+              continue;
+            if inIntArray(ShaftIDs, _id) then
+              continue;
           end;
+
+          if not R_DepositMenuOpen then
+            tB := _items[i].GetBox
+          else
+            tB := depositItemBox(_items[i].GetInvSlot);
+          count := Reflect.Inv.Count;
+          Reflect.Mouse.Move(tB, mouse_right);
+          sleepScript(100+random(100));
+          Reflect.Text.ChooseOption('Deposit-All');
+          tim.restart;
+          while (tim.Elapsedtime < 2500) and (Reflect.Inv.Count = count) do
+            sleepScript(20 + Random(20));
+          sleepScript(500+random(250));
         end;
       end;
       firstTim := false;
@@ -5603,6 +5699,7 @@ begin
               ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
               sleepScript(random(1500));
             end;
+            tempTree.Tile.X := 0;
           end;
         end else begin
           goToTrees;
@@ -5623,7 +5720,8 @@ begin
     R_CloseAllMenus;
     if R_TileOnMS(tempTree.Tile, rsTile, tempTree.Offset[0], tempTree.Offset[1], tempTree.Offset[2]) then begin
       if UseSpec and (TReflectLocalPlayer.GetSpecPercent >= 100)then begin
-        Reflect.Gametab.Open(Gametab_CombatOptions);
+        if TReflectionGametab.CurrentColor <> Gametab_CombatOptions then
+          Reflect.Gametab.Open(Gametab_CombatOptions);
         reflect.mouse.move(Point(645, 432), 5, 5);
         FastClick(mouse_left);
       end;
@@ -5640,6 +5738,7 @@ begin
         not TReflectionInventory.IsFull and
         not ReflectPlayer.IsUnderAttack do begin
           randomHandler;
+          FixActive;
           UpdateScreen('Chopping tree...');
           wasWorking := true;
           tempObject.GetAt(ObjGame, tempTree.Tile);
@@ -5743,7 +5842,8 @@ begin
   end;
 
   if(LastXPCheck.Elapsedtime > 600000) then begin
-    Reflect.Gametab.Open(Gametab_Inventory);
+    if TReflectionGametab.CurrentColor <> Gametab_Inventory then
+      Reflect.Gametab.Open(Gametab_Inventory);
     //setupPlayer;
     LastXPCheck.restart;
     if(TReflectLocalPlayer.GetSkillExp(SKILL_WOODCUTTING) <= LastXPXPCheck)then begin

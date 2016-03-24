@@ -4,7 +4,7 @@ program newLapeFisher;
 {$i Reflection/Reflection.Simba}
 {$i [Reflection] ineedbot's functions.simba}
 
-const Version = 5.18;
+const Version = 5.19;
 
       PicturePage = 'http://pastebin.com/raw/hs3w81WZ';
       ScriptPage = 'https://raw.githubusercontent.com/ineedbots/Scripts/master/%5BReflection%5D%20ineedbot''s%20AIO%20Fisher.simba';
@@ -1728,7 +1728,7 @@ begin
   TimeRunning := GetTimeRunning;
   perHour := 3600000/TimeRunning;
 
-  tempInt := TReflectionGametab.Current;
+  tempInt := TReflectionGametab.CurrentColor;
   if(tempInt = Gametab_Inventory)then begin
     _items.GetAll;
     for i:=0 to high(_items) do begin
@@ -3396,6 +3396,9 @@ procedure FreeDTMZ;
 begin
   graphicOpti.Free;
   daLogger.Status('Thanks for using ineedbot''s AIO Fisher v'+FloatToStr(Version)+'('+floatToStr(fversion)+')'+'! Please post your progress reports! Run time: '+TReflectionTime.msToTime(getTimeRunning(), TIME_FORMAL), []);
+  if useStats then
+    if statsServer.Commit then
+      daLogger.Status('Successfully sent heartbeat to ''stats.grats.pw''.', []);
 end;
 
 procedure setupPlayer;
@@ -3751,10 +3754,11 @@ end;
 
 procedure doDropping(forced:boolean=false);
 var _items : TReflectInvItemArray;
-    i, _id: integer;
+    i, _id, _slot : integer;
     tB : TBox;
-    firstTim : boolean;
-    rawFishIds, burntFishIDs, cookedFishIds, fishIDs, EquipmentIDs, BaitIDs : TIntegerArray;
+    tP : TPoint;
+    firstTim, didFirstInRow : boolean;
+    rawFishIds, burntFishIDs, cookedFishIds, fishIDs, EquipmentIDs, BaitIDs, dropPattern : TIntegerArray;
 begin
   if not forced then
     doCount;
@@ -3769,27 +3773,74 @@ begin
   BaitIDs := daLocation.getBaitIDs;
   EquipmentIDs := daLocation.getEquipmentIDs;
   exitMenu;
+  dropPattern := [1, 5, 9, 13, 17, 21, 25, 2, 6, 10, 14, 18, 22, 26, 3, 7, 11, 15, 19, 23, 27, 4, 8, 12, 16, 20, 24, 28];
   while ReflectPlayer.isLoggedIn and (firstTim or TReflectionInventory.Contains(fishIDs))
   and not ReflectPlayer.IsUnderAttack and not anySlotActivated do begin
     updateScreen('Dropping items.');
-    Reflect.Gametab.Open(Gametab_Inventory);
+    if TReflectionGametab.CurrentColor <> Gametab_Inventory then
+      Reflect.Gametab.Open(Gametab_Inventory);
     randomHandler;
-    _items.GetAll;
-    for i:=0 to high(_items) do begin
-      _id := _items[i].getid;
-      if ReflectPlayer.isLoggedIn and ((not inIntArray(KnifeIDs, _id) and not inIntArray(AxeIDs, _id) and
-      not inIntArray(CoinsIDs, _id) and not inIntArray(TinderIDs, _id) and
-      not inIntArray(BaitIDs, _id) and not inIntArray(EquipmentIDs, _id) and not dropOnly) or (dropOnly and inIntArray(fishIDs, _id)))
-      and itemInSlot(_items[i].getinvslot) and not anySlotActivated and not ReflectPlayer.IsUnderAttack then begin
-        tB := _items[i].GetBox;
-        if not MouseKeys then begin
-          Reflect.Mouse.Move(tB, mouse_right);
-          Reflect.Text.ChooseOption('Drop', 2500);
-        end else begin
-          MoveMouse(RandomRange(tb.X1, tb.X2), RandomRange(tb.y1, tb.y2));
-          fastClick(Mouse_right);
-          chooseOptionMultiFast('Drop');
+    _items.GetAllIncludeEmpty;
+    for i:=0 to high(dropPattern) do begin
+      if not ReflectPlayer.isLoggedIn then
+        break;
+      if ReflectPlayer.IsUnderAttack then
+        break;
+      if anySlotActivated then
+        break;
+
+      _slot := dropPattern[i]-1;
+
+      case _slot of
+        0..3: didFirstInRow := false;
+      end;
+
+      _id := _items[_slot].getid;
+      if _id <= 0 then
+        continue;
+      if not itemInSlot(_items[_slot].getinvslot) then
+        continue;
+
+      if dropOnly then begin
+        if not inIntArray(fishIDs, _id) then
+          continue;
+      end else begin
+        if inIntArray(KnifeIDs, _id) then
+          continue;
+        if inIntArray(EquipmentIDs, _id) then
+          continue;
+        if inIntArray(BaitIDs, _id) then
+          continue;
+        if inIntArray(TinderIDs, _id) then
+          continue;
+        if inIntArray(CoinsIDs, _id) then
+          continue;
+        if inIntArray(AxeIDs, _id) then
+          continue;
+      end;
+
+      tB := _items[_slot].GetBox;
+      getMousePos(tP.x, tP.y);
+
+      if not MouseKeys then begin
+        if not PointInBox(tP, tB) then
+          Reflect.Mouse.Move(tB);
+        fastClick(Mouse_right);
+        Reflect.Text.ChooseOption('Drop', 2500);
+      end else begin
+        if not didFirstInRow then begin
+          didFirstInRow := true;
+          if not PointInBox(tP, tB) then begin
+            Reflect.Mouse.Move(tB);
+            getMousePos(tP.x, tP.y);
+          end;
         end;
+
+        if not PointInBox(tP, tB) then
+          MoveMouse(TReflectionMath.iGaussRange(tb.X1, tb.X2), TReflectionMath.iGaussRange(tb.y1, tb.y2));
+
+        fastClick(Mouse_right);
+        chooseOptionMultiFast('Drop');
       end;
     end;
     firstTim := false;
@@ -3829,34 +3880,55 @@ begin
       updateScreen('Selling items.');
       _items.GetAll;
       for i:=0 to high(_items) do begin
-        _id := _items[i].getid;
-        if ReflectPlayer.isLoggedIn and ((not inIntArray(KnifeIDs, _id) and not inIntArray(AxeIDs, _id) and
-        not inIntArray(CoinsIDs, _id) and not inIntArray(TinderIDs, _id) and
-        not inIntArray(BaitIDs, _id) and not inIntArray(EquipmentIDs, _id) and not dropOnly) or (dropOnly and inIntArray(fishIDs, _id)))
-        and itemInSlot(_items[i].getinvslot) and R_SellMenuOpen then begin
-          count := Reflect.Inv.Count;
-          tB := _items[i].getbox;
-          Reflect.Mouse.Move(tB, mouse_right);
-          sleepScript(100+random(100));
-          Reflect.Text.ChooseOption('Sell 50');
-          tim.restart;
-          while (tim.Elapsedtime < 2500) and (Reflect.Inv.Count = count) do
-            sleepScript(20 + Random(20));
-          sleepScript(500+random(250));
-          if pos('highly over-stocked', Reflect.Chat.GetTextOnLine(1)) > 1 then begin
-            R_SellMenuOpen(true);
-            sleepScript(1000+random(1500));
-            doDropping(true);
-            exit;
-          end;
+        if not ReflectPlayer.IsLoggedIn then
+          break;
+        if not R_SellMenuOpen then
+          break;
+
+        if not itemInSlot(_items[i].getinvslot) then
+          continue;
+
+        _id := _items[i].getId;
+        if dropOnly then begin
+          if not inIntArray(fishIDs, _id) then
+            continue;
+        end else begin
+          if inIntArray(KnifeIDs, _id) then
+            continue;
+          if inIntArray(AxeIDs, _id) then
+            continue;
+          if inIntArray(CoinsIDs, _id) then
+            continue;
+          if inIntArray(TinderIDs, _id) then
+            continue;
+          if inIntArray(EquipmentIDs, _id) then
+            continue;
+          if inIntArray(BaitIDs, _id) then
+            continue;
+        end;
+
+        count := Reflect.Inv.Count;
+        tB := _items[i].getbox;
+        Reflect.Mouse.Move(tB, mouse_right);
+        sleepScript(100+random(100));
+        Reflect.Text.ChooseOption('Sell 50');
+        tim.restart;
+        while (tim.Elapsedtime < 2500) and (Reflect.Inv.Count = count) do
+          sleepScript(20 + Random(20));
+        sleepScript(500+random(250));
+        if pos('highly over-stocked', Reflect.Chat.GetTextOnLine(1)) > 1 then begin
+          R_SellMenuOpen(true);
+          sleepScript(1000+random(1500));
+          doDropping(true);
+          exit;
         end;
       end;
       firstTim := false;
-      if(random(2) = 1)then
-        R_SellMenuOpen(true);
-      sleepScript(random(1500));
-      doFishing;
     end;
+    if(random(2) = 1)then
+      R_SellMenuOpen(true);
+    sleepScript(random(1500));
+    doFishing;
   end else begin
     if not Reflect.Bank.IsOpen and not R_DepositMenuOpen and not Reflect.Bank.IsPinOpen then
       exit;
@@ -3891,24 +3963,45 @@ begin
       end else begin
         _items.GetAll;
         for i:=0 to high(_items) do begin
-          _id := _items[i].getid;
-          if ReflectPlayer.isLoggedIn and not inIntArray(KnifeIDs, _id) and not inIntArray(AxeIDs, _id) and
-          not inIntArray(CoinsIDs, _id) and not inIntArray(TinderIDs, _id) and
-          not inIntArray(BaitIDs, _id) and not inIntArray(EquipmentIDs, _id)
-          and itemInSlot(_items[i].getinvslot) and (Reflect.Bank.IsOpen or R_DepositMenuOpen) then begin
-            if not R_DepositMenuOpen then
-              tB := _items[i].GetBox
-            else
-              tB := depositItemBox(_items[i].GetInvSlot);
-            count := Reflect.Inv.Count;
-            Reflect.Mouse.Move(tB, mouse_right);
-            sleepScript(100+random(100));
-            Reflect.Text.ChooseOption('Deposit-All');
-            tim.restart;
-            while (tim.Elapsedtime < 2500) and (Reflect.Inv.Count = count) do
-              sleepScript(20 + Random(20));
-            sleepScript(500+random(250));
+          if not ReflectPlayer.IsLoggedIn then
+            break;
+          if not Reflect.Bank.IsOpen and not R_DepositMenuOpen then
+            break;
+
+          if not itemInSlot(_items[i].getinvslot) then
+            continue;
+
+          _id := _items[i].getId;
+          if dropOnly then begin
+            if not inIntArray(fishIDs, _id) then
+              continue;
+          end else begin
+            if inIntArray(KnifeIDs, _id) then
+              continue;
+            if inIntArray(AxeIDs, _id) then
+              continue;
+            if inIntArray(CoinsIDs, _id) then
+              continue;
+            if inIntArray(TinderIDs, _id) then
+              continue;
+            if inIntArray(EquipmentIDs, _id) then
+              continue;
+            if inIntArray(BaitIDs, _id) then
+              continue;
           end;
+
+          if not R_DepositMenuOpen then
+            tB := _items[i].GetBox
+          else
+            tB := depositItemBox(_items[i].GetInvSlot);
+          count := Reflect.Inv.Count;
+          Reflect.Mouse.Move(tB, mouse_right);
+          sleepScript(100+random(100));
+          Reflect.Text.ChooseOption('Deposit-All');
+          tim.restart;
+          while (tim.Elapsedtime < 2500) and (Reflect.Inv.Count = count) do
+            sleepScript(20 + Random(20));
+          sleepScript(500+random(250));
         end;
       end;
       firstTim := false;
@@ -3980,7 +4073,8 @@ begin
       for i:=0 to high(rawFishIDs) do begin
         updateScreen('Dropping a raw fish...');
         if(_item.Find(rawFishIDs[i]))then begin
-          Reflect.Gametab.Open(Gametab_Inventory);
+          if TReflectionGametab.CurrentColor <> Gametab_Inventory then
+            Reflect.Gametab.Open(Gametab_Inventory);
           sleepScript(500+random(500));
           tB := _item.getbox;
           Reflect.Mouse.Move(tB, mouse_right);
@@ -4082,7 +4176,8 @@ begin
       fireID := tempO.getId;
       if tempO.Reference = 0 or fireID < deadObjID then begin
         updateScreen('Going to make fire...');
-        Reflect.Gametab.Open(Gametab_Inventory);
+        if TReflectionGametab.CurrentColor <> Gametab_Inventory then
+          Reflect.Gametab.Open(Gametab_Inventory);
         if(random(2) = 1) then
           tinderFirst := true
         else
@@ -4236,7 +4331,8 @@ begin
         if found then begin
           if R_TileOnMS(objTile, RSTile) then begin
             updateScreen('Going to cook food.');
-            Reflect.Gametab.Open(Gametab_Inventory);
+            if TReflectionGametab.CurrentColor <> Gametab_Inventory then
+              Reflect.Gametab.Open(Gametab_Inventory);
             if not anySlotActivated then begin
               for i:=0 to high(rawFishIds) do begin
                 if(_item.Find(rawFishIds[i]))then begin
@@ -4273,7 +4369,8 @@ begin
             closestFireTile := daLocation.FireLocations[i];
         if R_TileOnMS(closestFireTile.Tile, RSTile, closestFireTile.Offset[0], closestFireTile.Offset[1], closestFireTile.Offset[2]) and (TReflectionTiles.GetPlane = closestFireTile.Plane) then begin
           updateScreen('Going to cook food.');
-          Reflect.Gametab.Open(Gametab_Inventory);
+          if TReflectionGametab.CurrentColor <> Gametab_Inventory then
+            Reflect.Gametab.Open(Gametab_Inventory);
           if not anySlotActivated then begin
             for i:=0 to high(rawFishIds) do begin
               if(_item.Find(rawFishIds[i]))then begin
@@ -4325,7 +4422,8 @@ begin
     24:begin //otto
       if daLocation.canCook and TReflectionInventory.Contains(KnifeIDs) then begin
         while ReflectPlayer.isLoggedIn and TReflectionInventory.Contains(RawFishIDs) and not ReflectPlayer.IsUnderAttack do begin
-          Reflect.Gametab.Open(Gametab_Inventory);
+          if TReflectionGametab.CurrentColor <> Gametab_Inventory then
+            Reflect.Gametab.Open(Gametab_Inventory);
           updateScreen('Knifing fish...');
           if TReflectionInventory.IsFull and not TReflectionInventory.Contains(cookedFishIDs) then
             dropARawFish;
@@ -4354,7 +4452,8 @@ begin
     29:begin  //zul
       if daLocation.canCook and TReflectionInventory.Contains(KnifeIDs) then begin
         while ReflectPlayer.isLoggedIn and TReflectionInventory.Contains(RawFishIDs) and not ReflectPlayer.IsUnderAttack do begin
-          Reflect.Gametab.Open(Gametab_Inventory);
+          if TReflectionGametab.CurrentColor <> Gametab_Inventory then
+            Reflect.Gametab.Open(Gametab_Inventory);
           updateScreen('Knifing fish...');
           if TReflectionInventory.IsFull and not TReflectionInventory.Contains(cookedFishIDs) then
             dropARawFish;
@@ -4401,6 +4500,7 @@ begin
           and not ReflectPlayer.IsUnderAttack do begin
             randomHandler;
             updateScreen('Cooking food...');
+            FixActive;
           end;
         end;
         W.Free;
@@ -4533,7 +4633,8 @@ begin
   end;
 
   if(LastXPCheck.Elapsedtime > 600000) then begin
-    Reflect.Gametab.Open(Gametab_Inventory);
+    if TReflectionGametab.CurrentColor <> Gametab_Inventory then
+      Reflect.Gametab.Open(Gametab_Inventory);
     //setupPlayer;
     LastXPCheck.restart;
     if(TReflectLocalPlayer.GetSkillExp(SKILL_FISHING) <= LastXPXP)then begin

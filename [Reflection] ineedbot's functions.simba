@@ -1,6 +1,6 @@
 //Feel free to use code, MAKE SURE TO GIVE CREDIT WHERE DUE! -ineedbot
 const
-      fVersion = 2.09;
+      fVersion = 2.091;
 
       fScriptPage = 'https://raw.githubusercontent.com/ineedbots/Scripts/master/%5BReflection%5D%20ineedbot''s%20functions.simba';
 
@@ -367,6 +367,29 @@ begin
     end;
 end;
 
+procedure TReflectInvItemArray.GetAllIncludeEmpty;
+var
+  I, TheId, Count: Integer;
+  InvWidget: TReflectWidget;
+begin
+  Reflect.Mem.FreeObjects(ckInvItems, True);
+  InvWidget.GetWidget(WIDGET_Inventory_Container, 0);
+  HookCache[ckInvItems][0] := InvWidget.Reference;
+  for I := 0 to 27 do
+  begin
+    TheId := Reflect.Smart.GetFieldArrayInt(
+      InvWidget.Reference, Widget_InvIDs, I);
+    Inc(Count);
+    SetLength(Self, Count);
+    with Self[Count - 1] do
+    begin
+      Reference := InvWidget.Reference;
+      _Id := TheId - 1;
+      _InvSlot := I + 1;
+    end;
+  end;
+end;
+
 function TReflectLocalPlayer._GetName: string; //this should be in the include
 begin
   Result := Reflect.Smart.GetFieldString(Self.Reference, Player_Name);
@@ -420,153 +443,6 @@ begin
     result := strToInt(sellSource)
   else
     daLogger.Error('Failed to get grand exchange price for item ID: '+intToStr(id), []);
-end;
-
-procedure hoverSkill(skill:integer);
-var W : TReflectWidget;
-    tb : TBox;
-begin
-  TReflectionGametab.Open(Gametab_Stats);
-  case skill of
-    SKILL_ATTACK:W.GetWidget(Widget_StatsTab_Container, 1);
-    SKILL_STRENGTH:W.GetWidget(Widget_StatsTab_Container, 2);
-    SKILL_DEFENCE:W.GetWidget(Widget_StatsTab_Container, 3);
-    SKILL_RANGE:W.GetWidget(Widget_StatsTab_Container, 4);
-    SKILL_PRAYER:W.GetWidget(Widget_StatsTab_Container, 5);
-    SKILL_MAGIC:W.GetWidget(Widget_StatsTab_Container, 6);
-    SKILL_RUNECRAFTING:W.GetWidget(Widget_StatsTab_Container, 7);
-    SKILL_CONSTRUCTION:W.GetWidget(Widget_StatsTab_Container, 8);
-    SKILL_HITPOINTS:W.GetWidget(Widget_StatsTab_Container, 9);
-    SKILL_AGILITY:W.GetWidget(Widget_StatsTab_Container, 10);
-    SKILL_HERBLORE:W.GetWidget(Widget_StatsTab_Container, 11);
-    SKILL_THIEVING:W.GetWidget(Widget_StatsTab_Container, 12);
-    SKILL_CRAFTING:W.GetWidget(Widget_StatsTab_Container, 13);
-    SKILL_FLETCHING:W.GetWidget(Widget_StatsTab_Container, 14);
-    SKILL_SLAYER:W.GetWidget(Widget_StatsTab_Container, 15);
-    SKILL_HUNTER:W.GetWidget(Widget_StatsTab_Container, 16);
-    SKILL_MINING:W.GetWidget(Widget_StatsTab_Container, 17);
-    SKILL_SMITHING:W.GetWidget(Widget_StatsTab_Container, 18);
-    SKILL_FISHING:W.GetWidget(Widget_StatsTab_Container, 19);
-    SKILL_COOKING:W.GetWidget(Widget_StatsTab_Container, 20);
-    SKILL_FIREMAKING:W.GetWidget(Widget_StatsTab_Container, 21);
-    SKILL_WOODCUTTING:W.GetWidget(Widget_StatsTab_Container, 22);
-    SKILL_FARMING:W.GetWidget(Widget_StatsTab_Container, 23);
-    -1:W.GetWidget(Widget_StatsTab_Container, randomRange(1, 24));
-    else W.GetWidget(Widget_StatsTab_Container, 24);
-  end;
-  if W.NotNull then begin
-    tb := w.GetBounds;
-    Reflect.Mouse.Move(tb);
-  end;
-end;
-
-function TReflectLocalPlayer.FFlag(
-  TileDist: Integer; Timeout: Integer = 15000): Boolean;override;
-var
-  Timer: TReflectTimer;
-begin
-  Timer.Start;
-  while Distance(Self.GetTile.X, Self.GetTile.Y, Self.GetDestination.X,
-      Self.GetDestination.Y) > TileDist do
-  begin
-    if (Timeout > 0) and (Timer.ElapsedTime > Timeout) then
-      Exit(False);
-    Wait(RandomRange(200, 250));
-  end;
-  Exit(True);
-end;
-
-function TReflectionGametab.Current: Integer;override;
-var
-  TempWidget: TReflectWidget;
-  Containers, Gametabs: TIntegerArray;
-  I: Integer;
-begin
-  Containers := [Widget_ClanChat_Container, Widget_FriendsList_Container,
-    Widget_IgnoreList_Container, Widget_Logout_Container,
-    Widget_Options_Container, Widget_Emotes_Container,
-    Widget_MusicPlayer_Container, Widget_CombatOptions_Container,
-    Widget_Stats_Container, Widget_WornEquipment_Container,
-    Widget_Prayer_Container, Widget_Magic_Container, Widget_QuestList_Container,
-    Widget_ChangeWorld_Container
-  ];
-  Gametabs := [Gametab_ClanChat, Gametab_FriendsList, Gametab_IgnoreList,
-    Gametab_Logout, Gametab_Options, Gametab_Emotes, Gametab_MusicPlayer,
-    Gametab_CombatOptions, Gametab_Stats, Gametab_WornEquipment, Gametab_Prayer,
-    Gametab_Magic, Gametab_QuestList, Gametab_Logout
-  ];
-  for I := 0 to High(Gametabs) do
-  begin
-    TempWidget.GetWidget(Containers[I], 0);
-    if not (TempWidget.IsHidden) and (TempWidget.GetBounds.X1 <> -1) then
-    begin
-      TempWidget.Free;
-      Exit(Gametabs[I]);
-    end;
-    TempWidget.Free;
-  end;
-  Result := GameTab_Inventory;
-
-  TempWidget.GetWidget(Widget_Achieve_Container, 0);
-  if not (TempWidget.IsHidden) and (TempWidget.GetBounds.X1 <> -1) then
-  begin
-    TempWidget.Free;
-    Exit(Widget_QuestList_Container);
-  end;
-  TempWidget.Free;
-
-  TempWidget.GetWidget(Widget_MiniGame_Container, MiniGame_Check);
-  if not (TempWidget.IsHidden) and (TempWidget.GetBounds.X1 <> -1) then
-  begin
-    TempWidget.Free;
-    Exit(Widget_QuestList_Container);
-  end;
-  TempWidget.Free;
-
-  TempWidget.GetWidget(Widget_ZeahTab_Container, ZeahTab_Check);
-  if not (TempWidget.IsHidden) and (TempWidget.GetBounds.X1 <> -1) then
-  begin
-    TempWidget.Free;
-    Exit(Widget_QuestList_Container);
-  end;
-  TempWidget.Free;
-end;
-
-function getEquippedItemBounds(Which: string): TBox;
-begin
-  case Which of
-    'helm', 'helmet' :
-      Result := inttoBox(629, 213, 656, 240);
-    'cape' :
-      Result := inttoBox(588, 252, 615, 279);
-    'amulet', 'neck', 'necklace' :
-      Result := inttoBox(629, 252, 656, 279);
-    'arrows', 'bolts' :
-      Result := inttoBox(670, 252, 697, 279);
-    'right hand', 'weapon' :
-      Result := inttoBox(573, 291, 600, 318);
-    'plate', 'chest', 'platebody' :
-      Result := inttoBox(629, 291, 656, 318);
-    'left hand', 'sheild', 'shield' :
-      Result := inttoBox(685, 291, 712, 318);
-    'legs', 'platelegs', 'skirt', 'plateskirt' :
-      Result := inttoBox(629, 331, 656, 358);
-    'gloves', 'gauntlets' :
-      Result := inttoBox(573, 371, 600, 398);
-    'boots':
-      Result := inttoBox(629, 371, 656, 398);
-    'ring' :
-      Result := inttoBox(685, 371, 712, 398);
-  end;
-end;
-
-function R_GetEquipText: string;
-begin
-  result := TReflectionGametab.GetWieldedWeapon;
-  if result = '' then begin
-    Reflect.Gametab.Open(Gametab_CombatOptions);
-    result := TReflectionGametab.GetWieldedWeapon;
-  end;
 end;
 
 function R_DidLevelUp(doClick: boolean = false): boolean;
@@ -1105,6 +981,209 @@ begin
   end;
 end;
 
+function TReflectionGametab.CurrentColor:Integer;
+var i : integer;
+    TNB : TBox;
+    Pnt : TPoint;
+begin
+  for i:=0 to 14 do begin
+    case i of
+      0: TNB:=[535,172,540,176];
+      1: TNB:=[564,172,571,176];
+      2: TNB:=[596,172,600,176];
+      3: TNB:=[630,172,635,176];
+      4: TNB:=[663,172,670,176];
+      5: TNB:=[696,172,703,176];
+      6: TNB:=[730,173,736,180];
+      7: TNB:=[525,469,534,473];
+      8: TNB:=[563,469,570,473];
+      9: TNB:=[596,469,602,473];
+      10:TNB:=[629,469,634,473];
+      11:TNB:=[662,469,669,473];
+      12:TNB:=[695,469,700,473];
+      13:TNB:=[728,469,733,473];
+    end;
+
+    if i <> 14 then
+      if findColorTolerance(Pnt.x, Pnt.y, 1910383, TNB.X1, TNB.Y1, TNB.X2, TNB.Y2, 13) then
+        break;
+  end;
+
+  if i <> 14 then begin
+    case i of
+      0: Result := Gametab_CombatOptions;
+      1: Result := Gametab_Stats;
+      2: Result := Gametab_QuestList;
+      3: Result := GameTab_Inventory;
+      4: Result := Gametab_WornEquipment;
+      5: Result := Gametab_Prayer ;
+      6: Result := Gametab_Magic;
+      7: Result := Gametab_ClanChat;
+      8: Result := Gametab_FriendsList;
+      9: Result := Gametab_IgnoreList;
+      10:Result := Gametab_Logout;
+      11:Result := Gametab_Options;
+      12:Result := Gametab_Emotes;
+      13:Result := Gametab_MusicPlayer;
+    end;
+  end else begin
+    if R_DepositMenuOpen or Reflect.Bank.IsOpen then
+      Result := GameTab_Inventory
+    else
+      Result := -1;
+  end;
+end;
+
+procedure hoverSkill(skill:integer);
+var W : TReflectWidget;
+    tb : TBox;
+begin
+  if TReflectionGametab.CurrentColor <> Gametab_Stats then
+    TReflectionGametab.Open(Gametab_Stats);
+  case skill of
+    SKILL_ATTACK:W.GetWidget(Widget_StatsTab_Container, 1);
+    SKILL_STRENGTH:W.GetWidget(Widget_StatsTab_Container, 2);
+    SKILL_DEFENCE:W.GetWidget(Widget_StatsTab_Container, 3);
+    SKILL_RANGE:W.GetWidget(Widget_StatsTab_Container, 4);
+    SKILL_PRAYER:W.GetWidget(Widget_StatsTab_Container, 5);
+    SKILL_MAGIC:W.GetWidget(Widget_StatsTab_Container, 6);
+    SKILL_RUNECRAFTING:W.GetWidget(Widget_StatsTab_Container, 7);
+    SKILL_CONSTRUCTION:W.GetWidget(Widget_StatsTab_Container, 8);
+    SKILL_HITPOINTS:W.GetWidget(Widget_StatsTab_Container, 9);
+    SKILL_AGILITY:W.GetWidget(Widget_StatsTab_Container, 10);
+    SKILL_HERBLORE:W.GetWidget(Widget_StatsTab_Container, 11);
+    SKILL_THIEVING:W.GetWidget(Widget_StatsTab_Container, 12);
+    SKILL_CRAFTING:W.GetWidget(Widget_StatsTab_Container, 13);
+    SKILL_FLETCHING:W.GetWidget(Widget_StatsTab_Container, 14);
+    SKILL_SLAYER:W.GetWidget(Widget_StatsTab_Container, 15);
+    SKILL_HUNTER:W.GetWidget(Widget_StatsTab_Container, 16);
+    SKILL_MINING:W.GetWidget(Widget_StatsTab_Container, 17);
+    SKILL_SMITHING:W.GetWidget(Widget_StatsTab_Container, 18);
+    SKILL_FISHING:W.GetWidget(Widget_StatsTab_Container, 19);
+    SKILL_COOKING:W.GetWidget(Widget_StatsTab_Container, 20);
+    SKILL_FIREMAKING:W.GetWidget(Widget_StatsTab_Container, 21);
+    SKILL_WOODCUTTING:W.GetWidget(Widget_StatsTab_Container, 22);
+    SKILL_FARMING:W.GetWidget(Widget_StatsTab_Container, 23);
+    -1:W.GetWidget(Widget_StatsTab_Container, randomRange(1, 24));
+    else W.GetWidget(Widget_StatsTab_Container, 24);
+  end;
+  if W.NotNull then begin
+    tb := w.GetBounds;
+    Reflect.Mouse.Move(tb);
+  end;
+end;
+
+function TReflectLocalPlayer.FFlag(
+  TileDist: Integer; Timeout: Integer = 15000): Boolean;override;
+var
+  Timer: TReflectTimer;
+begin
+  Timer.Start;
+  while Distance(Self.GetTile.X, Self.GetTile.Y, Self.GetDestination.X,
+      Self.GetDestination.Y) > TileDist do
+  begin
+    if (Timeout > 0) and (Timer.ElapsedTime > Timeout) then
+      Exit(False);
+    Wait(RandomRange(200, 250));
+  end;
+  Exit(True);
+end;
+
+function TReflectionGametab.Current: Integer;override;
+var
+  TempWidget: TReflectWidget;
+  Containers, Gametabs: TIntegerArray;
+  I: Integer;
+begin
+  Containers := [Widget_ClanChat_Container, Widget_FriendsList_Container,
+    Widget_IgnoreList_Container, Widget_Logout_Container,
+    Widget_Options_Container, Widget_Emotes_Container,
+    Widget_MusicPlayer_Container, Widget_CombatOptions_Container,
+    Widget_Stats_Container, Widget_WornEquipment_Container,
+    Widget_Prayer_Container, Widget_Magic_Container, Widget_QuestList_Container,
+    Widget_ChangeWorld_Container
+  ];
+  Gametabs := [Gametab_ClanChat, Gametab_FriendsList, Gametab_IgnoreList,
+    Gametab_Logout, Gametab_Options, Gametab_Emotes, Gametab_MusicPlayer,
+    Gametab_CombatOptions, Gametab_Stats, Gametab_WornEquipment, Gametab_Prayer,
+    Gametab_Magic, Gametab_QuestList, GameTab_Inventory
+  ];
+  for I := 0 to High(Gametabs) do
+  begin
+    TempWidget.GetWidget(Containers[I], 0);
+    if not (TempWidget.IsHidden) and (TempWidget.GetBounds.X1 <> -1) then
+    begin
+      TempWidget.Free;
+      Exit(Gametabs[I]);
+    end;
+    TempWidget.Free;
+  end;
+
+  TempWidget.GetWidget(Widget_Achieve_Container, 0);
+  if not (TempWidget.IsHidden) and (TempWidget.GetBounds.X1 <> -1) then
+  begin
+    TempWidget.Free;
+    Exit(Widget_QuestList_Container);
+  end;
+  TempWidget.Free;
+
+  TempWidget.GetWidget(Widget_MiniGame_Container, MiniGame_Check);
+  if not (TempWidget.IsHidden) and (TempWidget.GetBounds.X1 <> -1) then
+  begin
+    TempWidget.Free;
+    Exit(Widget_QuestList_Container);
+  end;
+  TempWidget.Free;
+
+  TempWidget.GetWidget(Widget_ZeahTab_Container, ZeahTab_Check);
+  if not (TempWidget.IsHidden) and (TempWidget.GetBounds.X1 <> -1) then
+  begin
+    TempWidget.Free;
+    Exit(Widget_QuestList_Container);
+  end;
+  TempWidget.Free;
+
+  Result := GameTab_Inventory;
+end;
+
+function getEquippedItemBounds(Which: string): TBox;
+begin
+  case Which of
+    'helm', 'helmet' :
+      Result := inttoBox(629, 213, 656, 240);
+    'cape' :
+      Result := inttoBox(588, 252, 615, 279);
+    'amulet', 'neck', 'necklace' :
+      Result := inttoBox(629, 252, 656, 279);
+    'arrows', 'bolts' :
+      Result := inttoBox(670, 252, 697, 279);
+    'right hand', 'weapon' :
+      Result := inttoBox(573, 291, 600, 318);
+    'plate', 'chest', 'platebody' :
+      Result := inttoBox(629, 291, 656, 318);
+    'left hand', 'sheild', 'shield' :
+      Result := inttoBox(685, 291, 712, 318);
+    'legs', 'platelegs', 'skirt', 'plateskirt' :
+      Result := inttoBox(629, 331, 656, 358);
+    'gloves', 'gauntlets' :
+      Result := inttoBox(573, 371, 600, 398);
+    'boots':
+      Result := inttoBox(629, 371, 656, 398);
+    'ring' :
+      Result := inttoBox(685, 371, 712, 398);
+  end;
+end;
+
+function R_GetEquipText: string;
+begin
+  result := TReflectionGametab.GetWieldedWeapon;
+  if result = '' then begin
+    if TReflectionGametab.CurrentColor <> Gametab_CombatOptions then
+      Reflect.Gametab.Open(Gametab_CombatOptions);
+    result := TReflectionGametab.GetWieldedWeapon;
+  end;
+end;
+
 function ExpFromLevel(Level: integer): integer;   //thanks tehq!
 begin
   Result := (round((Level / 4) + (75 * pow(2, (Level / 7)))));
@@ -1386,6 +1465,9 @@ function anySlotActivated(soft:boolean=false):boolean;
 var _string : string;
     i : integer;
 begin
+  if TReflectionGametab.CurrentColor <> Gametab_Inventory then
+    exit(false);
+
   if not soft then begin
     _string := GetUpText_WhiteColor;
     if (pos('->', _string) <= 0) or (pos('Use', _string) <= 0) then
@@ -1402,11 +1484,15 @@ var tempBox:TBox;
     i : integer;
     upt : string;
 begin
+  if TReflectionGametab.CurrentColor <> Gametab_Inventory then
+    exit;
+
   upt := GetUpText_WhiteColor;
   if (pos('->', upt) > 0) and (pos('Use', upt) > 0) then
     for i:=1 to 28 do
       if slotActivated(i) then begin
-        Reflect.Gametab.Open(Gametab_Inventory);
+        if TReflectionGametab.CurrentColor <> Gametab_Inventory then
+          Reflect.Gametab.Open(Gametab_Inventory);
         tempBox := TReflectionInventory.invBox(i);
         Reflect.Mouse.Move(point(randomRange(tempBox.x1, tempBox.x2), randomRange(tempBox.y1, tempBox.y2)), 0, 0);
         sleepScript(500+random(250));
@@ -2024,7 +2110,8 @@ begin
   {$ENDIF}
   for i:=0 to high(rewardIDs) do begin
     if _item.Find(rewardIDs[i]) then begin
-      Reflect.Gametab.Open(Gametab_Inventory);
+      if TReflectionGametab.CurrentColor <> Gametab_Inventory then
+        Reflect.Gametab.Open(Gametab_Inventory);
       updateScreen('Solving lamp.');
       daLogger.Status('Solving lamp...', []);
       tb := _item.getBox;
@@ -2171,228 +2258,14 @@ begin
   {$ENDIF}
 end;
 
-function getChat_think(msg : string; var sendType : integer; tempBool : boolean): string;
-var i, l, k, j, tempNum : integer;
-    checkStrings : TStringArray;
-begin
-  sendType := -1;
-
-  checkStrings := commonHelloStrings;
-  for i:=0 to high(checkStrings) do
-    if (checkStrings[i] = lowercase(msg)) then begin
-      checkStrings := ['hey', 'hi', 'hello', 'sup'];
-      {for i:=0 to high(howStrings) do
-        for h:=0 to high(areStrings) do
-          for j:=0 to high(youStrings) do
-            for k:=0 to high(questionStrings) do begin
-              setLength(checkStrings, length(checkStrings)+1);
-              checkStrings[high(checkStrings)] := howStrings[i]+' '+areStrings[h]+' '+youStrings[j]+questionStrings[k];
-            end;
-      for i:=0 to high(howStrings) do
-        for h:=0 to high(areStrings) do
-          for j:=0 to high(youStrings) do
-            for k:=0 to high(doingStrings) do
-              for l:=0 to high(questionStrings) do begin
-                setLength(checkStrings, length(checkStrings)+1);
-                checkStrings[high(checkStrings)] := howStrings[i]+' '+areStrings[h]+' '+youStrings[j]+' '+doingStrings[k]+questionStrings[l];
-              end;
-      for l:=0 to high(questionStrings) do
-        for i:=0 to high(whatStrings) do begin
-          setLength(checkStrings, length(checkStrings)+1);
-          checkStrings[high(checkStrings)] := whatStrings[i]+' up'+questionStrings[l];
-        end;
-      for j:=0 to high(puncStrings) do
-        for i:=0 to high(hiStrings) do begin
-          setLength(checkStrings, length(checkStrings)+1);
-          checkStrings[high(checkStrings)] := hiStrings[i]+puncStrings[j];
-        end;
-      for j:=0 to high(puncStrings) do
-        for i:=0 to high(heyStrings) do begin
-          setLength(checkStrings, length(checkStrings)+1);
-          checkStrings[high(checkStrings)] := heyStrings[i]+puncStrings[j];
-        end;
-      for i:=0 to high(questionStrings) do begin
-        setLength(checkStrings, length(checkStrings)+1);
-        checkStrings[high(checkStrings)] := 'sup'+questionStrings[i];
-      end;
-      for j:=0 to high(puncStrings) do
-        for i:=0 to high(helloStrings) do begin
-          setLength(checkStrings, length(checkStrings)+1);
-          checkStrings[high(checkStrings)] := helloStrings[i]+puncStrings[j];
-        end;    }
-      sendType := 0;
-      exit(checkStrings[random(length(checkStrings))]);
-    end;
-
-  checkStrings := GetWordsEx(lowercase(msg), 'abcdefghijklmnopqrstuvwxyz0123456789-''');
-  for i:=0 to high(botStrings) do
-    for k:=0 to high(checkStrings) do
-      if(botStrings[i] = checkStrings[k]) then begin
-        checkStrings := ['no', 'lol', '?'];
-        {for i:=0 to high(questionStrings) do begin
-          setLength(checkStrings, length(checkStrings)+1);
-          checkStrings[high(checkStrings)] := 'no'+questionStrings[i];
-        end;
-        for i:=0 to high(puncStrings) do begin
-          setLength(checkStrings, length(checkStrings)+1);
-          checkStrings[high(checkStrings)] := 'nope'+puncStrings[i];
-        end;
-        for i:=0 to high(puncStrings) do begin
-          setLength(checkStrings, length(checkStrings)+1);
-          checkStrings[high(checkStrings)] := 'nah'+puncStrings[i];
-        end;
-        for i:=0 to high(puncStrings) do begin
-          setLength(checkStrings, length(checkStrings)+1);
-          checkStrings[high(checkStrings)] := 'nop'+puncStrings[i];
-        end;
-        for i:=0 to high(puncStrings) do begin
-          setLength(checkStrings, length(checkStrings)+1);
-          checkStrings[high(checkStrings)] := 'no'+puncStrings[i];
-        end;
-        for l:=0 to high(puncStrings) do
-          for i:=0 to high(youStrings) do begin
-            setLength(checkStrings, length(checkStrings)+1);
-            checkStrings[high(checkStrings)] := 'says '+youStrings[i]+puncStrings[l];
-          end;
-        for l:=0 to high(puncStrings) do
-          for i:=0 to high(youStrings) do begin
-            setLength(checkStrings, length(checkStrings)+1);
-            checkStrings[high(checkStrings)] := 'no '+youStrings[i]+puncStrings[l];
-          end;
-        for j:=0 to high(puncStrings) do
-          for i:=0 to high(imStrings) do
-            for l:=0 to high(botStrings) do begin
-              setLength(checkStrings, length(checkStrings)+1);
-              checkStrings[high(checkStrings)] := imStrings[i]+' not a '+botStrings[l]+puncStrings[j];
-            end;
-        for i:=1 to high(questionStrings) do begin
-          setLength(checkStrings, length(checkStrings)+1);
-          checkStrings[high(checkStrings)] := questionStrings[i];
-        end;}
-
-        sendType := 1;
-        exit(checkStrings[random(length(checkStrings))]);
-      end;
-
-  for i:=0 to high(lolStrings) do
-    for l:=0 to high(checkStrings) do
-      if (lolStrings[i] = checkStrings[l]) then begin
-        checkStrings := ['lol', 'l0l', 'lel', 'lool'];
-        {for i:=0 to high(questionStrings) do begin
-          setLength(checkStrings, length(checkStrings)+1);
-          checkStrings[high(checkStrings)] := questionStrings[i];
-        end;
-        for i:=0 to high(questionStrings) do begin
-          setLength(checkStrings, length(checkStrings)+1);
-          checkStrings[high(checkStrings)] := 'huh'+questionStrings[i];
-        end;
-        for i:=0 to high(questionStrings) do
-          for l:=0 to high(whatStrings) do begin
-            setLength(checkStrings, length(checkStrings)+1);
-            checkStrings[high(checkStrings)] := whatStrings[l]+' so funny'+questionStrings[i];
-          end;
-        for j:=0 to high(areStrings) do
-          for k:=0 to high(youStrings) do
-            for i:=0 to high(questionStrings) do
-              for l:=0 to high(whyStrings) do begin
-                setLength(checkStrings, length(checkStrings)+1);
-                checkStrings[high(checkStrings)] := whyStrings[l]+' '+areStrings[j]+' '+youStrings[k]+' laughing'+questionStrings[i];
-              end;   }
-
-        sendType := 3;
-        exit(checkStrings[random(length(checkStrings))]);
-      end;
-
-  for k:=0 to high(SkillStringsArray) do
-    for i:=0 to high(levelStrings) do
-      for j:=0 to high(SkillStringsArray[k]) do
-        if (pos(levelStrings[i], lowercase(msg)) > 0) and (pos(SkillStringsArray[k][j], lowercase(msg)) > 0) then begin
-          tempNum := TReflectLocalPlayer.GetMaxSkillLevel(k);
-          checkStrings := [intToStr(tempNum)];
-          {for j:=0 to high(puncStrings) do begin
-            setLength(checkStrings, length(checkStrings)+1);
-            checkStrings[high(checkStrings)] := intToStr(tempNum)+puncStrings[j];
-          end;
-          for j:=0 to high(puncStrings) do
-            for i:=0 to high(levelStrings) do
-              for l:=0 to high(SkillStringsArray[k]) do begin
-                setLength(checkStrings, length(checkStrings)+1);
-                checkStrings[high(checkStrings)] := 'my '+SkillStringsArray[k][l]+' '+levelStrings[i]+' is '+intToStr(tempNum)+puncStrings[j];
-              end;
-          for j:=0 to high(puncStrings) do
-            for l:=0 to high(itsStrings) do begin
-              setLength(checkStrings, length(checkStrings)+1);
-              checkStrings[high(checkStrings)] := itsStrings[l]+' '+intToStr(tempNum)+puncStrings[j];
-            end;
-          for i:=0 to high(puncStrings) do
-            for h:=0 to high(whyStrings) do
-              for j:=0 to high(puncStrings) do
-                for l:=0 to high(itsStrings) do begin
-                  setLength(checkStrings, length(checkStrings)+1);
-                  checkStrings[high(checkStrings)] := whyStrings[h]+puncStrings[i]+' '+itsStrings[l]+' '+intToStr(tempNum)+puncStrings[j];
-                end;      }
-
-          sendType := 2;
-          exit(checkStrings[random(length(checkStrings))]);
-        end;
-
-  for i:=0 to high(levelStrings) do
-    if (pos(levelStrings[i], lowercase(msg)) > 0) then begin
-      checkStrings := ['?'];
-      {for i:=1 to high(questionStrings) do begin
-        setLength(checkStrings, length(checkStrings)+1);
-        checkStrings[high(checkStrings)] := questionStrings[i];
-      end;
-      for i:=0 to high(whatStrings) do
-        for h:=0 to high(levelStrings) do
-          for j:=0 to high(questionStrings) do begin
-            setLength(checkStrings, length(checkStrings)+1);
-            checkStrings[high(checkStrings)] := levelStrings[h]+' in '+whatStrings[i]+questionStrings[j];
-          end;
-      for i:=0 to high(questionStrings) do begin
-        setLength(checkStrings, length(checkStrings)+1);
-        checkStrings[high(checkStrings)] := 'huh'+questionStrings[i];
-      end;
-      for h:=0 to high(levelStrings) do
-        for j:=0 to high(questionStrings) do begin
-          setLength(checkStrings, length(checkStrings)+1);
-          checkStrings[high(checkStrings)] := levelStrings[h]+questionStrings[j];
-        end;
-      for i:=0 to high(whatStrings) do
-        for h:=0 to high(levelStrings) do
-          for j:=0 to high(questionStrings) do begin
-            setLength(checkStrings, length(checkStrings)+1);
-            checkStrings[high(checkStrings)] := whatStrings[i]+' '+levelStrings[h]+questionStrings[j];
-          end;  }
-
-      sendType := 4;
-      exit(checkStrings[random(length(checkStrings))]);
-    end;
-
-  for i:=0 to high(niceStrings) do
-    for k:=0 to high(checkStrings) do
-      if (niceStrings[i] = checkStrings[k]) then begin
-        checkStrings := ['thx', 'thanks', 'ty'];
-        {for h:=0 to high(puncStrings) do
-          for j:=0 to high(thanksStrings) do begin
-            setLength(checkStrings, length(checkStrings)+1);
-            checkStrings[high(checkStrings)] := thanksStrings[j]+puncStrings[h];
-          end;  }
-
-        sendType := 5;
-        exit(checkStrings[random(length(checkStrings))]);
-      end;
-
-  if (pos(lowercase(me_name), lowercase(msg)) > 0) or tempBool then begin
-    checkStrings := ['wat', 'what?', 'wat?', '?', 'what'];
-    sendType := 6;
-    exit(checkStrings[random(length(checkStrings))]);
-  end;
+type AutoChatRefPlayer = record
+     SayText, RSName : string;
+     isInteracting : boolean;
 end;
 
-function getClosePeopleTexts(var tBool : Boolean):TStringArray;
+function getAutoChatRefPlayers(var amountOfPeople : integer):array of AutoChatRefPlayer;
 var _players : TReflectPlayerArray;
-    i, j : integer;
+    i, h : integer;
     tempP : TPoint;
     name : string;
 begin
@@ -2407,47 +2280,109 @@ begin
       exit;
     end;
     if (name <> me_name) and R_TileOnMS(_players[i].GetTile, tempP, 0, 0, 50) then begin
-      inc(j);
-      setLength(result, j);
-      result[j-1] := _players[i].GetSpokenText;
+      inc(amountOfPeople);
+      setLength(result, amountOfPeople);
+
+      h := amountOfPeople-1;
+      result[h].SayText := _players[i].GetSpokenText;
+      result[h].RSName := name;
+      if (_players[i].GetInteractingIndex = me_indice) then
+        result[h].isInteracting := true;
     end;
-    if (_players[i].GetInteractingIndex = me_indice) then
-      tBool := true;
   end;
 end;
 
-procedure doHandleTexts(texts : TStringArray; tempBool : Boolean);
-var i, sendType : integer;
-    theString, newString : string;
+function getChatThink(_player : AutoChatRefPlayer; var sendType : integer):string;
+var msg : string;
+    checkStrings : TStringArray;
+    i, h, j : integer;
 begin
-  for i:=0 to high(texts) do
-    if (texts[i] <> '') or tempBool then begin
-      theString := getChat_think(texts[i], sendType, tempBool);
-      if (sendType > -1) then begin
-        if ((chatTimers[2].Elapsedtime < chatTimeOften) and (chatTimers[sendType].Elapsedtime > chatTimeOften) and (sendType = 5)) or ((chatTimers[sendType].Elapsedtime > chatTimeOften) and (sendType <> 5)) then begin
-          newString := '';
-          if pos('%', texts[i]) <= 0 then
-            newString := texts[i];
-          daLogger.Status('Responding to: '''+newString+''' with: '''+theString+'''', []);
-          newString := '';
-          if length(texts[i]) < 50 then
-            newString := texts[i];
-          updateScreen('Responding to: '''+newString+''' with: '''+theString+'''');
-          chatTimers[sendType].Restart;
-          sleepScript(1000+random(5000));
-          if useAutoResponder then
-            TReflectionKeyboard.typeSend(theString, true);
-          sleepScript(random(750));
-        end;
-        if (sendType = 6) then
-          playSound(SoundString);
+  msg := lowercase(_player.SayText);
+  if _player.isInteracting or (pos(lowercase(me_name), msg) > 0) then begin
+    checkStrings := ['wat', 'what?', 'wat?', '?', 'what'];
+    sendType := 6;
+    exit(checkStrings[random(length(checkStrings))]);
+  end;
+
+  sendType := -1;
+  if length(msg) > 0 then begin
+    for i:=0 to high(commonHelloStrings) do
+      if (commonHelloStrings[i] = msg) then begin
+        checkStrings := ['hey', 'hi', 'hello', 'sup'];
+        sendType := 0;
+        exit(checkStrings[random(length(checkStrings))]);
       end;
+
+     for i:=0 to high(SkillStringsArray) do
+      for h:=0 to high(levelStrings) do
+        for j:=0 to high(SkillStringsArray[i]) do
+          if (pos(levelStrings[h], msg) > 0) and (pos(SkillStringsArray[i][j], msg) > 0) then begin
+            checkStrings := [intToStr(TReflectLocalPlayer.GetMaxSkillLevel(i))];
+            sendType := 2;
+            exit(checkStrings[random(length(checkStrings))]);
+          end;
+
+    for i:=0 to high(levelStrings) do
+      if (pos(levelStrings[i], msg) > 0) then begin
+        checkStrings := ['?'];
+        sendType := 4;
+        exit(checkStrings[random(length(checkStrings))]);
+      end;
+
+    checkStrings := GetWordsEx(msg, 'abcdefghijklmnopqrstuvwxyz0123456789-''');
+
+    for i:=0 to high(botStrings) do
+      for h:=0 to high(checkStrings) do
+        if(botStrings[i] = checkStrings[h]) then begin
+          checkStrings := ['no', 'lol', '?'];
+          sendType := 1;
+          exit(checkStrings[random(length(checkStrings))]);
+        end;
+
+    for i:=0 to high(lolStrings) do
+      for h:=0 to high(checkStrings) do
+        if (lolStrings[i] = checkStrings[h]) then begin
+          checkStrings := ['lol', 'l0l', 'lel', 'lool'];
+          sendType := 3;
+          exit(checkStrings[random(length(checkStrings))]);
+        end;
+
+    for i:=0 to high(niceStrings) do
+      for h:=0 to high(checkStrings) do
+        if (niceStrings[i] = checkStrings[h]) then begin
+          checkStrings := ['thx', 'thanks', 'ty'];
+          sendType := 5;
+          exit(checkStrings[random(length(checkStrings))]);
+        end;
+  end;
+end;
+
+procedure autoChat;
+var AutoChatRefPlayers : array of AutoChatRefPlayer;
+    amountOfPeople, i, sendType : integer;
+    respondString, theString : string;
+begin
+  AutoChatRefPlayers := getAutoChatRefPlayers(amountOfPeople);
+  for i:=0 to amountOfPeople-1 do begin
+    respondString := getChatThink(AutoChatRefPlayers[i], sendType);
+    if sendType > -1 then begin
+      if ((sendType = 5) and (chatTimers[2].Elapsedtime < chatTimeOften) and (chatTimers[sendType].Elapsedtime > chatTimeOften)) or ((chatTimers[sendType].Elapsedtime > chatTimeOften) and (sendType <> 5)) then begin
+        theString := Reflect.Text.RemoveFormatting(AutoChatRefPlayers[i].SayText);
+        daLogger.Status('Responding to player '''+AutoChatRefPlayers[i].RSName+''' who said '''+theString+''' with '''+respondString+''' ('+intToStr(sendType)+')', []);
+        updateScreen('Doing autoChat...');
+        chatTimers[sendType].Restart;
+        sleepScript(1000+random(5000));
+        if useAutoResponder then
+          TReflectionKeyboard.typeSend(respondString, true);
+        sleepScript(random(750));
+      end;
+      if sendType = 6 then
+        playSound(SoundString);
     end;
+  end;
 end;
 
 procedure randomHandler;
-var extraBool : boolean;
-    strings : TStringArray;
 begin
   if dismissAllTimer.Elapsedtime > dismissAllOften then begin
     dismissAllRandoms;
@@ -2459,8 +2394,7 @@ begin
     closeAllTimer.Restart;
   end;
   if lookForChatTimer.Elapsedtime > lookForChatOften then begin
-    strings := getClosePeopleTexts(extraBool);
-    doHandleTexts(strings, extraBool);
+    autoChat;
     lookForChatTimer.Restart;
   end;
   if updateAllTimer.Elapsedtime > updateAllOften then begin
