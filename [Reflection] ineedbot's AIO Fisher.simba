@@ -4721,7 +4721,6 @@ begin
     nullInt := -1337;//so it runs .create at least once and makes sure script is played logged in
     while not(ReflectPlayer.isLoggedIn) or (nullInt = -1337) do begin
       if ReflectPlayer.Active then begin
-        daLogger.Status('Logging player in...', []);
         ReflectPlayer.Login;
         if ReflectPlayer.Active then
           setupPlayer;
@@ -4767,7 +4766,6 @@ begin
         if ReflectPlayer.Active then begin
           if (high(WorldList) > -1) then
             ReflectPlayer.ChangeWorld(WorldList[random(length(WorldList))]);
-          daLogger.Status('Logging player in...', []);
           ReflectPlayer.Login;
           if ReflectPlayer.Active then
             setupPlayer;
