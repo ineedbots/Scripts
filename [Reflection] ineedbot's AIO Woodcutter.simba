@@ -4,7 +4,7 @@ program newLapeCutter;
 {$i Reflection/Reflection.Simba}
 {$i [Reflection] ineedbot's functions.simba}
 
-const Version = 4.15;
+const Version = 4.151;
 
       PicturePage = 'http://pastebin.com/raw/mJtA7u8d';
       ScriptPage = 'https://raw.githubusercontent.com/ineedbots/Scripts/master/%5BReflection%5D%20ineedbot''s%20AIO%20Woodcutter.simba';
@@ -1969,13 +1969,13 @@ begin
       setLength(daLocation.DoorObjects, 2);
       with daLocation.DoorObjects[0] do begin
         TileOffset := [0, 0];
-        IDs := [7129];
+        IDs := [7129, 1540];
         Tile := Point(3215, 3245);
         Offset := [-62, 0, 100];
         TileEncompass := [Point(3212, 3251), Point(3214, 3249), Point(3214, 3244), Point(3212, 3242), Point(3210, 3242), Point(3208, 3244), Point(3208, 3249), Point(3210, 3251)];
       end;
       with daLocation.DoorObjects[1] do begin
-        IDs := [7122];
+        IDs := [7122, 1535];
         TileOffset := [0, 0];
         Tile := Point(3234, 3203);
         Offset := [-62, 0, 100];
@@ -2065,7 +2065,7 @@ begin
             Name := 'Willow';
             Index := 0;
             Tile := Point(3234, 3238);
-            AliveIDs := [7482, 7422, 7480, 7424];
+            AliveIDs := [7482, 7422, 7480, 7424, 1760, 1750, 1756, 1758];
             DeadIds := [9471, 9711];
           end;
           with daLocation.TreeObjects[1] do begin
@@ -2077,7 +2077,7 @@ begin
             Name := 'Willow';
             Index := 1;
             Tile := Point(3234, 3244);
-            AliveIDs := [7482, 7422, 7480, 7424];
+            AliveIDs := [7482, 7422, 7480, 7424, 1760, 1750, 1756, 1758];
             DeadIds := [9471, 9711];
           end;
         end else begin
@@ -2111,7 +2111,7 @@ begin
             Name := 'Oak';
             Index := 0;
             Tile := Point(3204, 3247);
-            AliveIDs := [7417];
+            AliveIDs := [7417, 1751];
             DeadIDs := [1356];
           end;
           with daLocation.TreeObjects[1] do begin
@@ -2123,7 +2123,7 @@ begin
             Name := 'Oak';
             Index := 1;
             Tile := Point(3205, 3240);
-            AliveIDs := [7417];
+            AliveIDs := [7417, 1751];
             DeadIDs := [1356];
           end;
         end;
@@ -2196,15 +2196,15 @@ begin
 
   AliveTreeIDs := [1276, 1278];
   DeadTreeIDs := [1342];
-  AliveOakIDs := [7417];
+  AliveOakIDs := [7417, 1751];
   DeadOakIDs := [1356];
-  AliveWillowIDs := [7482, 7422, 7480, 7424];
+  AliveWillowIDs := [7482, 7422, 7480, 7424, 1760, 1750, 1756, 1758];
   DeadWillowIDs := [9471, 9711];
-  AliveMapleIDs := [7481];
+  AliveMapleIDs := [7481, 1759];
   DeadMapleIDs := [9712];
-  AliveYewIDs := [7420, 7419];
+  AliveYewIDs := [7420, 7419, 1754, 1753];
   DeadYewIDs := [9714];
-  AliveMagicIDs := [7483];
+  AliveMagicIDs := [7483, 1762];
   DeadMagicIDs  := [9713];
 
   daLocation.BankLocations := [];
@@ -3521,15 +3521,6 @@ begin
       end;
       daLocation.isSell := true;
 
-      setLength(daLocation.DoorObjects, 1);
-      with daLocation.DoorObjects[0] do begin
-        IDs := [7129];
-        Tile := Point(2951, 3214);
-        TileOffset := [0, 0];
-        Offset := [-62, 0, 100];
-        TileEncompass := [Point(2949, 3218), Point(2950, 3217), Point(2950, 3212), Point(2949, 3211), Point(2946, 3211), Point(2946, 3218)];
-      end;
-
       case job of
         13:begin
           daLocation.Name := 'Rimmington Willows (sell)';
@@ -3739,7 +3730,7 @@ begin
 
       setLength(daLocation.DoorObjects, 1);
       with daLocation.DoorObjects[0] do begin
-        IDs := [7143];
+        IDs := [7143, 1543];
         Tile := Point(3091, 3470);
         TileOffset := [0, 0];
         Offset := [62, 0, 100];
@@ -4216,7 +4207,7 @@ begin
       setLength(daLocation.DoorObjects, 1);
       with daLocation.DoorObjects[0] do begin
         TileOffset := [0, 0];
-        IDs := [7129];
+        IDs := [7129, 1540];
         Tile := Point(3215, 3245);
         Offset := [-62, 0, 100];
         TileEncompass := [Point(3212, 3251), Point(3214, 3249), Point(3214, 3244), Point(3212, 3242), Point(3210, 3242), Point(3208, 3244), Point(3208, 3249), Point(3210, 3251)];
@@ -5217,10 +5208,6 @@ begin
       if daLocation.DoorObjects[0].Open(false) then
         goTo normal;
     end;
-    13, 15:begin//remming gen
-      if daLocation.DoorObjects[0].Open(false) then
-        goTo normal;
-    end;
     else begin
       normal:
       if (length(daLocation.BankNPCs) = 0) then begin
@@ -5293,10 +5280,6 @@ begin
 
   case daLocation.ID of
     0..1, 6:begin//lumb gen
-      if daLocation.DoorObjects[0].Open(false) then
-        goTo normal;
-    end;
-    13, 15:begin//remming gen
       if daLocation.DoorObjects[0].Open(false) then
         goTo normal;
     end;
@@ -5405,10 +5388,6 @@ begin
         goTo normal;
     end;
     0..1, 6:begin//lumb gen
-      if daLocation.DoorObjects[0].Open(true) then
-        goTo normal;
-    end;
-    13, 15:begin//remming gen
       if daLocation.DoorObjects[0].Open(true) then
         goTo normal;
     end;
@@ -5627,10 +5606,6 @@ begin
         exit;
     end;
     0..1, 6:begin//lum gen
-      if not daLocation.DoorObjects[0].Open(true) then
-        exit;
-    end;
-    13, 15:begin//rim gen
       if not daLocation.DoorObjects[0].Open(true) then
         exit;
     end;
@@ -5912,6 +5887,7 @@ begin
     nullInt := -1337;//so it runs .create at least once and makes sure script is played logged in
     while not(ReflectPlayer.isLoggedIn) or (nullInt = -1337) do begin
       if ReflectPlayer.Active then begin
+        daLogger.Status('Logging player in...', []);
         ReflectPlayer.Login;
         if ReflectPlayer.Active then
           setupPlayer;
@@ -5952,6 +5928,7 @@ begin
         if ReflectPlayer.Active then begin
           if (high(WorldList) > -1) then
             ReflectPlayer.ChangeWorld(WorldList[random(length(WorldList))]);
+          daLogger.Status('Logging player in...', []);
           ReflectPlayer.Login;
           if ReflectPlayer.Active then
             setupPlayer;
