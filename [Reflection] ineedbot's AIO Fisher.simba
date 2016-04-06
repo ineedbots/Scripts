@@ -4,7 +4,7 @@ program newLapeFisher;
 {$i Reflection/Reflection.Simba}
 {$i [Reflection] ineedbot's functions.simba}
 
-const Version = 5.191;
+const Version = 5.192;
 
       PicturePage = 'http://pastebin.com/raw/hs3w81WZ';
       ScriptPage = 'https://raw.githubusercontent.com/ineedbots/Scripts/master/%5BReflection%5D%20ineedbot''s%20AIO%20Fisher.simba';
@@ -1537,6 +1537,9 @@ begin
   if daLocation.canCook then begin
     case daLocation.ID of
       24:begin //otto
+        result := TReflectionInventory.IsFull;
+      end;
+      29:begin //zul
         result := TReflectionInventory.IsFull;
       end;
       8..13:begin//cath
@@ -3743,9 +3746,10 @@ begin
           end;
         end;
         break;
-        break;
       end;
     end;
+    if found then
+      break;
   end;
 
   if not found then
@@ -4056,7 +4060,7 @@ end;
 procedure dropARawFish;
 var i, count :integer;
     _item : TReflectInvItem;
-    rawFishIDs : TIntegerArray;
+    rawFishIDs, cookedFishIDs : TIntegerArray;
     tB : TBox;
     timer : TReflectTimer;
 label normal;
@@ -4065,6 +4069,16 @@ begin
     exit;
 
   case daLocation.ID of
+    24:begin //otto
+      cookedFishIDs := daLocation.getCookedFishIDs;
+      if not TReflectionInventory.Contains(cookedFishIDs) then
+        goto normal;
+    end;
+    29:begin  //zul
+      cookedFishIDs := daLocation.getCookedFishIDs;
+      if not TReflectionInventory.Contains(cookedFishIDs) then
+        goto normal;
+    end;
     8..13:begin  //cath
     end;
     else begin
@@ -4405,23 +4419,25 @@ begin
 end;
 
 procedure doFire;
-var x, y, i : integer;
+var x, y, i, lastFishSlot, knifeSlot : integer;
     _item : TReflectInvItem;
     RawFishIDs, cookedFishIDs : TIntegerArray;
     _items : TReflectInvItemArray;
     W : TReflectWidget;
+    found : boolean;
     tb : TBox;
 label normal;
 begin
   RawFishIDs := daLocation.getRawFishIDs;
-  cookedFishIDs := daLocation.getCookedFishIDs;
   if not daLocation.canCook or not TReflectionInventory.Contains(RawFishIDs) then
     exit;
 
+  cookedFishIDs := daLocation.getCookedFishIDs;
+
   case daLocation.ID of
     24:begin //otto
-      if daLocation.canCook and TReflectionInventory.Contains(KnifeIDs) then begin
-        while ReflectPlayer.isLoggedIn and TReflectionInventory.Contains(RawFishIDs) and not ReflectPlayer.IsUnderAttack do begin
+      if daLocation.canCook then begin
+        while ReflectPlayer.isLoggedIn and TReflectionInventory.Contains(RawFishIDs) and not ReflectPlayer.IsUnderAttack and TReflectionInventory.Contains(KnifeIDs) do begin
           if TReflectionGametab.CurrentColor <> Gametab_Inventory then
             Reflect.Gametab.Open(Gametab_Inventory);
           updateScreen('Knifing fish...');
@@ -4450,36 +4466,43 @@ begin
       end;
     end;
     29:begin  //zul
-      if daLocation.canCook and TReflectionInventory.Contains(KnifeIDs) then begin
-        while ReflectPlayer.isLoggedIn and TReflectionInventory.Contains(RawFishIDs) and not ReflectPlayer.IsUnderAttack do begin
+      if daLocation.canCook then begin
+        while ReflectPlayer.isLoggedIn and TReflectionInventory.Contains(RawFishIDs) and not ReflectPlayer.IsUnderAttack and TReflectionInventory.Contains(KnifeIDs) do begin
           if TReflectionGametab.CurrentColor <> Gametab_Inventory then
             Reflect.Gametab.Open(Gametab_Inventory);
           updateScreen('Knifing fish...');
+          randomHandler;
           if TReflectionInventory.IsFull and not TReflectionInventory.Contains(cookedFishIDs) then
             dropARawFish;
-          if not anySlotActivated then begin
-            for i:=0 to high(KnifeIDs) do begin
-              if(_item.Find(KnifeIDs[i]))then begin
-                Reflect.Mouse.Move(_item.getbox, mouse_left);
-                sleepScript(random(100));
+
+          while ReflectPlayer.isLoggedIn and TReflectionInventory.Contains(RawFishIDs) and not ReflectPlayer.IsUnderAttack and TReflectionInventory.Contains(KnifeIDs) do begin
+            lastFishSlot := -1;
+            _items.GetAll;
+            for i:= high(_items) downto 0 do begin
+              if inIntArray(rawFishIDs, _items[i].GetID) then begin
+                lastFishSlot := _items[i].getInvSlot;
                 break;
               end;
             end;
-          end;
 
-          if anySlotActivated(true) then begin
-            _items.GetAll;
-            for i:= high(_items) downto 0 do
-              for x:=0 to high(rawFishIds) do
-                if(_items[i].GetID = rawFishIds[x]) then begin
-                  _item := _items[i];
-                  Reflect.Mouse.Move(_item.getbox, mouse_left);
-                  sleepScript(random(100));
-                  break;
-                  break;
-                end;
+            knifeSlot := -1;
+            for i:=0 to high(_items) do
+              if inIntArray(knifeIds, _items[i].GetID) then begin
+                knifeSlot := _items[i].getInvSlot;
+                break;
+              end;
+
+            if not anySlotActivated then begin
+              tb := TReflectionInventory.InvBox(knifeSlot);
+              Reflect.Mouse.Move(tb, mouse_left);
+              sleepScript(100+random(150));
+            end;
+            if anySlotActivated(true) then begin
+              tb := TReflectionInventory.InvBox(lastFishSlot);
+              Reflect.Mouse.Move(tb, mouse_left);
+              sleepScript(100+random(150));
+            end;
           end;
-          randomHandler;
         end;
       end;
     end;
