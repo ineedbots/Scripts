@@ -4,7 +4,7 @@ program newLapeCutter;
 {$i Reflection/Reflection.Simba}
 {$i [Reflection] ineedbot's functions.simba}
 
-const Version = 4.151;
+const Version = 4.152;
 
       PicturePage = 'http://pastebin.com/raw/mJtA7u8d';
       ScriptPage = 'https://raw.githubusercontent.com/ineedbots/Scripts/master/%5BReflection%5D%20ineedbot''s%20AIO%20Woodcutter.simba';
@@ -2204,7 +2204,7 @@ begin
   DeadMapleIDs := [9712];
   AliveYewIDs := [7420, 7419, 1754, 1753];
   DeadYewIDs := [9714];
-  AliveMagicIDs := [7483, 1762];
+  AliveMagicIDs := [7483, 1762, 1761];
   DeadMagicIDs  := [9713];
 
   daLocation.BankLocations := [];

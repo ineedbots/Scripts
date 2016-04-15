@@ -1,6 +1,6 @@
 //Feel free to use code, MAKE SURE TO GIVE CREDIT WHERE DUE! -ineedbot
 const
-      fVersion = 2.091;
+      fVersion = 2.092;
 
       fScriptPage = 'https://raw.githubusercontent.com/ineedbots/Scripts/master/%5BReflection%5D%20ineedbot''s%20functions.simba';
 
@@ -8,6 +8,9 @@ const
 
       Widget_Ded_Container = 153;
       Ded_Close = 107;
+
+      Widget_WorldSwitch_Container = 69;
+      WorldSwitch_LogOut = 19;
 
       Widget_Achieve_Container = 259;
       Widget_MiniGame_Container = 76;
@@ -139,6 +142,40 @@ type TReflectDoor = record
      IDs : TIntegerArray;
      Offset : array[0..2] of integer;
      TileOffset : array[0..1] of integer;
+end;
+
+type TLoot = record
+     SpawnTimer : TReflectTimer;
+     HowLongToWait, World : Integer;
+     Name : string;
+end;
+type TLootArray = array of TLoot;
+
+procedure TLootArray.Add(theWorld : TLoot);
+begin
+  setLength(self, length(self)+1);
+  self[high(self)] := theWorld;
+end;
+
+procedure TLootArray.Update;
+var i : integer;
+    temp : TLootArray;
+begin
+  temp := self;
+  self := [];
+
+  for i:=0 to high(temp) do
+    if temp[i].SpawnTimer.ElapsedTime < temp[i].HowLongToWait then
+      self.Add(temp[i]);
+end;
+
+function TLootArray.GetWorlds:TIntegerArray;
+var i : integer;
+begin
+  for i:=0 to high(self) do begin
+    setLength(result, length(result)+1);
+    result[high(result)] := self[i].World;
+  end;
 end;
 
 var SmartUserAgent, ProggieLocation, me_name, SoundString, fScript : string;
@@ -416,6 +453,45 @@ begin
       end;
   end;
   SetLength(Result, r);
+end;
+
+procedure TReflectLocalPlayer.Logout;override;
+var
+  LogoutWidget: TReflectWidget;
+begin
+  if (not Self.IsLoggedIn) then
+    Exit;
+
+  LogoutWidget.GetWidget(Widget_WorldSwitch_Container, WorldSwitch_LogOut);
+  if LogoutWidget.Interact then begin
+    LogoutWidget.Free;
+    exit;
+  end;
+  LogoutWidget.Free;
+
+  if not Reflect.Gametab.Open(Gametab_Logout) then
+    exit;
+  LogoutWidget.GetWidget(Widget_Logout_Container, 6);
+  LogoutWidget.Interact;
+  LogoutWidget.Free;
+end;
+
+procedure TReflectGroundItemArray.GetAt(RealTile: TTile);override;
+var
+  BaseX, BaseY, Plane: Integer;
+  temp : TReflectGroundItemArray;
+begin
+  Reflect.Mem.FreeObjects(ckGroundList, False);
+  BaseX := Reflect.Misc.BaseX;
+  BaseY := Reflect.Misc.BaseY;
+  Plane := Reflect.Tiles.GetPlane;
+  temp._GetAt(
+    Point(RealTile.X - BaseX, RealTile.Y - BaseY), BaseX, BaseY, Plane);
+  Reflect.Mem.FreeObjects(ckGroundArray, False);
+  if high(temp) > -1 then
+    self := temp
+  else
+    self := [];
 end;
 
 function getPriceGE(id : integer) : integer;   //thx hoodz and flight!
