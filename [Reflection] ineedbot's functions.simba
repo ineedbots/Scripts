@@ -1,6 +1,6 @@
 //Feel free to use code, MAKE SURE TO GIVE CREDIT WHERE DUE! -ineedbot
 const
-      fVersion = 2.092;
+      fVersion = 2.093;
 
       fScriptPage = 'https://raw.githubusercontent.com/ineedbots/Scripts/master/%5BReflection%5D%20ineedbot''s%20functions.simba';
 
@@ -240,7 +240,7 @@ Begin
     CurrentPath := CurrentPath + 'Java\';
   End Else
     Begin
-      daLogger.Error('Failed To Find Path: '+CurrentPath+'Java\', []);
+      Reflect.Logger.Error('Failed To Find Path: '+CurrentPath+'Java\', []);
       Exit;
     End;
 
@@ -263,7 +263,7 @@ Begin
   If (FileExists(CurrentPath)) Then
     Result := CurrentPath
   Else
-    daLogger.Error('Failed To Find Java.exe or Javaw.exe. Please add ...\JRE\Bin to your PATH environment variable.', []);
+    Reflect.Logger.Error('Failed To Find Java.exe or Javaw.exe. Please add ...\JRE\Bin to your PATH environment variable.', []);
 End;
 
 procedure TReflectionSmart.Create(
@@ -294,7 +294,7 @@ begin
 
   if Self.Target = 0 then
   begin
-    daLogger.Error('Error while finding default Java, searching for Java...', []);
+    Reflect.Logger.Warn('Error while finding default Java, searching for Java...', []);
     JavaString := getJavaPath(SmartShowConsole);
 
     Self.Target := SmartSpawnClient(JavaString, StringReplace(PluginPath, '\',
@@ -341,6 +341,30 @@ begin
         Reflect.Logger.Warn('Reflection Update Available');
       Result := True;
     end;
+end;
+
+function TReflectionSmart.GetWorld: string;override;
+var Worlds : TIntegerArray;
+begin
+  if (World < 299) then
+  begin
+    Reflect.Logger.Warn('World variable not valid, trying recommended world...');
+    Result := Between('id=''member-world'' href=''http://oldschool.runescape.com/game?world=', '''>',
+    GetPage('http://oldschool.runescape.com/slu'));
+    if (Result <> '') and InRange(StrToIntDef(ExtractFromStr(Result, Numbers),
+      -1), 301, 394) then begin
+      Result := IntToStr(StrToInt(Result) - 300);
+      Exit;
+    end;
+
+    Reflect.Logger.Warn('Failed to get recommended world, trying random world...');
+    Worlds := [301, 302, 303, 304, 305, 306, 308, 309, 310, 311, 312, 313, 314, 316, 317, 318, 319, 320,
+               321, 322, 325, 326, 327, 328, 329, 330, 333, 334, 335, 336, 337, 338, 341, 342, 343, 344,
+               345, 346, 349, 350, 351, 352, 353, 354, 357, 358, 359, 360, 361, 362, 365, 366, 367, 368,
+               369, 370, 373, 374, 375, 376, 377, 378, 381, 382, 383, 384, 385, 386, 393, 394];
+    Result := IntToStr(Worlds[random(length(Worlds))] - 300);
+  end else
+    Result := IntToStr(World - 300);
 end;
 
 function TReflectionText.GetUpText: string;override;
@@ -504,7 +528,7 @@ begin
   try
     webSource := getPage('http://services.runescape.com/m=itemdb_oldschool/viewitem?obj='+intToStr(id));
   except
-    daLogger.Error('Failed to connect to grand exchange database', []);
+    daLogger.Warn('Failed to connect to grand exchange database', []);
     exit;
   end;
   sellSource := between('<h3>Current Guide Price <span title=''', '''', webSource);
@@ -518,7 +542,7 @@ begin
   if (Length(sellSource) > 0) then
     result := strToInt(sellSource)
   else
-    daLogger.Error('Failed to get grand exchange price for item ID: '+intToStr(id), []);
+    daLogger.Warn('Failed to get grand exchange price for item ID: '+intToStr(id), []);
 end;
 
 function R_DidLevelUp(doClick: boolean = false): boolean;
