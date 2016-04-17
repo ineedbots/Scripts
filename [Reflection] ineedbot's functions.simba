@@ -1,6 +1,6 @@
 //Feel free to use code, MAKE SURE TO GIVE CREDIT WHERE DUE! -ineedbot
 const
-      fVersion = 2.093;
+      fVersion = 2.094;
 
       fScriptPage = 'https://raw.githubusercontent.com/ineedbots/Scripts/master/%5BReflection%5D%20ineedbot''s%20functions.simba';
 
@@ -54,8 +54,8 @@ const
       DepositMenu_DepositEqu = 5;
       DepositMenu_DepositLoot = 7;
 
-      BankMenu_DepositInv = 27;
-      BankMenu_DepositEqu = 29;
+      BankMenu_DepositInv = 29;
+      BankMenu_DepositEqu = 31;
 
       Widget_PollMenu_Container = 310;
       PollMenu_Close = 1;
