@@ -1,6 +1,6 @@
 //Feel free to use code, MAKE SURE TO GIVE CREDIT WHERE DUE! -ineedbot
 const
-      fVersion = 2.094;
+      fVersion = 2.095;
 
       fScriptPage = 'https://raw.githubusercontent.com/ineedbots/Scripts/master/%5BReflection%5D%20ineedbot''s%20functions.simba';
 
@@ -9,8 +9,9 @@ const
       Widget_Ded_Container = 153;
       Ded_Close = 107;
 
-      Widget_WorldSwitch_Container = 69;
-      WorldSwitch_LogOut = 19;
+      ChangeWorld_LogOut = 19;
+      ChangeWorld_Check = 18;
+      Logout_LogOut = 6;
 
       Widget_Achieve_Container = 259;
       Widget_MiniGame_Container = 76;
@@ -486,16 +487,18 @@ begin
   if (not Self.IsLoggedIn) then
     Exit;
 
-  LogoutWidget.GetWidget(Widget_WorldSwitch_Container, WorldSwitch_LogOut);
-  if LogoutWidget.Interact then begin
-    LogoutWidget.Free;
-    exit;
-  end;
-  LogoutWidget.Free;
-
   if not Reflect.Gametab.Open(Gametab_Logout) then
     exit;
-  LogoutWidget.GetWidget(Widget_Logout_Container, 6);
+
+  LogoutWidget.GetWidget(Widget_ChangeWorld_Container, ChangeWorld_LogOut);
+  if LogoutWidget.NotNull then
+    if LogoutWidget.Interact then begin
+      LogoutWidget.Free;
+      exit;
+    end;
+  LogoutWidget.Free;
+
+  LogoutWidget.GetWidget(Widget_Logout_Container, Logout_LogOut);
   LogoutWidget.Interact;
   LogoutWidget.Free;
 end;
@@ -523,8 +526,6 @@ var sellSource, webSource : string;
     i : integer;
     _strings : TStringArray;
 begin
-  if not InRange(id, 0, 12856) then
-    exit;
   try
     webSource := getPage('http://services.runescape.com/m=itemdb_oldschool/viewitem?obj='+intToStr(id));
   except
@@ -1086,7 +1087,7 @@ var i : integer;
     TNB : TBox;
     Pnt : TPoint;
 begin
-  for i:=0 to 14 do begin
+  for i:=0 to 13 do begin
     case i of
       0: TNB:=[535,172,540,176];
       1: TNB:=[564,172,571,176];
@@ -1104,9 +1105,8 @@ begin
       13:TNB:=[728,469,733,473];
     end;
 
-    if i <> 14 then
-      if findColorTolerance(Pnt.x, Pnt.y, 1910383, TNB.X1, TNB.Y1, TNB.X2, TNB.Y2, 13) then
-        break;
+    if findColorTolerance(Pnt.x, Pnt.y, 1910383, TNB.X1, TNB.Y1, TNB.X2, TNB.Y2, 13) then
+      break;
   end;
 
   if i <> 14 then begin
@@ -1116,7 +1116,7 @@ begin
       2: Result := Gametab_QuestList;
       3: Result := GameTab_Inventory;
       4: Result := Gametab_WornEquipment;
-      5: Result := Gametab_Prayer ;
+      5: Result := Gametab_Prayer;
       6: Result := Gametab_Magic;
       7: Result := Gametab_ClanChat;
       8: Result := Gametab_FriendsList;
@@ -1208,6 +1208,15 @@ begin
     Gametab_CombatOptions, Gametab_Stats, Gametab_WornEquipment, Gametab_Prayer,
     Gametab_Magic, Gametab_QuestList, GameTab_Inventory
   ];
+
+  TempWidget.GetWidget(Widget_ChangeWorld_Container, ChangeWorld_Check);
+  if not (TempWidget.IsHidden) and (TempWidget.GetBounds.X1 <> -1) then
+  begin
+    TempWidget.Free;
+    Exit(Gametab_Logout);
+  end;
+  TempWidget.Free;
+
   for I := 0 to High(Gametabs) do
   begin
     TempWidget.GetWidget(Containers[I], 0);
@@ -1223,7 +1232,7 @@ begin
   if not (TempWidget.IsHidden) and (TempWidget.GetBounds.X1 <> -1) then
   begin
     TempWidget.Free;
-    Exit(Widget_QuestList_Container);
+    Exit(Gametab_QuestList);
   end;
   TempWidget.Free;
 
@@ -1231,7 +1240,7 @@ begin
   if not (TempWidget.IsHidden) and (TempWidget.GetBounds.X1 <> -1) then
   begin
     TempWidget.Free;
-    Exit(Widget_QuestList_Container);
+    Exit(Gametab_QuestList);
   end;
   TempWidget.Free;
 
@@ -1239,7 +1248,7 @@ begin
   if not (TempWidget.IsHidden) and (TempWidget.GetBounds.X1 <> -1) then
   begin
     TempWidget.Free;
-    Exit(Widget_QuestList_Container);
+    Exit(Gametab_QuestList);
   end;
   TempWidget.Free;
 
@@ -2508,6 +2517,8 @@ var NetworkVersion : extended;
     FileNew : string;
     ThisFile : integer;
 begin
+  if DirectoryExists(ScriptPath + '.git\') then
+    exit;
   try
     NetworkVersion := strToFloat(between('fVersion = ', ';', fscript));
   except

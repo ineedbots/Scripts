@@ -99,6 +99,8 @@ var NetworkVersion : extended;
     FileNew : string;
     ThisFile : integer;
 begin
+  if DirectoryExists(ScriptPath + '.git\') then
+    exit;
   try
     NetworkVersion := strToFloat(between('Version = ', ';', script));
   except
