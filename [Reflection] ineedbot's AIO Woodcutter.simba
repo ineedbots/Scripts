@@ -4,7 +4,7 @@ program newLapeCutter;
 {$i Reflection/Reflection.Simba}
 {$i [Reflection] ineedbot's functions.simba}
 
-const Version = 4.152;
+const Version = 4.153;
 
       PicturePage = 'http://pastebin.com/raw/mJtA7u8d';
       ScriptPage = 'https://raw.githubusercontent.com/ineedbots/Scripts/master/%5BReflection%5D%20ineedbot''s%20AIO%20Woodcutter.simba';
@@ -73,7 +73,7 @@ begin
     if not result.isValid then
       result := self[i]
     else
-      if (TReflectionTiles.DistanceFromTile(self[i].tile) < TReflectionTiles.DistanceFromTile(result.tile)) then
+      if (Reflect.Tiles.DistanceFromTile(self[i].tile) < Reflect.Tiles.DistanceFromTile(result.tile)) then
         result := self[i];
 end;
 
@@ -126,6 +126,7 @@ type BankNPC = record
      Options, Names : TStringArray;
      IDs : TIntegerArray;
      Plane : Integer;
+     Offset : array[0..2] of integer;
 end;
 
 type FireLane = record
@@ -1237,7 +1238,7 @@ begin
 
   strings := GetWordsEx(WorldBox.getText, '1234567890');
   if (length(strings) > 0) then
-    World := StrToInt(Strings[0]);
+    SmartWorld := StrToInt(Strings[0]);
 
   setLength(WorldList, length(strings));
   for i := 0 to high(strings) do
@@ -1469,14 +1470,14 @@ begin
   freeBitmap(bmp1);
 
   try
-    script := TReflectionMisc.GetPage(scriptPage);
+    script := Reflect.Misc.GetPage(scriptPage);
   except
     begin
       daLogger.Error('Failed to get script from: '+scriptPage,[]);
     end;
   end;
   try
-    fScript := TReflectionMisc.GetPage(fscriptPage);
+    fScript := Reflect.Misc.GetPage(fscriptPage);
   except
     begin
       daLogger.Error('Failed to get fscript from: '+fscriptPage,[]);
@@ -1580,15 +1581,15 @@ var currentWoodXp, CurrentWoodLevel, currentFletchXp, currentFireXP, tempInt, i,
 begin
   graphicOpti.DrawClear(0);
 
-  currentWoodLevel := TReflectLocalPlayer.GetMaxSkillLevel(SKILL_WOODCUTTING);
-  currentFletchXP := TReflectLocalPlayer.GetSkillExp(SKILL_Fletching);
-  currentWoodXP := TReflectLocalPlayer.GetSkillExp(SKILL_WOODCUTTING);
-  currentFireXP := TReflectLocalPlayer.GetSkillExp(SKILL_FireMaking);
+  currentWoodLevel := ReflectPlayer.GetMaxSkillLevel(SKILL_WOODCUTTING);
+  currentFletchXP := ReflectPlayer.GetSkillExp(SKILL_Fletching);
+  currentWoodXP := ReflectPlayer.GetSkillExp(SKILL_WOODCUTTING);
+  currentFireXP := ReflectPlayer.GetSkillExp(SKILL_FireMaking);
 
   TimeRunning := GetTimeRunning;
   perHour := 3600000/TimeRunning;
 
-  tempInt := TReflectionGametab.CurrentColor;
+  tempInt := Reflect.Gametab.CurrentColor;
   if tempInt = Gametab_Inventory then begin
     _items.GetAll;
     for i:=0 to high(_items) do begin
@@ -1641,11 +1642,11 @@ begin
     end;
   end else begin
     if tempInt = Gametab_WornEquipment then begin
-      _eitems.GetAll; //takes a while to get aswell...
+      _eitems.GetAll;
       for i:=0 to high(_eitems) do begin
-        h := _eitems[i].ID; //also this needs to .getID
+        h := _eitems[i].getID;
         if(inIntArray(AxeIDs, h))then begin
-          tB := getEquippedItemBounds('weapon');
+          tB := _eitems[i].getBox;
           graphicOpti.DrawClippedText('Axe', 'upchars07', Point(tB.x1 - 5, tB.y1), true, 65280);
         end;
       end;
@@ -1750,7 +1751,7 @@ begin
   tempCheck := currentWoodXP-startWoodXP;
   if (tempCheck > 0) then begin
     tempCheck2 := Round(tempCheck*perHour);
-    graphicOpti.DrawClippedText('Woodcutting XP gained: '+intToStr(tempCheck)+'('+InttoStr(tempCheck2)+'), level: '+intToStr(currentWoodLevel)+'('+InttoStr(CurrentWoodLevel-StartWoodLevel)+') TTL: '+TReflectionTime.msToTime(Round(varExpToGoal(CurrentWoodXP, CurrentWoodLevel+1)/(((CurrentWoodXP-startWoodXP))/GetTimeRunning)), Time_Bare), 'upchars07', Point(5, tempInt), true, 65280);
+    graphicOpti.DrawClippedText('Woodcutting XP gained: '+intToStr(tempCheck)+'('+InttoStr(tempCheck2)+'), level: '+intToStr(currentWoodLevel)+'('+InttoStr(CurrentWoodLevel-StartWoodLevel)+') TTL: '+Reflect.Time.msToTime(Round(varExpToGoal(CurrentWoodXP, CurrentWoodLevel+1)/(((CurrentWoodXP-startWoodXP))/GetTimeRunning)), Time_Bare), 'upchars07', Point(5, tempInt), true, 65280);
     tempInt:=tempInt+15;
   end;
   tempCheck := currentFletchXP-startFletchXP;
@@ -1782,12 +1783,12 @@ begin
     end;
   end;
   if useBreaks then begin
-    graphicOpti.DrawClippedText('Breaks taken: '+intToStr(breaks)+', next break in: '+TReflectionTime.msToTime(breakInFinal-breakInTimer.Elapsedtime, Time_Bare), 'upchars07', Point(5, tempInt), true, 65280);
+    graphicOpti.DrawClippedText('Breaks taken: '+intToStr(breaks)+', next break in: '+Reflect.Time.msToTime(breakInFinal-breakInTimer.Elapsedtime, Time_Bare), 'upchars07', Point(5, tempInt), true, 65280);
     tempInt:=tempInt+15;
   end;
   graphicOpti.DrawClippedText('Current job: '+daLocation.Name+', bank:'+boolToStr(daLocation.canBank)+', fletch:'+boolToStr(daLocation.canfletch)+', fire:'+boolToStr(daLocation.canfire), 'upchars07', Point(5, tempInt), true, 65280);
   tempInt:=tempInt+15;
-  graphicOpti.DrawClippedText('Ran for '+TReflectionTime.msToTime(getTimeRunning(), TIME_FORMAL)+'. Script version: '+floatToStr(version)+'('+floatToStr(fversion)+')', 'upchars07', Point(5, tempInt), true, 65280);
+  graphicOpti.DrawClippedText('Ran for '+Reflect.Time.msToTime(getTimeRunning(), TIME_FORMAL)+'. Script version: '+floatToStr(version)+'('+floatToStr(fversion)+')', 'upchars07', Point(5, tempInt), true, 65280);
 
   Reflect.Smart.Graphics.DrawBitmap(graphicOpti, Point(0, 0), true);
 end;
@@ -1949,7 +1950,7 @@ begin
   case job of
     7:begin
       equ := R_GetEquipText;
-      wclevel := TReflectLocalPlayer.GetMaxSkillLevel(SKILL_WOODCUTTING);
+      wclevel := ReflectPlayer.GetMaxSkillLevel(SKILL_WOODCUTTING);
       logIDs := daLocation.getLogIDs;
       foundAxe := false;
       coins := 0;
@@ -1963,7 +1964,7 @@ begin
       if equ = 'Steel axe' then
         foundAxe := true;
       if (equ = 'Unarmed') and _item.Find('Bronze axe') then begin
-        if TReflectionGametab.CurrentColor <> Gametab_Inventory then
+        if Reflect.Gametab.CurrentColor <> Gametab_Inventory then
           Reflect.Gametab.Open(Gametab_Inventory);
         Reflect.Mouse.Move(_item.getbox, mouse_left);
         sleepScript(1000+random(1000));
@@ -1974,12 +1975,14 @@ begin
         IDs := [7129, 1540];
         Tile := Point(3215, 3245);
         Offset := [-62, 0, 100];
+        Actions := ['Open'];
         TileEncompass := [Point(3212, 3251), Point(3214, 3249), Point(3214, 3244), Point(3212, 3242), Point(3210, 3242), Point(3208, 3244), Point(3208, 3249), Point(3210, 3251)];
       end;
       with daLocation.DoorObjects[1] do begin
         IDs := [7122, 1535];
         TileOffset := [0, 0];
         Tile := Point(3234, 3203);
+        Actions := ['Open'];
         Offset := [-62, 0, 100];
         TileEncompass := [Point(3233, 3205), Point(3233, 3201), Point(3228, 3201), Point(3228, 3205)];
       end;
@@ -2005,7 +2008,7 @@ begin
                 _items.GetAll;
                 for i:=0 to high(_items) do begin
                   if inIntArray(LogIDs, _items[i].GetId) then begin
-                    if TReflectionGametab.CurrentColor <> Gametab_Inventory then
+                    if Reflect.Gametab.CurrentColor <> Gametab_Inventory then
                       Reflect.Gametab.Open(Gametab_Inventory);
                     Reflect.Mouse.Move(_items[i].getbox, mouse_right);
                     Reflect.Text.ChooseOption('Drop', 2500);
@@ -2015,14 +2018,14 @@ begin
                 end;
               end;
               daLocation.DoorObjects[1].Open(false);
-              if not R_SellMenuOpen then begin
+              if not Reflect.Shop.IsOpen then begin
                 updateScreen('Trading Bob.');
-                R_TryInteractNPC([505], ['Trade'], false, 5, 0, 0, 50);
+                R_TryInteractNPC([505], ['Trade'], 5, 0, 0, 50);
                 ReflectPlayer.FFlag(0, 5000+random(500));
                 sleepScript(random(1000));
               end;
               updateScreen('Buying axe.');
-              if R_SellMenuOpen then begin
+              if Reflect.Shop.IsOpen then begin
                 Reflect.Mouse.Move(Point(235, 81), 5, 5, Mouse_right);
                 if Reflect.Text.ChooseOption('Buy 1') then
                   foundAxe := true;
@@ -2047,6 +2050,7 @@ begin
             Plane := 0;
             IDs := [507, 506];
             Options := ['Trade S'];
+            Offset := [0, 0, 50];
           end;
           daLocation.isSell := true;
 
@@ -2093,6 +2097,7 @@ begin
             Plane := 0;
             IDs := [507, 506];
             Options := ['Trade S'];
+            Offset := [0, 0, 50];
           end;
           daLocation.isSell := true;
 
@@ -2157,17 +2162,17 @@ begin
 
   AddOnTerminate('FreeDTMZ');
 
-  R_CloseAllMenus;
+  Reflect.Interfaces.CloseAll;
   updateAllRefVars;
   updateScreen('Setting up...');
   useStats := true;
   if useStats then
     statsServer.Setup('6');
 
-  StartWoodXP := TReflectLocalPlayer.GetSkillExp(SKILL_WOODCUTTING);
-  StartWoodLevel := TReflectLocalPlayer.GetMaxSkillLevel(SKILL_WOODCUTTING);
-  StartFletchXP := TReflectLocalPlayer.GetSkillExp(SKILL_FLETCHING);
-  StartFireXP := TReflectLocalPlayer.GetSkillExp(SKILL_FIREMAKING);
+  StartWoodXP := ReflectPlayer.GetSkillExp(SKILL_WOODCUTTING);
+  StartWoodLevel := ReflectPlayer.GetMaxSkillLevel(SKILL_WOODCUTTING);
+  StartFletchXP := ReflectPlayer.GetSkillExp(SKILL_FLETCHING);
+  StartFireXP := ReflectPlayer.GetSkillExp(SKILL_FIREMAKING);
 
   LastXPXPCheck := StartWoodXP;
   LastXPCheck.restart;
@@ -3050,6 +3055,7 @@ begin
         Plane := 0;
         IDs := [5456, 5455, 5454, 5453];
         Options := ['Bank B'];
+        Offset := [0, 0, 50];
       end;
 
       setLength(daLocation.Logs, 1);
@@ -3520,6 +3526,7 @@ begin
         Plane := 0;
         IDs := [516, 517];
         Options := ['Trade'];
+        Offset := [0, 0, 50];
       end;
       daLocation.isSell := true;
 
@@ -3735,6 +3742,7 @@ begin
         IDs := [7143, 1543];
         Tile := Point(3091, 3470);
         TileOffset := [0, 0];
+        Actions := ['Open'];
         Offset := [62, 0, 100];
         TileEncompass := [Point(3091, 3468), Point(3085, 3468), Point(3085, 3482), Point(3089, 3482), Point(3089, 3473), Point(3091, 3473)];
       end;
@@ -4202,6 +4210,7 @@ begin
         Names := [];
         Plane := 0;
         IDs := [507, 506];
+        Offset := [0, 0, 50];
         Options := ['Trade'];
       end;
       daLocation.isSell := true;
@@ -4210,6 +4219,7 @@ begin
       with daLocation.DoorObjects[0] do begin
         TileOffset := [0, 0];
         IDs := [7129, 1540];
+        Actions := ['Open'];
         Tile := Point(3215, 3245);
         Offset := [-62, 0, 100];
         TileEncompass := [Point(3212, 3251), Point(3214, 3249), Point(3214, 3244), Point(3212, 3242), Point(3210, 3242), Point(3208, 3244), Point(3208, 3249), Point(3210, 3251)];
@@ -4650,17 +4660,17 @@ begin
   if disableBank then
     daLocation.canBank := false;
 
-  if daLocation.canfire and not TReflectionInventory.Contains(TinderIds) then
+  if daLocation.canfire and not Reflect.Inv.Contains(TinderIds) then
     daLocation.canfire := false;
 
-  if daLocation.canfletch and not TReflectionInventory.Contains(KnifeIDs) then
+  if daLocation.canfletch and not Reflect.Inv.Contains(KnifeIDs) then
     daLocation.canfletch := false;
 end;
 
 procedure FreeDTMZ;
 begin
   graphicOpti.Free;
-  daLogger.Status('Thanks for using ineedbot''s AIO Woodcutter v'+FloatToStr(Version)+'('+floatToStr(fversion)+')'+'! Please post your progress reports! Run time: '+TReflectionTime.msToTime(getTimeRunning(), TIME_FORMAL), []);
+  daLogger.Status('Thanks for using ineedbot''s AIO Woodcutter v'+FloatToStr(Version)+'('+floatToStr(fversion)+')'+'! Please post your progress reports! Run time: '+Reflect.Time.msToTime(getTimeRunning(), TIME_FORMAL), []);
   if useStats then
     if statsServer.Commit then
       daLogger.Status('Successfully sent heartbeat to ''stats.grats.pw''.', []);
@@ -4780,13 +4790,13 @@ begin
   logIDs := daLocation.getLogIDs;
   exitMenu;
   dropPattern := [1, 5, 9, 13, 17, 21, 25, 2, 6, 10, 14, 18, 22, 26, 3, 7, 11, 15, 19, 23, 27, 4, 8, 12, 16, 20, 24, 28];
-  while ReflectPlayer.isLoggedIn and (firstTim or TReflectionInventory.Contains(logIDs))
+  while ReflectPlayer.isLoggedIn and (firstTim or Reflect.Inv.Contains(logIDs))
   and not ReflectPlayer.IsUnderAttack and not anySlotActivated do begin
     updateScreen('Dropping items.');
-    if TReflectionGametab.CurrentColor <> Gametab_Inventory then
+    if Reflect.Gametab.CurrentColor <> Gametab_Inventory then
       Reflect.Gametab.Open(Gametab_Inventory);
     randomHandler;
-    _items.GetAllIncludeEmpty;
+    _items.GetAll(true);
     for i:=0 to high(dropPattern) do begin
       if not ReflectPlayer.isLoggedIn then
         break;
@@ -4849,10 +4859,10 @@ begin
         end;
 
         if not PointInBox(tP, tB) then
-          MoveMouse(TReflectionMath.iGaussRange(tb.X1, tb.X2), TReflectionMath.iGaussRange(tb.y1, tb.y2));
+          MoveMouse(Reflect.Math.iGaussRange(tb.X1, tb.X2), Reflect.Math.iGaussRange(tb.y1, tb.y2));
 
         fastClick(Mouse_right);
-        chooseOptionMultiFast('Drop');
+        Reflect.Text.chooseOptionFast('Drop');
       end;
     end;
     firstTim := false;
@@ -4873,10 +4883,10 @@ begin
     exit;
 
   logIDs := daLocation.getLogIDs;
-  if not TReflectionInventory.Contains(LogIDs) then
+  if not Reflect.Inv.Contains(LogIDs) then
     exit;
 
-  if not TReflectionInventory.Contains(TinderIds) then
+  if not Reflect.Inv.Contains(TinderIds) then
     Exit;
 
   goodLanes := getGoodFireLaneIndices;
@@ -4914,14 +4924,14 @@ begin
       goodLane := goodLanes[i];
 
   fail.restart;
-  while not TReflectionTiles.NearTile(daLocation.FireLanes[goodLane].StartFireTile, 1) and R_TileOnMS(daLocation.FireLanes[goodLane].StartFireTile, tP) and (fail.Elapsedtime < 10000) do begin
+  while not Reflect.Tiles.NearTile(daLocation.FireLanes[goodLane].StartFireTile, 1) and R_TileOnMS(daLocation.FireLanes[goodLane].StartFireTile, tP) and (fail.Elapsedtime < 10000) do begin
     updateScreen('Going to firelane tile.');
     R_InteractTile(daLocation.FireLanes[goodLane].StartFireTile, ['Walk']);
     ReflectPlayer.FFlag(0, 5000+random(500));
     sleepScript(500+random(500));
   end;
-  tP := TReflectionTiles.GetGlobalTile;
-  if TReflectionInventory.Contains(LogIDs) and TReflectionInventory.Contains(TinderIds) and
+  tP := Reflect.Tiles.GetGlobalTile;
+  if Reflect.Inv.Contains(LogIDs) and Reflect.Inv.Contains(TinderIds) and
         (tP.Y = daLocation.FireLanes[goodLane].StartFireTile.Y) and (tP.X >= daLocation.FireLanes[goodLane].EndFireTile.x) and
         (tP.X <= daLocation.FireLanes[goodLane].StartFireTile.x) and ReflectPlayer.isLoggedIn and not ReflectPlayer.IsUnderAttack then begin
     for h:=daLocation.FireLanes[goodLane].EndFireTile.X to daLocation.FireLanes[goodLane].StartFireTile.X do
@@ -4933,7 +4943,7 @@ begin
     doProggy(ProggieLocation);
   end;
 
-  while TReflectionInventory.Contains(LogIDs) and TReflectionInventory.Contains(TinderIds) and
+  while Reflect.Inv.Contains(LogIDs) and Reflect.Inv.Contains(TinderIds) and
         (tP.Y = daLocation.FireLanes[goodLane].StartFireTile.Y) and (tP.X >= daLocation.FireLanes[goodLane].EndFireTile.x) and
         (tP.X <= daLocation.FireLanes[goodLane].StartFireTile.x) and ReflectPlayer.isLoggedIn and not ReflectPlayer.IsUnderAttack do begin
     if Reflect.Gametab.CurrentColor <> Gametab_Inventory then
@@ -4992,14 +5002,14 @@ begin
       fail.restart;
       fail2.restart;
       fail3.restart;
-      while TReflectionTiles.NearTile(tP, 1) and (fail.Elapsedtime < 2500) do begin
+      while Reflect.Tiles.NearTile(tP, 1) and (fail.Elapsedtime < 2500) do begin
         //updateScreen('Making fires...');  //to slow
         //randomHandler;//to slow
         if inIntArray(fireAnimIDs, ReflectPlayer.getAnimation) then
           fail.restart;
         if (fail3.Elapsedtime > 350) then begin     //used to stop overlap or false postive with wasactive
           if not anySlotActivated(true) then begin
-            if (R_CountItems(LogIDs) > 1) and ((tP.X-1) >= daLocation.FireLanes[goodLane].EndFireTile.x) then begin
+            if (Reflect.Inv.CountQuantities(LogIDs) > 1) and ((tP.X-1) >= daLocation.FireLanes[goodLane].EndFireTile.x) then begin
               for h:=0 to high(TinderIds) do begin
                 if(_item.Find(TinderIds[h]))then begin
                   getMousePos(tP2.x, tP2.y);
@@ -5051,7 +5061,7 @@ begin
       _obj.GetAt(ObjGame, tP);
       while not inIntArray(FireIDs, _obj.GetId) and (fail.Elapsedtime < 2500) do
         _obj.GetAt(ObjGame, tP);
-      tP := TReflectionTiles.GetGlobalTile;
+      tP := Reflect.Tiles.GetGlobalTile;
     end else begin
       for h:=tP.x downto daLocation.FireLanes[goodLane].EndFireTile.X do begin
         _obj.GetAt(ObjGame, Point(h, tP.y));
@@ -5073,7 +5083,7 @@ begin
       end;
 
       fail.restart;
-      while not TReflectionTiles.NearTile(tP, 1) and R_TileOnMS(tP, tP2) and (fail.Elapsedtime < 10000) do begin
+      while not Reflect.Tiles.NearTile(tP, 1) and R_TileOnMS(tP, tP2) and (fail.Elapsedtime < 10000) do begin
         updateScreen('Going to fire spot tile...');
         FixActive;
         R_InteractTile(tP, ['Walk']);
@@ -5093,9 +5103,9 @@ var _item : TReflectInvItem;
     logIDs : TIntegerArray;
 begin
   logIDs := daLocation.getLogIDs;
-  while ReflectPlayer.IsLoggedIn and TReflectionInventory.Contains(LogIDs) and TReflectionInventory.Contains(KnifeIDs)
+  while ReflectPlayer.IsLoggedIn and Reflect.Inv.Contains(LogIDs) and Reflect.Inv.Contains(KnifeIDs)
   and not ReflectPlayer.IsUnderAttack do begin
-    if TReflectionGametab.CurrentColor <> Gametab_Inventory then
+    if Reflect.Gametab.CurrentColor <> Gametab_Inventory then
       Reflect.Gametab.Open(Gametab_Inventory);
     UpdateScreen('Going to fletch.');
     if not anySlotActivated then begin
@@ -5119,12 +5129,12 @@ begin
     Reflect.Mouse.Move(daLocation.FletchPoint, 15, 15, mouse_right);
     if Reflect.Text.ChooseOption('Make X') then begin
       sleepScript(750+random(1000));
-      TReflectionKeyboard.TypeSend('99', true);
+      Reflect.Keyboard.TypeSend('99', true);
       sleepScript(random(1000));
       if(random(round(AntiAmount/200)) <> 1)then
-        TReflectionAntiban.MMouseOffClient('rand');
+        Reflect.Antiban.MMouseOffClient('rand');
       sleepScript(1000);
-      while ReflectPlayer.IsLoggedIn and R_isDoingAnimation(FletchAnimationIDs, 1000) and
+      while ReflectPlayer.IsLoggedIn and ReflectPlayer.isDoingAnim(FletchAnimationIDs, 1000) and
       not ReflectPlayer.IsUnderAttack do begin
         randomHandler;
         FixActive;
@@ -5144,8 +5154,7 @@ begin
   if not daLocation.canBank or ((length(daLocation.BankLocations) = 0) and (length(daLocation.BankNPCs) = 0)) then
     exit;
 
-  if Reflect.Bank.IsOpen or Reflect.Bank.IsPinOpen or R_DepositMenuOpen(false)
-  or R_SellMenuOpen(false) or R_PinSettingsOpen(false) then
+  if Reflect.Bank.IsOpen or Reflect.Bank.IsPinOpen or Reflect.Bank.IsDepositBoxOpen or Reflect.Shop.IsOpen then
     exit;
 
   case daLocation.ID of
@@ -5159,7 +5168,7 @@ begin
           didPath := true;
         end;
       end;
-      while ReflectPlayer.IsLoggedIn and (TReflectionTiles.GetPlane <> 2) and TReflectionTiles.NearTile(daLocation.customTPAs[0][0], 100) do begin
+      while ReflectPlayer.IsLoggedIn and (Reflect.Tiles.GetPlane <> 2) and Reflect.Tiles.NearTile(daLocation.customTPAs[0][0], 100) do begin
         randomHandler;
         if(not R_TileOnMS(daLocation.customTPAs[0][0], rstile))then begin
           UpdateScreen('Going to stairs.');
@@ -5173,7 +5182,7 @@ begin
           Sleepscript(random(2000));
         end;
       end;
-      if (TReflectionTiles.GetPlane = 2) then
+      if (Reflect.Tiles.GetPlane = 2) then
         goTo normal;
     end;
     32..33, 44:begin //gnome
@@ -5186,7 +5195,7 @@ begin
           didPath := true;
         end;
       end;
-      if TReflectionTiles.GetPlane = 0 then begin
+      if Reflect.Tiles.GetPlane = 0 then begin
         if(not R_TileOnMS(daLocation.customTPAs[0][0], rstile))then begin
           UpdateScreen('Going to stairs.');
           ReflectPlayer.BlindWalkMM(daLocation.customTPAs[0][0], 5);
@@ -5199,7 +5208,7 @@ begin
             Sleepscript(random(2000));
         end;
       end;
-      if TReflectionTiles.GetPlane = 1 then
+      if Reflect.Tiles.GetPlane = 1 then
         goto Normal;
     end;
     18:begin//edge
@@ -5215,7 +5224,7 @@ begin
       if (length(daLocation.BankNPCs) = 0) then begin
         nearestBank.Tile.x := -1;
         for i:=0 to high(daLocation.BankLocations) do
-          if (TReflectionTiles.DistanceFromTile(daLocation.BankLocations[i].Tile) < TReflectionTiles.DistanceFromTile(nearestBank.Tile)) or (nearestBank.Tile.x = -1) then
+          if (Reflect.Tiles.DistanceFromTile(daLocation.BankLocations[i].Tile) < Reflect.Tiles.DistanceFromTile(nearestBank.Tile)) or (nearestBank.Tile.x = -1) then
             nearestBank := daLocation.BankLocations[i];
         if R_TileOnMS(nearestBank.Tile, RSTile, nearestBank.Offset[0], nearestBank.Offset[1], nearestBank.Offset[2]) then
           exit;
@@ -5223,7 +5232,7 @@ begin
         nearestNPCTile.x := -1;
         for i:=0 to high(daLocation.BankNPCs) do
           for h:=0 to high(daLocation.BankNPCs[i].Locations) do
-            if (TReflectionTiles.DistanceFromTile(daLocation.BankNPCs[i].Locations[h]) < TReflectionTiles.DistanceFromTile(nearestNPCTile)) or (nearestNPCTile.x = -1) then
+            if (Reflect.Tiles.DistanceFromTile(daLocation.BankNPCs[i].Locations[h]) < Reflect.Tiles.DistanceFromTile(nearestNPCTile)) or (nearestNPCTile.x = -1) then
               nearestNPCTile := daLocation.BankNPCs[i].Locations[h];
         if R_TileOnMS(nearestNPCTile, RSTile) then
           exit;
@@ -5242,7 +5251,7 @@ begin
       if (length(daLocation.BankNPCs) = 0) then begin
         nearestBank.Tile.x := -1;
         for i:=0 to high(daLocation.BankLocations) do
-          if (TReflectionTiles.DistanceFromTile(daLocation.BankLocations[i].Tile) < TReflectionTiles.DistanceFromTile(nearestBank.Tile)) or (nearestBank.Tile.x = -1) then
+          if (Reflect.Tiles.DistanceFromTile(daLocation.BankLocations[i].Tile) < Reflect.Tiles.DistanceFromTile(nearestBank.Tile)) or (nearestBank.Tile.x = -1) then
             nearestBank := daLocation.BankLocations[i];
 
         updateScreen('Going to bank.');
@@ -5253,7 +5262,7 @@ begin
         nearestNPCTile.x := -1;
         for i:=0 to high(daLocation.BankNPCs) do
           for h:=0 to high(daLocation.BankNPCs[i].Locations) do
-            if (TReflectionTiles.DistanceFromTile(daLocation.BankNPCs[i].Locations[h]) < TReflectionTiles.DistanceFromTile(nearestNPCTile)) or (nearestNPCTile.x = -1) then
+            if (Reflect.Tiles.DistanceFromTile(daLocation.BankNPCs[i].Locations[h]) < Reflect.Tiles.DistanceFromTile(nearestNPCTile)) or (nearestNPCTile.x = -1) then
               nearestNPCTile := daLocation.BankNPCs[i].Locations[h];
 
         updateScreen('Going to bank npc.');
@@ -5276,8 +5285,7 @@ begin
   if not daLocation.canBank or ((length(daLocation.BankLocations) = 0) and (length(daLocation.BankNPCs) = 0)) then
     exit;
 
-  if Reflect.Bank.IsOpen or Reflect.Bank.IsPinOpen or R_DepositMenuOpen(false)
-  or R_SellMenuOpen(false) or R_PinSettingsOpen(false) then
+  if Reflect.Bank.IsOpen or Reflect.Bank.IsPinOpen or Reflect.Bank.IsDepositBoxOpen or Reflect.Shop.IsOpen then
     exit;
 
   case daLocation.ID of
@@ -5293,10 +5301,10 @@ begin
 
         nearestBank.Tile.x := -1;
         for i:=0 to high(daLocation.BankLocations) do
-          if (TReflectionTiles.DistanceFromTile(daLocation.BankLocations[i].Tile) < TReflectionTiles.DistanceFromTile(nearestBank.Tile)) or (nearestBank.Tile.x = -1) then
+          if (Reflect.Tiles.DistanceFromTile(daLocation.BankLocations[i].Tile) < Reflect.Tiles.DistanceFromTile(nearestBank.Tile)) or (nearestBank.Tile.x = -1) then
             nearestBank := daLocation.BankLocations[i];
 
-        if (TReflectionTiles.GetPlane <> nearestBank.Plane) then
+        if (Reflect.Tiles.GetPlane <> nearestBank.Plane) then
           exit;
 
         if not R_TileOnMS(nearestBank.Tile, RSTile, nearestBank.Offset[0], nearestBank.Offset[1], nearestBank.Offset[2]) then begin
@@ -5310,8 +5318,8 @@ begin
           if R_InteractTile(nearestBank.Tile, nearestBank.Options, nearestBank.Offset[0], nearestBank.Offset[1], nearestBank.Offset[2], true) then begin
             ReflectPlayer.FFlag(0, 5000+random(500));
             Timer.Restart;
-            while not Reflect.Bank.IsOpen and not Reflect.Bank.IsPinOpen and not R_DepositMenuOpen(false)
-            and not R_SellMenuOpen(false) and not R_PinSettingsOpen(false) and (timer.ElapsedTime < 2500) do
+            while not Reflect.Bank.IsOpen and not Reflect.Bank.IsPinOpen and not Reflect.Bank.IsDepositBoxOpen
+            and not Reflect.Shop.IsOpen and (timer.ElapsedTime < 2500) do
               sleepScript(50);
           end;
         end;
@@ -5319,20 +5327,20 @@ begin
         nearestNPCTile.x := -1;
         for i:=0 to high(daLocation.BankNPCs) do
           for h:=0 to high(daLocation.BankNPCs[i].Locations) do
-            if (TReflectionTiles.DistanceFromTile(daLocation.BankNPCs[i].Locations[h]) < TReflectionTiles.DistanceFromTile(nearestNPCTile)) or (nearestNPCTile.x = -1) then begin
+            if (Reflect.Tiles.DistanceFromTile(daLocation.BankNPCs[i].Locations[h]) < Reflect.Tiles.DistanceFromTile(nearestNPCTile)) or (nearestNPCTile.x = -1) then begin
               nearestNPCTile := daLocation.BankNPCs[i].Locations[h];
               nearestNPC := daLocation.BankNPCs[i];
             end;
 
-        if (TReflectionTiles.GetPlane <> nearestNPC.Plane) then
+        if (Reflect.Tiles.GetPlane <> nearestNPC.Plane) then
           exit;
 
         updateScreen('Opening bank npc.');
-        if R_TryInteractNPC(nearestNPC.IDs, nearestNPC.Options, false, 5) then begin
+        if R_TryInteractNPC(nearestNPC.IDs, nearestNPC.Options, 5, nearestNPC.Offset[0], nearestNPC.Offset[1], nearestNPC.Offset[2]) then begin
           ReflectPlayer.FFlag(0, 5000+random(500));
           Timer.Restart;
-          while not Reflect.Bank.IsOpen and not Reflect.Bank.IsPinOpen and not R_DepositMenuOpen(false)
-          and not R_SellMenuOpen(false) and not R_PinSettingsOpen(false) and (timer.ElapsedTime < 2500) do
+          while not Reflect.Bank.IsOpen and not Reflect.Bank.IsPinOpen and not Reflect.Bank.IsDepositBoxOpen
+          and not Reflect.Shop.IsOpen and (timer.ElapsedTime < 2500) do
             sleepScript(50);
         end;
       end;
@@ -5351,7 +5359,7 @@ begin
 
   case daLocation.ID of
     5:begin//lum yew
-      while ReflectPlayer.IsLoggedIn and (TReflectionTiles.GetPlane <> 0) and TReflectionTiles.NearTile(daLocation.customTPAs[0][0], 100) do begin
+      while ReflectPlayer.IsLoggedIn and (Reflect.Tiles.GetPlane <> 0) and Reflect.Tiles.NearTile(daLocation.customTPAs[0][0], 100) do begin
         randomHandler;
         if(not R_TileOnMS(daLocation.customTPAs[0][0], rstile))then begin
           UpdateScreen('Going to stairs.');
@@ -5365,11 +5373,11 @@ begin
           Sleepscript(random(2000));
         end;
       end;
-      if (TReflectionTiles.GetPlane = 0) then
+      if (Reflect.Tiles.GetPlane = 0) then
         goTo normal;
     end;
     32..33, 44:begin //gnome
-      if(TReflectionTiles.GetPlane <> 0) then begin
+      if(Reflect.Tiles.GetPlane <> 0) then begin
         if(not R_TileOnMS(daLocation.customTPAs[0][1], rstile))then begin
           UpdateScreen('Going to stairs.');
           ReflectPlayer.BlindWalkMM(daLocation.customTPAs[0][1], 5);
@@ -5382,7 +5390,7 @@ begin
           Sleepscript(random(2000));
         end;
       end;
-      if(TReflectionTiles.GetPlane = 0) then
+      if(Reflect.Tiles.GetPlane = 0) then
         goTO normal;
     end;
     18:begin//edge
@@ -5407,7 +5415,7 @@ begin
 
       farest.x := -1;
       for i:=0 to high(daLocation.TreeLocations) do
-        if (TReflectionTiles.DistanceFromTile(daLocation.TreeLocations[i]) > TReflectionTiles.DistanceFromTile(farest)) or (farest.x = -1) then
+        if (Reflect.Tiles.DistanceFromTile(daLocation.TreeLocations[i]) > Reflect.Tiles.DistanceFromTile(farest)) or (farest.x = -1) then
           farest := daLocation.TreeLocations[i];
 
       updateScreen('Going to tree spots.');
@@ -5432,19 +5440,19 @@ begin
   firstTim := true;
   logIDs := daLocation.getLogIDs;
   if daLocation.isSell then begin
-    if not R_SellMenuOpen then
+    if not Reflect.Shop.IsOpen then
       exit;
     doCount;
     updateScreen('Selling items.');
     doProggy(ProggieLocation);
-    while ReflectPlayer.isLoggedIn and (TReflectionInventory.Contains(LogIDs) or firstTim) and
-    R_SellMenuOpen do begin
+    while ReflectPlayer.isLoggedIn and (Reflect.Inv.Contains(LogIDs) or firstTim) and
+    Reflect.Shop.IsOpen do begin
       updateScreen('Selling items.');
       _items.GetAll;
       for i:=0 to high(_items) do begin
         if not ReflectPlayer.IsLoggedIn then
           break;
-        if not R_SellMenuOpen then
+        if not Reflect.Shop.IsOpen then
           break;
 
         if not itemInSlot(_items[i].getinvslot) then
@@ -5475,7 +5483,7 @@ begin
           sleepScript(20 + Random(20));
         sleepScript(500+random(250));
         if pos('highly over-stocked', Reflect.Chat.GetTextOnLine(1)) > 1 then begin
-          R_SellMenuOpen(true);
+          Reflect.Interfaces.Close(Interface_ShopMenu);
           sleepScript(1000+random(1500));
           doDropping(true);
           exit;
@@ -5484,34 +5492,46 @@ begin
       firstTim := false;
     end;
     if(random(2) = 1)then
-      R_SellMenuOpen(true);
+      Reflect.Interfaces.Close(Interface_ShopMenu);
     sleepScript(random(1500));
     goToTrees;
   end else begin
-    if not Reflect.Bank.IsOpen and not R_DepositMenuOpen and not Reflect.Bank.IsPinOpen then
+    if not Reflect.Bank.IsOpen and not Reflect.Bank.IsDepositBoxOpen and not Reflect.Bank.IsPinOpen then
       exit;
+
     if Reflect.Bank.IsPinOpen then begin
-      Reflect.Bank.EnterPin(ReflectPlayer.Pin);
+      if length(ReflectPlayer.Pin) = 4 then
+        Reflect.Bank.EnterPin(ReflectPlayer.Pin)
+      else begin
+        Reflect.Bank.Close;
+        daLogger.Status('Invalid pin.', []);
+        UpdateScreen('Invalid pin.');
+        ReflectPlayer.Active := false;
+        ReflectPlayer.Logout;
+        sleepScript(2500);
+        exit;
+      end;
       sleepScript(random(2500));
     end;
-    if not Reflect.Bank.IsOpen and not R_DepositMenuOpen then
+
+    if not Reflect.Bank.IsOpen and not Reflect.Bank.IsDepositBoxOpen then
       exit;
     doCount;
     updateScreen('Banking items.');
     doProggy(ProggieLocation);
-    while ReflectPlayer.IsLoggedIn and (TReflectionInventory.Contains(LogIDs) or firstTim) and
-    (Reflect.Bank.IsOpen or R_DepositMenuOpen) do begin
+    while ReflectPlayer.IsLoggedIn and (Reflect.Inv.Contains(LogIDs) or firstTim) and
+    (Reflect.Bank.IsOpen or Reflect.Bank.IsDepositBoxOpen) do begin
       updateScreen('Banking items.');
-      if not TReflectionInventory.Contains(KnifeIDs) and not TReflectionInventory.Contains(AxeIDs) and
-      not TReflectionInventory.Contains(CoinsIDs) and not TReflectionInventory.Contains(ShaftIDs) and (random(2) = 0) then begin
-        R_QuickDeposit('inv');
+      if not Reflect.Inv.Contains(KnifeIDs) and not Reflect.Inv.Contains(AxeIDs) and
+      not Reflect.Inv.Contains(CoinsIDs) and not Reflect.Inv.Contains(ShaftIDs) and (random(2) = 0) then begin
+        Reflect.Bank.DepositAll('inv');
         sleepScript(1000+random(1000));
       end else begin
         _items.GetAll;
         for i:=0 to high(_items) do begin
           if not ReflectPlayer.IsLoggedIn then
             break;
-          if not Reflect.Bank.IsOpen and not R_DepositMenuOpen then
+          if not Reflect.Bank.IsOpen and not Reflect.Bank.IsDepositBoxOpen then
             break;
 
           if not itemInSlot(_items[i].getinvslot) then
@@ -5532,10 +5552,10 @@ begin
               continue;
           end;
 
-          if not R_DepositMenuOpen then
+          if not Reflect.Bank.IsDepositBoxOpen then
             tB := _items[i].GetBox
           else
-            tB := depositItemBox(_items[i].GetInvSlot);
+            tB := Reflect.Bank.DepositBoxBox(_items[i].GetInvSlot);
           count := Reflect.Inv.Count;
           Reflect.Mouse.Move(tB, mouse_right);
           sleepScript(100+random(100));
@@ -5548,10 +5568,9 @@ begin
       end;
       firstTim := false;
     end;
-    if(random(2) = 1)then begin
-      R_DepositMenuOpen(true);
+    if(random(2) = 1)then
       Reflect.Bank.Close;
-    end;
+
     sleepScript(random(1500));
     goToTrees;
   end;
@@ -5612,13 +5631,13 @@ begin
         exit;
     end;
     5:begin //lum yew
-      if TReflectionTiles.GetPlane <> 0 then begin
+      if Reflect.Tiles.GetPlane <> 0 then begin
         goToTrees;
         exit;
       end;
     end;
     32..33, 44:begin     //gnome
-      if TReflectionTiles.GetPlane <> 0 then begin
+      if Reflect.Tiles.GetPlane <> 0 then begin
         goToTrees;
         exit;
       end;
@@ -5671,7 +5690,7 @@ begin
           end;
           tempTree := daLocation.TreeObjects.getClosestTreeTime;
           if tempTree.isValid then begin
-            if not TReflectionTiles.NearTile(TempTree.Tile, 5) then begin
+            if not Reflect.Tiles.NearTile(TempTree.Tile, 5) then begin
               ReflectPlayer.BlindWalkMM(Point(tempTree.Tile.x + tempTree.TileOffset[0], tempTree.Tile.y + tempTree.TileOffset[1]), 5);
               ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
               sleepScript(random(1500));
@@ -5694,10 +5713,12 @@ begin
       ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
       sleepScript(random(1500));
     end;
-    R_CloseAllMenus;
+
+    Reflect.Interfaces.CloseAll;
+
     if R_TileOnMS(tempTree.Tile, rsTile, tempTree.Offset[0], tempTree.Offset[1], tempTree.Offset[2]) then begin
-      if UseSpec and (TReflectLocalPlayer.GetSpecPercent >= 100)then begin
-        if TReflectionGametab.CurrentColor <> Gametab_CombatOptions then
+      if UseSpec and (ReflectPlayer.GetSpecPercent >= 100)then begin
+        if Reflect.Gametab.CurrentColor <> Gametab_CombatOptions then
           Reflect.Gametab.Open(Gametab_CombatOptions);
         reflect.mouse.move(Point(645, 432), 5, 5);
         FastClick(mouse_left);
@@ -5705,14 +5726,14 @@ begin
       if R_InteractTile(tempTree.Tile, tempTree.Options, tempTree.Offset[0], tempTree.Offset[1], tempTree.Offset[2]) then begin
         sleepScript(random(1000));
         if(random(round(AntiAmount/200)) <> 0)then
-          TReflectionAntiban.MMouseOffClient('Random');
+          Reflect.Antiban.MMouseOffClient('Random');
         ReflectPlayer.FFlag(0, 5000+random(500));
         sleepScript(1000+random(1000));
         tempObject.GetAt(ObjGame, tempTree.Tile);
         objectID := tempObject.GetId;
         while ReflectPlayer.IsLoggedIn and inIntArray(TempTree.AliveIDs, objectID) and
         (inIntArray(ChopAnimationIDs, ReflectPlayer.GetAnimation) or apeAtollIsChopping(tempTree.tile, tempTree.AliveIDs)) and
-        not TReflectionInventory.IsFull and
+        not Reflect.Inv.IsFull and
         not ReflectPlayer.IsUnderAttack do begin
           randomHandler;
           FixActive;
@@ -5730,7 +5751,7 @@ procedure runAway;
 var RSTile : TPoint;
 label _random;
 begin
-  RsTIle := TReflectionTiles.GetGlobalTile;
+  RsTIle := Reflect.Tiles.GetGlobalTile;
   updateScreen('Running away.');
   if length(daLocation.RunDirections) = 0 then begin
     goto _random;
@@ -5777,20 +5798,20 @@ begin
   randomHandler;
   FixActive;
 
-  if daLocation.canfire and not TReflectionInventory.Contains(TinderIds) then
+  if daLocation.canfire and not Reflect.Inv.Contains(TinderIds) then
     daLocation.canfire := false;
 
-  if daLocation.canfletch and not TReflectionInventory.Contains(KnifeIDs) then
+  if daLocation.canfletch and not Reflect.Inv.Contains(KnifeIDs) then
     daLocation.canfletch := false;
 
-  if(TReflectLocalPlayer.GetRunEnergy >= RunAmount) and not TReflectLocalPlayer.IsRunOn then
-    R_ToggleRun(true);
+  if(ReflectPlayer.GetRunEnergy >= RunAmount) and not ReflectPlayer.IsRunOn then
+    ReflectPlayer.SetRun(true);
 
   if gItemTim.Elapsedtime > gItemOften then begin
     _items.GetAll(10);
     for i:=0 to high(_items) do begin
       nestTile := _items[i].GetTile;
-      if inIntArray(NestIDs, _items[i].getId) and not TReflectionInventory.IsFull {and canBank} then begin
+      if inIntArray(NestIDs, _items[i].getId) and not Reflect.Inv.IsFull {and canBank} then begin
         daLogger.Status('Found nest!', []);
         UpdateScreen('Found nest...');
         if not R_TileOnMS(nestTile, RSTile) then begin
@@ -5819,20 +5840,19 @@ begin
   end;
 
   if(LastXPCheck.Elapsedtime > 600000) then begin
-    if TReflectionGametab.CurrentColor <> Gametab_Inventory then
+    if Reflect.Gametab.CurrentColor <> Gametab_Inventory then
       Reflect.Gametab.Open(Gametab_Inventory);
-    //setupPlayer;
-    LastXPCheck.restart;
-    if(TReflectLocalPlayer.GetSkillExp(SKILL_WOODCUTTING) <= LastXPXPCheck)then begin
+    setupPlayer;
+    if(ReflectPlayer.GetSkillExp(SKILL_WOODCUTTING) <= LastXPXPCheck)then begin
       UpdateScreen('No woodcutting XP gained in 10 minutes.');
       daLogger.Error('No woocutting XP gained in 10 minutes.', []);
-      LastXPXPCheck := TReflectLocalPlayer.GetSkillExp(SKILL_WOODCUTTING);
+      LastXPXPCheck := ReflectPlayer.GetSkillExp(SKILL_WOODCUTTING);
       ReflectPlayer.Active := false;
       ReflectPlayer.Logout;
       sleepScript(2500);
       exit;
     end;
-    LastXPXPCheck := TReflectLocalPlayer.GetSkillExp(SKILL_WOODCUTTING);
+    LastXPXPCheck := ReflectPlayer.GetSkillExp(SKILL_WOODCUTTING);
   end;
 
   if (tim.Elapsedtime > tim2) then begin
@@ -5842,15 +5862,15 @@ begin
     for i:=0 to high(daLocation.Logs) do
       tInt := tInt + (daLocation.Logs[i].price * daLocation.Logs[i].chopped);
 
-    statsServer.IncreaseVariable('80', (TReflectLocalPlayer.GetSkillExp(SKILL_WOODCUTTING)-statsWoodXP));
-    statsServer.IncreaseVariable('79', (TReflectLocalPlayer.GetSkillExp(SKILL_FIREMAKING)-statsFireXP));
-    statsServer.IncreaseVariable('65', (TReflectLocalPlayer.GetSkillExp(SKILL_FLETCHING)-statsFletchXP));
+    statsServer.IncreaseVariable('80', (ReflectPlayer.GetSkillExp(SKILL_WOODCUTTING)-statsWoodXP));
+    statsServer.IncreaseVariable('79', (ReflectPlayer.GetSkillExp(SKILL_FIREMAKING)-statsFireXP));
+    statsServer.IncreaseVariable('65', (ReflectPlayer.GetSkillExp(SKILL_FLETCHING)-statsFletchXP));
     if daLocation.canBank and not daLocation.canFire and not daLocation.isSell and not daLocation.canFletch then
       statsServer.IncreaseVariable('44', (tInt - statsProfit));
 
-    statsWoodXP := TReflectLocalPlayer.GetSkillExp(SKILL_WOODCUTTING);
-    statsFletchXP := TReflectLocalPlayer.GetSkillExp(SKILL_FLETCHING);
-    statsFireXP := TReflectLocalPlayer.GetSkillExp(SKILL_FIREMAKING);
+    statsWoodXP := ReflectPlayer.GetSkillExp(SKILL_WOODCUTTING);
+    statsFletchXP := ReflectPlayer.GetSkillExp(SKILL_FLETCHING);
+    statsFireXP := ReflectPlayer.GetSkillExp(SKILL_FIREMAKING);
     statsProfit := tInt;
 
     if useStats then
@@ -5876,7 +5896,7 @@ end;
 
 begin
   safeShowModal;
-  if (started and (job > -1)) or forceUpdate then begin
+  if started or forceUpdate then begin
     ClearDebug;
     Reflect.Setup;
     Reflect.Smart.Graphics.Clear;
@@ -5903,7 +5923,7 @@ begin
       if ReflectPlayer.isLoggedIn then begin
         if daLocation.isDynamic then
           dynChop;
-        if TReflectionInventory.IsFull then begin
+        if Reflect.Inv.IsFull then begin
           if useFakeWaitTime and wasWorking then begin
             updateScreen('Doing fake ''antiban'' wait.');
             sleepScript(1000+random(7500));

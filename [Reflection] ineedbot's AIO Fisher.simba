@@ -51,6 +51,7 @@ type BankNPC = record
      Options, Names : TStringArray;
      IDs : TIntegerArray;
      Plane : Integer;
+     Offset : array[0..2] of integer;
 end;
 
 type FishNPC = record
@@ -1792,7 +1793,7 @@ begin
     if(tempInt = Gametab_WornEquipment)then begin
       _eitems.GetAll;
       for i:=0 to high(_eitems) do begin
-        h := _eitems[i].ID;
+        h := _eitems[i].getID;
         if(inIntArray(EquipmentIDs, h))then begin
           tempBox := _eitems[i].GetBox;
           graphicOpti.DrawClippedText('Equip', 'upchars07', Point(tempBox.x1 - 5, tempBox.y1), true, 65280);
@@ -2031,6 +2032,7 @@ begin
         Plane := 0;
         IDs := [518, 519{general store salesmen}];
         Options := ['Trade'];
+        Offset := [0, 0, 50];
       end;
 
       setLength(daLocation.TreeObjects, 1);
@@ -2927,6 +2929,7 @@ begin
         Plane := 0;
         IDs := [518, 519{general store salesmen}];
         Options := ['Trade'];
+        Offset := [0, 0, 50];
       end;
 
       setLength(daLocation.TreeObjects, 1);
@@ -3076,6 +3079,7 @@ begin
         Plane := 0;
         IDs := [679{Rasolo guy who 'Trade'}];
         Options := ['Trade R'];
+        Offset := [0, 0, 50];
       end;
 
       case job of
@@ -3145,6 +3149,7 @@ begin
         Plane := 0;
         IDs := [399];
         Options := ['Bank B'];
+        Offset := [0, 0, 50];
       end;
 
       case job of
@@ -3243,6 +3248,7 @@ begin
         Plane := 0;
         IDs := [4293];
         Options := ['Bank A'];
+        Offset := [0, 0, 50];
       end;
 
       case job of
@@ -3442,7 +3448,7 @@ begin
           sleepScript(random(2000));
         end;
         UpdateScreen('Paying fare...');
-        R_TryInteractNPC([daLocation.customIDs[0][3]], ['Pay-Fare'], 5);
+        R_TryInteractNPC([daLocation.customIDs[0][3]], ['Pay-Fare'], 5, 0, 0, 50);
         ReflectPlayer.FFlag(0, 5000+random(500));
         Reflect.Chat.doConversation(['Can I journey on this ship?', 'Search away, I have nothing to hide.', 'Ok.', 'Yes please.']);
         sleepScript(3500+random(500));
@@ -3588,7 +3594,7 @@ begin
           exit;
 
         updateScreen('Opening bank npc.');
-        if R_TryInteractNPC(nearestNPC.IDs, nearestNPC.Options, 5) then begin
+        if R_TryInteractNPC(nearestNPC.IDs, nearestNPC.Options, 5, nearestNPC.Offset[0], nearestNPC.Offset[1], nearestNPC.Offset[2]) then begin
           ReflectPlayer.FFlag(0, 5000+random(500));
           Timer.Restart;
           while not Reflect.Bank.IsOpen and not Reflect.Bank.IsPinOpen and not Reflect.Bank.IsDepositBoxOpen
@@ -3625,7 +3631,7 @@ begin
             sleepScript(random(2000));
           end;
           UpdateScreen('Paying fare...');
-          R_TryInteractNPC([daLocation.customIDs[0][0], daLocation.customIDs[0][1], daLocation.customIDs[0][2]], ['Pay-fare'], 5);
+          R_TryInteractNPC([daLocation.customIDs[0][0], daLocation.customIDs[0][1], daLocation.customIDs[0][2]], ['Pay-fare'], 5, 0, 0, 50);
           ReflectPlayer.FFlag(0, 5000+random(500));
           Reflect.Chat.doConversation(['Can I journey on this ship?', 'Search away, I have nothing to hide.', 'Ok.', 'Yes please.']);
           sleepScript(3500+random(500));
