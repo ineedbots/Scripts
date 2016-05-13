@@ -1,34 +1,8 @@
 //Feel free to use code, MAKE SURE TO GIVE CREDIT WHERE DUE! -ineedbot
 const
-      fVersion = 2.095;
+      fVersion = 2.1;
 
       fScriptPage = 'https://raw.githubusercontent.com/ineedbots/Scripts/master/%5BReflection%5D%20ineedbot''s%20functions.simba';
-
-      Widget_StatsTab_Container = 320;
-
-      Widget_Ded_Container = 153;
-      Ded_Close = 107;
-
-      ChangeWorld_LogOut = 19;
-      ChangeWorld_Check = 18;
-      Logout_LogOut = 6;
-
-      Widget_Achieve_Container = 259;
-      Widget_MiniGame_Container = 76;
-      MiniGame_Check = 15;
-      Widget_ZeahTab_Container = 245;
-      ZeahTab_Check = 5;
-
-      Widget_Teleother_Container = 326;
-      Teleother_Close = -1;
-
-      Widget_Zeah_Container = 243;
-      Zeah_Close = 2;
-      Zeah_Close_Child = 13;
-
-      Widget_GameBug_Container = 156;
-      GameBug_Close = 1;
-      GameBug_Close_Child = 11;
 
       Widget_LevelUp_Container = 233;
       LevelUp_Continue = 2;
@@ -36,106 +10,8 @@ const
       Widget_LevelUpExtra_Container = 193;
       LevelUpExtra_Continue = 2;
 
-      Widget_ShopMenu_Container = 300;
-      ShopMenu_Close = 1;
-      ShopMenu_Close_Child = 11;
-      ShopMenu_Items = 2;//childs 0-39
-
       Widget_Lamp_Container = 134;
       Lamp_Confirm = 26;
-
-      Widget_fallyBank_Container = 220;
-      fallyBank_Close = 16;
-
-      Widget_DepositMenu_Container = 192;
-      DepositMenu_Close = 1;
-      DepositMenu_Close_Child = 11;
-      DepositMenu_Items = 2;  //0-27 childs
-      DepositMenu_DepositInv = 3;
-      DepositMenu_DepositEqu = 5;
-      DepositMenu_DepositLoot = 7;
-
-      BankMenu_DepositInv = 29;
-      BankMenu_DepositEqu = 31;
-
-      Widget_PollMenu_Container = 310;
-      PollMenu_Close = 1;
-      PollMenu_Close_Child = 11;
-
-      Widget_GEMenu_Container = 465;
-      GEMenu_Close = 2;
-      GEMenu_Close_Child = 11;
-
-      Widget_GEHistMenu_Container = 383;
-      GEHistMenu_Close = 1;
-      GEHistMenu_Close_Child = 11;
-
-      Widget_GESetsMenu_Container = 451;
-      GESetsMenu_Close = 1;
-      GESetsMenu_Close_Child = 11;
-
-      Widget_CollectMenu_Container = 402;
-      CollectMenu_Close = 2;
-      CollectMenu_Close_Child = 11;
-
-      Widget_TradeScreen_Container = 335;
-      TradeScreen_Close = 3;
-      TradeScreen_Close_Child = 13;
-
-      Widget_StatMenu_Container = 214;
-      StatMenu_Close = 25;
-
-      Widget_QuestMenu_Container = 275;
-      QuestMenu_Close = 134;
-
-      Widget_EquipMenu_Container = 84;
-      EquipMenu_Close = 4;
-
-      Widget_TradeConf_Container = 334;
-      TradeConf_Close = 32;
-
-      Widget_ReportMenu_Container = 553;
-      ReportMenu_Close = 1;
-      ReportMenu_Close_Child = 11;
-
-      Widget_KeptMenu_Container = 102;
-      KeptMenu_Close = 13;
-
-      Widget_HouseOptions_Container = 370;
-      HouseOptions_Close = 16;
-
-      Widget_ClanOptions_Container = 590;
-      ClanOptions_Close = 17;
-
-      Widget_Lobby_Container = 378;
-      Lobby_Close = 6;
-
-      Widget_AdvancedOptions_Container = 60;
-      AdvancedOptions_Close = 2;
-      AdvancedOptions_Close_Child = 11;
-
-      Widget_PriceCheck_Container = 464;
-      PriceCheck_Close = 1;
-      PriceCheck_Close_Child = 11;
-
-      Widget_KeyBind_Container = 121;
-      KeyBind_Close = 1;
-      KeyBind_Close_Child = 11;
-
-      Widget_BondMenu_Container = 65;
-      BondMenu_Close = 3;
-      BondMenu_Close_Child = 13;
-
-      Widget_PinSettings_Container = 14;
-      PinSettings_Close = 1;
-      PinSettings_Close_Child = 11;
-
-      Widget_XPMenu_Container = 137;
-      XPMenu_Close = 2;
-      XPMenu_Close_Child = 11;
-
-      Widget_Orbs_Container = 160;
-      Orbs_RunToggle = 22;
 
 type TReflectDoor = record
      TileEncompass : TPointArray;
@@ -143,6 +19,7 @@ type TReflectDoor = record
      IDs : TIntegerArray;
      Offset : array[0..2] of integer;
      TileOffset : array[0..1] of integer;
+     Actions : TStringArray;
 end;
 
 type TLoot = record
@@ -179,7 +56,7 @@ begin
   end;
 end;
 
-var SmartUserAgent, ProggieLocation, me_name, SoundString, fScript : string;
+var ProggieLocation, me_name, SoundString, fScript : string;
     daLogger : TReflectLogger;
     ReflectPlayer : TReflectLocalPlayer;
     breaks, breakInFinal, breakIn, breakFor, breakinRandom, breakForRandom, AntiAmount, chatTimeOften, closeAllOften, updateAllOften, me_indice, dismissAllOften, lookForChatOften, checkForLevelOften : integer;
@@ -203,260 +80,6 @@ begin
   sleep(tim);
 end;
 
-Function getDirectoryName(Directory, Path: String): String;
-var
-  I: Integer;
-  Directories: TStringArray;
-Begin
-  Directories := GetDirectories(Path);
-  For I := 0 To High(Directories) Do
-    If ExecRegExpr(Directory, Directories[I]) Then
-    Begin
-      Result := Directories[I];
-      Exit;
-    End;
-End;
-
-Function findDirectory(Directory, Path: String): Boolean;
-Begin
-  Result := Length(GetDirectoryName(Directory, Path)) > 0;
-End;
-
-// by Brandon
-Function getJavaPath(Console: Boolean): String;
-var
-  Drive: String;
-  CurrentPath: String;
-Begin
-  Drive := Copy(PluginPath, 0, 3);
-
-  If (FindDirectory('Program\sFiles\s\(x86\)', Drive)) Then
-  Begin
-    CurrentPath := Drive + 'Program Files (x86)\';
-  End Else
-    CurrentPath := Drive + 'Program Files\';
-
-  If (FindDirectory('Java|java', CurrentPath + '\')) Then
-  Begin
-    CurrentPath := CurrentPath + 'Java\';
-  End Else
-    Begin
-      Reflect.Logger.Error('Failed To Find Path: '+CurrentPath+'Java\', []);
-      Exit;
-    End;
-
-  Drive := GetDirectoryName('jre', CurrentPath);
-  If (Length(Drive) > 0) Then
-  Begin
-    If (Console) Then
-      CurrentPath := CurrentPath + Drive + '\bin\java.exe'
-    Else
-      CurrentPath := CurrentPath + Drive + '\bin\javaw.exe';
-  End Else
-    Begin
-      Drive := GetDirectoryName('jdk', CurrentPath);
-      If (Console) Then
-      CurrentPath := CurrentPath + Drive + 'jre\bin\java.exe'
-    Else
-      CurrentPath := CurrentPath + Drive + 'jre\bin\javaw.exe';
-    End;
-
-  If (FileExists(CurrentPath)) Then
-    Result := CurrentPath
-  Else
-    Reflect.Logger.Error('Failed To Find Java.exe or Javaw.exe. Please add ...\JRE\Bin to your PATH environment variable.', []);
-End;
-
-procedure TReflectionSmart.Create(
-  Width, Height: Integer; Unused_UserAgent: string); override;
-var
-  World: Variant;
-  JavaString: string;
-begin
-  if SmartUserAgent = '' then
-    SmartUserAgent := 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:44.0) Gecko/20100101 Firefox/44.0';
-
-  Self.Width := Width;
-  Self.Height := Height;
-  Self.UserAgent := SmartUserAgent;
-  AddOnTerminate('_TReflectionSmartFreeAll');
-  if (not Self.ForceNew) and Self.Pair then
-    Exit;
-  World := Self.GetWorld;
-  Reflect.Logger.Status('Using world %s.', [World]);
-  if SmartShowConsole then
-    JavaString := 'java.exe'
-  else
-    JavaString := 'javaw.exe';
-
-  Self.Target := SmartSpawnClient(JavaString, StringReplace(PluginPath, '\',
-    '/', [rfReplaceAll]), Format('http://oldschool%s.runescape.com/', [World]),
-    'j1', Width, Height, '', SmartUserAgent, '', '');
-
-  if Self.Target = 0 then
-  begin
-    Reflect.Logger.Warn('Error while finding default Java, searching for Java...', []);
-    JavaString := getJavaPath(SmartShowConsole);
-
-    Self.Target := SmartSpawnClient(JavaString, StringReplace(PluginPath, '\',
-      '/', [rfReplaceAll]), Format('http://oldschool%s.runescape.com/', [World]),
-      'j1', Width, Height, '', SmartUserAgent, '', '');
-  end;
-  if Self.Target = 0 then
-    Reflect.Logger.Fatal('Failed to spawn SMART client.');
-  if not Self.Init then
-  begin
-    SmartFreeClient(Self.Target);
-    Reflect.Logger.Fatal('Failed to pair SMART client.');
-  end;
-end;
-
-function TReflectionInternals.CheckIncludeUpdate: Boolean;override;
-var
-  Full, TempRev, TempSubRev: string;
-  NewFile, tempRevInt, tempSubRevInt : Integer
-begin
-  Full := Reflect.Misc.GetPage('https://raw.githubusercontent.com/Elfyyy/OSR-Reflection/master/lib/internal/updating/Update.txt');
-  TempRev := Between('includerev = ''', '''', Full);
-  TempSubRev := Between('includesubrev = ''', '''', Full);
-
-  try
-    tempRevInt := StrToInt(TempRev);
-  except
-    begin
-      Reflect.Logger.Error('Failed get update version.', []);
-      exit;
-    end;
-  end;
-  try
-    tempSubRevInt := StrToInt(TempSubRev);
-  except
-    begin
-      Reflect.Logger.Error('Failed get update sub version.', []);
-      exit;
-    end;
-  end;
-
-  if (tempRevInt > IncludeRevision) or tempSubRevInt > SubRev then
-    begin
-        Reflect.Logger.Warn('Reflection Update Available');
-      Result := True;
-    end;
-end;
-
-function TReflectionSmart.GetWorld: string;override;
-var Worlds : TIntegerArray;
-begin
-  if (World < 299) then
-  begin
-    Reflect.Logger.Warn('World variable not valid, trying recommended world...');
-    Result := Between('id=''member-world'' href=''http://oldschool.runescape.com/game?world=', '''>',
-    GetPage('http://oldschool.runescape.com/slu'));
-    if (Result <> '') and InRange(StrToIntDef(ExtractFromStr(Result, Numbers),
-      -1), 301, 394) then begin
-      Result := IntToStr(StrToInt(Result) - 300);
-      Exit;
-    end;
-
-    Reflect.Logger.Warn('Failed to get recommended world, trying random world...');
-    Worlds := [301, 302, 303, 304, 305, 306, 308, 309, 310, 311, 312, 313, 314, 316, 317, 318, 319, 320,
-               321, 322, 325, 326, 327, 328, 329, 330, 333, 334, 335, 336, 337, 338, 341, 342, 343, 344,
-               345, 346, 349, 350, 351, 352, 353, 354, 357, 358, 359, 360, 361, 362, 365, 366, 367, 368,
-               369, 370, 373, 374, 375, 376, 377, 378, 381, 382, 383, 384, 385, 386, 393, 394];
-    Result := IntToStr(Worlds[random(length(Worlds))] - 300);
-  end else
-    Result := IntToStr(World - 300);
-end;
-
-function TReflectionText.GetUpText: string;override;
-var
-  Options: TStringArray;
-begin
-  Options := Reflect.Text.GetMenuOptions;
-  if (High(Options) - 1) > 0 then
-    Result := Options[0] + ' / ' + ToStr(High(Options) - 1) + ' more options'
-  else
-    if length(Options) > 0 then
-      Result := Options[0]
-    else
-      result := '';
-  if Result = 'Cancel' then
-    Result := '';
-end;
-
-function TReflectionChat.NpcChooseOption(Options: TStringArray): Boolean;Override;
-var
-  Wid, Child : TReflectWidget;
-  I, J, K, L : Integer;
-  daString : string;
-begin
-  for I := 0 to 600 do
-    for J := 0 to 6 do
-    begin
-      if not Wid.Exists(I, J) then
-          Continue();
-
-      Wid.GetWidget(I, J);
-      daString := Wid.GetText();
-
-      for l:=0 to high(options) do
-        if pos(options[l], daString) > 0 then
-        begin
-          Wid.Interact();
-          Wid.Free();
-          exit(true);
-        end;
-
-      if Wid.HasChild() then
-      begin
-        for K := 0 to 6 do
-        begin
-          Child.GetChild(Wid, K);
-          daString := Child.GetText();
-          for l:=0 to high(options) do
-            if pos(options[l], daString) > 0 then
-            begin
-              Child.Interact();
-              Child.Free();
-              Wid.Free();
-              exit(true);
-            end;
-
-          Child.Free();
-        end;
-      end;
-      Wid.Free();
-    end;
-end;
-
-procedure TReflectInvItemArray.GetAllIncludeEmpty;
-var
-  I, TheId, Count: Integer;
-  InvWidget: TReflectWidget;
-begin
-  Reflect.Mem.FreeObjects(ckInvItems, True);
-  InvWidget.GetWidget(WIDGET_Inventory_Container, 0);
-  HookCache[ckInvItems][0] := InvWidget.Reference;
-  for I := 0 to 27 do
-  begin
-    TheId := Reflect.Smart.GetFieldArrayInt(
-      InvWidget.Reference, Widget_InvIDs, I);
-    Inc(Count);
-    SetLength(Self, Count);
-    with Self[Count - 1] do
-    begin
-      Reference := InvWidget.Reference;
-      _Id := TheId - 1;
-      _InvSlot := I + 1;
-    end;
-  end;
-end;
-
-function TReflectLocalPlayer._GetName: string; //this should be in the include
-begin
-  Result := Reflect.Smart.GetFieldString(Self.Reference, Player_Name);
-end;
-
 function GetWordsEx(text, wordCharacters: string): TStringArray;  //thanks  Janilabo
 var
   l, i, r: Integer;
@@ -478,47 +101,6 @@ begin
       end;
   end;
   SetLength(Result, r);
-end;
-
-procedure TReflectLocalPlayer.Logout;override;
-var
-  LogoutWidget: TReflectWidget;
-begin
-  if (not Self.IsLoggedIn) then
-    Exit;
-
-  if not Reflect.Gametab.Open(Gametab_Logout) then
-    exit;
-
-  LogoutWidget.GetWidget(Widget_ChangeWorld_Container, ChangeWorld_LogOut);
-  if LogoutWidget.NotNull then
-    if LogoutWidget.Interact then begin
-      LogoutWidget.Free;
-      exit;
-    end;
-  LogoutWidget.Free;
-
-  LogoutWidget.GetWidget(Widget_Logout_Container, Logout_LogOut);
-  LogoutWidget.Interact;
-  LogoutWidget.Free;
-end;
-
-procedure TReflectGroundItemArray.GetAt(RealTile: TTile);override;
-var
-  BaseX, BaseY, Plane: Integer;
-  temp : TReflectGroundItemArray;
-begin
-  Reflect.Mem.FreeObjects(ckGroundList, False);
-  BaseX := Reflect.Misc.BaseX;
-  BaseY := Reflect.Misc.BaseY;
-  Plane := Reflect.Tiles.GetPlane;
-  temp._GetAt(
-    Point(RealTile.X - BaseX, RealTile.Y - BaseY), BaseX, BaseY, Plane);
-  Reflect.Mem.FreeObjects(ckGroundArray, False);
-  if high(temp) > -1 then
-    self := temp
-  else
-    self := [];
 end;
 
 function getPriceGE(id : integer) : integer;   //thx hoodz and flight!
@@ -576,512 +158,6 @@ begin
   end;
 end;
 
-function R_StatMenuOpen(doClick: boolean = false): boolean;
-var W : TReflectWidget;
-begin
-  W.GetWidget(Widget_StatMenu_Container, StatMenu_Close);
-  result := W.NotNull;
-  if result then begin
-    {$IFDEF iDEBUG}
-      writeln('2');
-    {$ENDIF}
-    if doClick then
-      W.Interact;
-    W.Free;
-  end;
-end;
-
-function R_TradeConfOpen(doClick: boolean = false): boolean;
-var W : TReflectWidget;
-    _B : TBox;
-begin
-  W.GetWidget(Widget_TradeConf_Container, TradeConf_Close);
-  result := W.NotNull;
-  if result then begin
-    {$IFDEF iDEBUG}
-      writeln('3');
-    {$ENDIF}
-    _B := W.GetBounds;
-    result := (_B.X1 > 0);
-    if result then begin
-      if doClick then
-        W.Interact;
-    end;
-    W.Free;
-  end;
-end;
-
-function R_LobbyOpen(doClick: boolean = false): boolean;
-var W : TReflectWidget;
-begin
-  W.GetWidget(Widget_Lobby_Container, Lobby_Close);
-  result := W.NotNull;
-  if result then begin
-    {$IFDEF iDEBUG}
-      writeln('4');
-    {$ENDIF}
-    if doClick then
-      W.Interact;
-    W.Free;
-  end;
-end;
-
-function R_QuestMenuOpen(doClick: boolean = false): boolean;
-var W : TReflectWidget;
-begin
-  W.GetWidget(Widget_QuestMenu_Container, QuestMenu_Close);
-  result := W.NotNull;
-  if result then begin
-    {$IFDEF iDEBUG}
-      writeln('5');
-    {$ENDIF}
-    if doClick then
-      W.Interact;
-    W.Free;
-  end;
-end;
-
-function R_EquipMenuOpen(doClick: boolean = false): boolean;
-var W : TReflectWidget;
-begin
-  W.GetWidget(Widget_EquipMenu_Container, EquipMenu_Close);
-  result := W.NotNull;
-  if result then begin
-    {$IFDEF iDEBUG}
-      writeln('6');
-    {$ENDIF}
-    if doClick then
-      W.Interact;
-    W.Free;
-  end;
-end;
-
-function R_ReportMenuOpen(doClick: boolean = false): boolean;
-var W, C : TReflectWidget;
-begin
-  W.GetWidget(Widget_ReportMenu_Container, ReportMenu_Close);
-  result := W.NotNull;
-  if result then begin
-    {$IFDEF iDEBUG}
-      writeln('11');
-    {$ENDIF}
-    if doClick then begin
-      C.GetChild(W, ReportMenu_Close_Child);
-      C.Interact;
-      C.Free;
-    end;
-    W.Free;
-  end;
-end;
-
-function R_KeptMenuOpen(doClick: boolean = false): boolean;
-var W : TReflectWidget;
-begin
-  W.GetWidget(Widget_KeptMenu_Container, KeptMenu_Close);
-  result := W.NotNull;
-  if result then begin
-    {$IFDEF iDEBUG}
-      writeln('8');
-    {$ENDIF}
-    if doClick then
-      W.Interact;
-    W.Free;
-  end;
-end;
-
-function R_HouseOptionsOpen(doClick: boolean = false): boolean;
-var W : TReflectWidget;
-begin
-  W.GetWidget(Widget_HouseOptions_Container, HouseOptions_Close);
-  result := W.NotNull;
-  if result then begin
-    {$IFDEF iDEBUG}
-      writeln('9');
-    {$ENDIF}
-    if doClick then
-      W.Interact;
-    W.Free;
-  end;
-end;
-
-function R_ClanOptionsOpen(doClick: boolean = false): boolean;
-var W : TReflectWidget;
-begin
-  W.GetWidget(Widget_ClanOptions_Container, ClanOptions_Close);
-  result := W.NotNull;
-  if result then begin
-    {$IFDEF iDEBUG}
-      writeln('10');
-    {$ENDIF}
-    if doClick then
-      W.Interact;
-    W.Free;
-  end;
-end;
-
-function R_DepositMenuOpen(doClick: boolean = false): boolean;
-var W, C : TReflectWidget;
-begin
-  W.GetWidget(Widget_DepositMenu_Container, DepositMenu_Close);
-  result := W.NotNull;
-  if result then begin
-    {$IFDEF iDEBUG}
-      writeln('11');
-    {$ENDIF}
-    if doClick then begin
-      C.GetChild(W, DepositMenu_Close_Child);
-      C.Interact;
-      C.Free;
-    end;
-    W.Free;
-  end;
-end;
-
-function R_CollectMenuOpen(doClick: boolean = false): boolean;
-var W, C : TReflectWidget;
-begin
-  W.GetWidget(Widget_CollectMenu_Container, CollectMenu_Close);
-  result := W.NotNull;
-  if result then begin
-    {$IFDEF iDEBUG}
-      writeln('12');
-    {$ENDIF}
-    if doClick then begin
-      C.GetChild(W, CollectMenu_Close_Child);
-      C.Interact;
-      C.Free;
-    end;
-    W.Free;
-  end;
-end;
-
-function R_GEHistMenuOpen(doClick: boolean = false): boolean;
-var W, C : TReflectWidget;
-begin
-  W.GetWidget(Widget_GEHistMenu_Container, GEHistMenu_Close);
-  result := W.NotNull;
-  if result then begin
-    {$IFDEF iDEBUG}
-      writeln('13');
-    {$ENDIF}
-    if doClick then begin
-      C.GetChild(W, GEHistMenu_Close_Child);
-      C.Interact;
-      C.Free;
-    end;
-    W.Free;
-  end;
-end;
-
-function R_TradeScreenOpen(doClick: boolean = false): boolean;
-var W, C : TReflectWidget;
-    _B : TBox;
-begin
-  W.GetWidget(Widget_TradeScreen_Container, TradeScreen_Close);
-  result := W.NotNull;
-  if result then begin
-    {$IFDEF iDEBUG}
-      writeln('14');
-    {$ENDIF}
-    _B := W.GetBounds;
-    result := (_B.X1 > 0);
-    if result then begin
-      if doClick then begin
-        C.GetChild(W, TradeScreen_Close_Child);
-        C.Interact;
-        C.Free;
-      end;
-    end;
-    W.Free;
-  end;
-end;
-
-function R_PinSettingsOpen(doClick: boolean = false): boolean;
-var W, C : TReflectWidget;
-begin
-  W.GetWidget(Widget_PinSettings_Container, PinSettings_Close);
-  result := W.NotNull;
-  if result then begin
-    {$IFDEF iDEBUG}
-      writeln('15');
-    {$ENDIF}
-    if doClick then begin
-      C.GetChild(W, PinSettings_Close_Child);
-      C.Interact;
-      C.Free;
-    end;
-    W.Free;
-  end;
-end;
-
-function R_XPMenuOpen(doClick: boolean = false): boolean;
-var W, C : TReflectWidget;
-begin
-  W.GetWidget(Widget_XPMenu_Container, XPMenu_Close);
-  result := W.NotNull;
-  if result then begin
-    {$IFDEF iDEBUG}
-      writeln('16');
-    {$ENDIF}
-    if doClick then begin
-      C.GetChild(W, XPMenu_Close_Child);
-      C.Interact;
-      C.Free;
-    end;
-    W.Free;
-  end;
-end;
-
-function R_GESetsMenuOpen(doClick: boolean = false): boolean;
-var W, C : TReflectWidget;
-begin
-  W.GetWidget(Widget_GESetsMenu_Container, GESetsMenu_Close);
-  result := W.NotNull;
-  if result then begin
-    {$IFDEF iDEBUG}
-      writeln('17');
-    {$ENDIF}
-    if doClick then begin
-      C.GetChild(W, GESetsMenu_Close_Child);
-      C.Interact;
-      C.Free;
-    end;
-    W.Free;
-  end;
-end;
-
-function R_PollMenuOpen(doClick: boolean = false): boolean;
-var W, C : TReflectWidget;
-begin
-  W.GetWidget(Widget_PollMenu_Container, PollMenu_Close);
-  result := W.NotNull;
-  if result then begin
-    {$IFDEF iDEBUG}
-      writeln('18');
-    {$ENDIF}
-    if doClick then begin
-      C.GetChild(W, PollMenu_Close_Child);
-      C.Interact;
-      C.Free;
-    end;
-    W.Free;
-  end;
-end;
-
-function R_GEMenuOpen(doClick: boolean = false): boolean;
-var W, C : TReflectWidget;
-begin
-  W.GetWidget(Widget_GEMenu_Container, GEMenu_Close);
-  result := W.NotNull;
-  if result then begin
-    {$IFDEF iDEBUG}
-      writeln('19');
-    {$ENDIF}
-    if doClick then begin
-      C.GetChild(W, GEMenu_Close_Child);
-      C.Interact;
-      C.Free;
-    end;
-    W.Free;
-  end;
-end;
-
-function R_SellMenuOpen(doClick: boolean = false): boolean;
-var W, C : TReflectWidget;
-begin
-  W.GetWidget(Widget_ShopMenu_Container, ShopMenu_Close);
-  result := W.NotNull;
-  if result then begin
-    {$IFDEF iDEBUG}
-      writeln('20');
-    {$ENDIF}
-    if doClick then begin
-      C.GetChild(W, ShopMenu_Close_Child);
-      C.Interact;
-      C.Free;
-    end;
-    W.Free;
-  end;
-end;
-
-function R_AdvancedOptionsOpen(doClick: boolean = false): boolean;
-var W, C : TReflectWidget;
-begin
-  W.GetWidget(Widget_AdvancedOptions_Container, AdvancedOptions_Close);
-  result := W.NotNull;
-  if result then begin
-    {$IFDEF iDEBUG}
-      writeln('21');
-    {$ENDIF}
-    if doClick then begin
-      C.GetChild(W, AdvancedOptions_Close_Child);
-      C.Interact;
-      C.Free;
-    end;
-    W.Free;
-  end;
-end;
-
-function R_PriceCheckOpen(doClick: boolean = false): boolean;
-var W, C : TReflectWidget;
-begin
-  W.GetWidget(Widget_PriceCheck_Container, PriceCheck_Close);
-  result := W.NotNull;
-  if result then begin
-    {$IFDEF iDEBUG}
-      writeln('22');
-    {$ENDIF}
-    if doClick then begin
-      C.GetChild(W, PriceCheck_Close_Child);
-      C.Interact;
-      C.Free;
-    end;
-    W.Free;
-  end;
-end;
-
-function R_KeyBindOpen(doClick: boolean = false): boolean;
-var W, C : TReflectWidget;
-begin
-  W.GetWidget(Widget_KeyBind_Container, KeyBind_Close);
-  result := W.NotNull;
-  if result then begin
-    {$IFDEF iDEBUG}
-      writeln('23');
-    {$ENDIF}
-    if doClick then begin
-      C.GetChild(W, KeyBind_Close_Child);
-      C.Interact;
-      C.Free;
-    end;
-    W.Free;
-  end;
-end;
-
-function R_BondMenuOpen(doClick: boolean = false): boolean;
-var W, C : TReflectWidget;
-begin
-  W.GetWidget(Widget_BondMenu_Container, BondMenu_Close);
-  result := W.NotNull;
-  if result then begin
-    {$IFDEF iDEBUG}
-      writeln('24');
-    {$ENDIF}
-    if doClick then begin
-      C.GetChild(W, BondMenu_Close_Child);
-      C.Interact;
-      C.Free;
-    end;
-    W.Free;
-  end;
-end;
-
-function R_GameBugOpen(doClick: boolean = false): boolean;
-var W, C : TReflectWidget;
-begin
-  W.GetWidget(Widget_GameBug_Container, GameBug_Close);
-  result := W.NotNull;
-  if result then begin
-    {$IFDEF iDEBUG}
-      writeln('26');
-    {$ENDIF}
-    if doClick then begin
-      C.GetChild(W, GameBug_Close_Child);
-      C.Interact;
-      C.Free;
-    end;
-    W.Free;
-  end;
-end;
-
-function R_ZeahOpen(doClick: boolean = false): boolean;
-var W, C : TReflectWidget;
-begin
-  W.GetWidget(Widget_Zeah_Container, Zeah_Close);
-  result := W.NotNull;
-  if result then begin
-    {$IFDEF iDEBUG}
-      writeln('27');
-    {$ENDIF}
-    if doClick then begin
-      C.GetChild(W, Zeah_Close_Child);
-      C.Interact;
-      C.Free;
-    end;
-    W.Free;
-  end;
-end;
-
-function R_TeleotherOpen(doClick: boolean = false): boolean;
-var W : TReflectWidget;
-begin
-  W.GetWidget(Widget_Teleother_Container, Teleother_Close);
-  result := W.NotNull;
-  if result then begin
-    {$IFDEF iDEBUG}
-      writeln('28');
-    {$ENDIF}
-    if doClick then
-      W.Interact;
-    W.Free;
-  end;
-end;
-
-function R_fallyBankOpen(doClick: boolean = false): boolean;
-var W : TReflectWidget;
-begin
-  W.GetWidget(Widget_fallyBank_Container, fallyBank_Close);
-  result := W.NotNull;
-  if result then begin
-    {$IFDEF iDEBUG}
-      writeln('29');
-    {$ENDIF}
-    if doClick then
-      W.Interact;
-    W.Free;
-  end;
-end;
-
-function R_dedOpen(doClick: boolean = false): boolean;
-var W : TReflectWidget;
-begin
-  W.GetWidget(Widget_Ded_Container, Ded_Close);
-  result := W.NotNull;
-  if result then begin
-    {$IFDEF iDEBUG}
-      writeln('30');
-    {$ENDIF}
-    if doClick then
-      W.Interact;
-    W.Free;
-  end;
-end;
-
-procedure R_closeAllMenus;
-begin
-  {$IFDEF iDEBUG}
-    if Reflect.Bank.IsOpen or Reflect.Bank.isPinOpen then
-      writeln('25');
-  {$ENDIF}
-  if Reflect.Bank.IsOpen or Reflect.Bank.isPinOpen or R_BondMenuOpen(false) or R_PriceCheckOpen(false) or R_AdvancedOptionsOpen(false) or
-  R_HouseOptionsOpen(false) or R_KeptMenuOpen(false) or R_ReportMenuOpen(false) or R_EquipMenuOpen(false) or R_QuestMenuOpen(false) or
-  R_StatMenuOpen(false) or R_ClanOptionsOpen(false) or R_SellMenuOpen(false) or R_DepositMenuOpen(false) or
-  R_GEMenuOpen(false) or R_PollMenuOpen(false) or R_TradeScreenOpen(false) or R_GESetsMenuOpen(false) or
-  R_GEHistMenuOpen(false) or R_CollectMenuOpen(false) or R_TradeConfOpen(false) or R_LobbyOpen(false) or
-  R_KeyBindOpen(false) or R_XPMenuOpen(false) or R_PinSettingsOpen(false) or R_GameBugOpen(false) or R_ZeahOpen(false)
-  or R_fallyBankOpen(false) or R_dedOpen(false) then begin
-    updateScreen('Closing interface');
-    if ((Reflect.Bank.IsOpen or Reflect.Bank.isPinOpen) and Reflect.Bank.Close) or R_BondMenuOpen(true) or R_PriceCheckOpen(true) or R_AdvancedOptionsOpen(true) or
-    R_HouseOptionsOpen(true) or R_KeptMenuOpen(true) or R_ReportMenuOpen(true) or R_EquipMenuOpen(true) or R_QuestMenuOpen(true) or
-    R_StatMenuOpen(true) or R_ClanOptionsOpen(true) or R_SellMenuOpen(true) or R_DepositMenuOpen(true) or
-    R_GEMenuOpen(true) or R_PollMenuOpen(true) or R_TradeScreenOpen(true) or R_GESetsMenuOpen(true) or
-    R_GEHistMenuOpen(true) or R_CollectMenuOpen(true) or R_TradeConfOpen(true) or R_LobbyOpen(true) or
-    R_KeyBindOpen(true) or R_XPMenuOpen(true) or R_PinSettingsOpen(true) or R_GameBugOpen(true) or R_ZeahOpen(true)
-    or R_fallyBankOpen(true) or R_dedOpen(true) then
-      updateScreen('Closed interface');
-  end;
-end;
-
 function TReflectionGametab.CurrentColor:Integer;
 var i : integer;
     TNB : TBox;
@@ -1127,169 +203,17 @@ begin
       13:Result := Gametab_MusicPlayer;
     end;
   end else begin
-    if R_DepositMenuOpen or Reflect.Bank.IsOpen then
-      Result := GameTab_Inventory
-    else
-      Result := -1;
-  end;
-end;
-
-procedure hoverSkill(skill:integer);
-var W : TReflectWidget;
-    tb : TBox;
-begin
-  if TReflectionGametab.CurrentColor <> Gametab_Stats then
-    TReflectionGametab.Open(Gametab_Stats);
-  case skill of
-    SKILL_ATTACK:W.GetWidget(Widget_StatsTab_Container, 1);
-    SKILL_STRENGTH:W.GetWidget(Widget_StatsTab_Container, 2);
-    SKILL_DEFENCE:W.GetWidget(Widget_StatsTab_Container, 3);
-    SKILL_RANGE:W.GetWidget(Widget_StatsTab_Container, 4);
-    SKILL_PRAYER:W.GetWidget(Widget_StatsTab_Container, 5);
-    SKILL_MAGIC:W.GetWidget(Widget_StatsTab_Container, 6);
-    SKILL_RUNECRAFTING:W.GetWidget(Widget_StatsTab_Container, 7);
-    SKILL_CONSTRUCTION:W.GetWidget(Widget_StatsTab_Container, 8);
-    SKILL_HITPOINTS:W.GetWidget(Widget_StatsTab_Container, 9);
-    SKILL_AGILITY:W.GetWidget(Widget_StatsTab_Container, 10);
-    SKILL_HERBLORE:W.GetWidget(Widget_StatsTab_Container, 11);
-    SKILL_THIEVING:W.GetWidget(Widget_StatsTab_Container, 12);
-    SKILL_CRAFTING:W.GetWidget(Widget_StatsTab_Container, 13);
-    SKILL_FLETCHING:W.GetWidget(Widget_StatsTab_Container, 14);
-    SKILL_SLAYER:W.GetWidget(Widget_StatsTab_Container, 15);
-    SKILL_HUNTER:W.GetWidget(Widget_StatsTab_Container, 16);
-    SKILL_MINING:W.GetWidget(Widget_StatsTab_Container, 17);
-    SKILL_SMITHING:W.GetWidget(Widget_StatsTab_Container, 18);
-    SKILL_FISHING:W.GetWidget(Widget_StatsTab_Container, 19);
-    SKILL_COOKING:W.GetWidget(Widget_StatsTab_Container, 20);
-    SKILL_FIREMAKING:W.GetWidget(Widget_StatsTab_Container, 21);
-    SKILL_WOODCUTTING:W.GetWidget(Widget_StatsTab_Container, 22);
-    SKILL_FARMING:W.GetWidget(Widget_StatsTab_Container, 23);
-    -1:W.GetWidget(Widget_StatsTab_Container, randomRange(1, 24));
-    else W.GetWidget(Widget_StatsTab_Container, 24);
-  end;
-  if W.NotNull then begin
-    tb := w.GetBounds;
-    Reflect.Mouse.Move(tb);
-  end;
-end;
-
-function TReflectLocalPlayer.FFlag(
-  TileDist: Integer; Timeout: Integer = 15000): Boolean;override;
-var
-  Timer: TReflectTimer;
-begin
-  Timer.Start;
-  while Distance(Self.GetTile.X, Self.GetTile.Y, Self.GetDestination.X,
-      Self.GetDestination.Y) > TileDist do
-  begin
-    if (Timeout > 0) and (Timer.ElapsedTime > Timeout) then
-      Exit(False);
-    Wait(RandomRange(200, 250));
-  end;
-  Exit(True);
-end;
-
-function TReflectionGametab.Current: Integer;override;
-var
-  TempWidget: TReflectWidget;
-  Containers, Gametabs: TIntegerArray;
-  I: Integer;
-begin
-  Containers := [Widget_ClanChat_Container, Widget_FriendsList_Container,
-    Widget_IgnoreList_Container, Widget_Logout_Container,
-    Widget_Options_Container, Widget_Emotes_Container,
-    Widget_MusicPlayer_Container, Widget_CombatOptions_Container,
-    Widget_Stats_Container, Widget_WornEquipment_Container,
-    Widget_Prayer_Container, Widget_Magic_Container, Widget_QuestList_Container,
-    Widget_ChangeWorld_Container
-  ];
-  Gametabs := [Gametab_ClanChat, Gametab_FriendsList, Gametab_IgnoreList,
-    Gametab_Logout, Gametab_Options, Gametab_Emotes, Gametab_MusicPlayer,
-    Gametab_CombatOptions, Gametab_Stats, Gametab_WornEquipment, Gametab_Prayer,
-    Gametab_Magic, Gametab_QuestList, GameTab_Inventory
-  ];
-
-  TempWidget.GetWidget(Widget_ChangeWorld_Container, ChangeWorld_Check);
-  if not (TempWidget.IsHidden) and (TempWidget.GetBounds.X1 <> -1) then
-  begin
-    TempWidget.Free;
-    Exit(Gametab_Logout);
-  end;
-  TempWidget.Free;
-
-  for I := 0 to High(Gametabs) do
-  begin
-    TempWidget.GetWidget(Containers[I], 0);
-    if not (TempWidget.IsHidden) and (TempWidget.GetBounds.X1 <> -1) then
-    begin
-      TempWidget.Free;
-      Exit(Gametabs[I]);
-    end;
-    TempWidget.Free;
-  end;
-
-  TempWidget.GetWidget(Widget_Achieve_Container, 0);
-  if not (TempWidget.IsHidden) and (TempWidget.GetBounds.X1 <> -1) then
-  begin
-    TempWidget.Free;
-    Exit(Gametab_QuestList);
-  end;
-  TempWidget.Free;
-
-  TempWidget.GetWidget(Widget_MiniGame_Container, MiniGame_Check);
-  if not (TempWidget.IsHidden) and (TempWidget.GetBounds.X1 <> -1) then
-  begin
-    TempWidget.Free;
-    Exit(Gametab_QuestList);
-  end;
-  TempWidget.Free;
-
-  TempWidget.GetWidget(Widget_ZeahTab_Container, ZeahTab_Check);
-  if not (TempWidget.IsHidden) and (TempWidget.GetBounds.X1 <> -1) then
-  begin
-    TempWidget.Free;
-    Exit(Gametab_QuestList);
-  end;
-  TempWidget.Free;
-
-  Result := GameTab_Inventory;
-end;
-
-function getEquippedItemBounds(Which: string): TBox;
-begin
-  case Which of
-    'helm', 'helmet' :
-      Result := inttoBox(629, 213, 656, 240);
-    'cape' :
-      Result := inttoBox(588, 252, 615, 279);
-    'amulet', 'neck', 'necklace' :
-      Result := inttoBox(629, 252, 656, 279);
-    'arrows', 'bolts' :
-      Result := inttoBox(670, 252, 697, 279);
-    'right hand', 'weapon' :
-      Result := inttoBox(573, 291, 600, 318);
-    'plate', 'chest', 'platebody' :
-      Result := inttoBox(629, 291, 656, 318);
-    'left hand', 'sheild', 'shield' :
-      Result := inttoBox(685, 291, 712, 318);
-    'legs', 'platelegs', 'skirt', 'plateskirt' :
-      Result := inttoBox(629, 331, 656, 358);
-    'gloves', 'gauntlets' :
-      Result := inttoBox(573, 371, 600, 398);
-    'boots':
-      Result := inttoBox(629, 371, 656, 398);
-    'ring' :
-      Result := inttoBox(685, 371, 712, 398);
+    Result := -1;
   end;
 end;
 
 function R_GetEquipText: string;
 begin
-  result := TReflectionGametab.GetWieldedWeapon;
+  result := Reflect.Gametab.GetWieldedWeapon;
   if result = '' then begin
-    if TReflectionGametab.CurrentColor <> Gametab_CombatOptions then
+    if Reflect.Gametab.CurrentColor <> Gametab_CombatOptions then
       Reflect.Gametab.Open(Gametab_CombatOptions);
-    result := TReflectionGametab.GetWieldedWeapon;
+    result := Reflect.Gametab.GetWieldedWeapon;
   end;
 end;
 
@@ -1356,27 +280,23 @@ Begin
 End;
 
 function R_TileOnMS(Tile : TPoint; var OutputPoint : TPoint; x : integer = 0; y : integer = 0; z : integer = 0):boolean;
-var tempB : TBox;
 begin
-  OutputPoint := TReflectionTiles.TileToMS(Tile, x, y, z);
-  tempB := intToBox(MSX1, MSY1, MSX2, MSY2);
-  result := PointInBox(OutputPoint, tempB);
+  OutputPoint := Reflect.Tiles.TileToMS(Tile, x, y, z);
+  result := PointInBox(OutputPoint, AREA_MS);
 end;
 
 function R_TileOnMM(Tile : TPoint; var OutputPoint : TPoint):boolean;
-var tempB : TBox;
 begin
-  OutputPoint := TReflectionTiles.TileToMM(Tile);
-  tempB := intToBox(MmX1, MmY1, MmX2, MmY2);
-  result := PointInBox(OutputPoint, tempB);
+  OutputPoint := Reflect.Tiles.TileToMM(Tile);
+  result := PointInBox(OutputPoint, AREA_MM);
 end;
 
 procedure R_TryMakeTileOnMS(Tile:TPOint;x : integer = 0; y : integer = 0; z : integer = 0);
 var t:TReflectTimer;
     _tile : TPoint;
 begin
-  if not R_TileOnMS(tile, _Tile, x, y, z) and (TReflectionTiles.DistanceFromTile(Tile) <= 25) then begin
-    TReflectionTiles.RotateCameraToTile(tile);
+  if not R_TileOnMS(tile, _Tile, x, y, z) and (Reflect.Tiles.DistanceFromTile(Tile) <= 25) then begin
+    Reflect.Tiles.RotateCameraToTile(tile);
     t.Restart;
     keyDown(VK_Down);
     while(t.ElapsedTime < 2500) and not R_TileOnMS(tile, _Tile, x, y, z) do
@@ -1398,15 +318,16 @@ begin
   releaseMouse(x, y, button);
 end;
 
-function chooseOptionMultiFast(Option: string): Boolean;
+function TReflectionText.chooseOptionFast(Option: string): Boolean;
 var
   Index, MenuX, MenuY, MenuWidth, XOff, YOff,x ,y: Integer;
   Options: TStringArray;
   Left: Boolean;
 begin
-  Options := Reflect.Text.GetMenuOptions;
   if not Reflect.Text.IsMenuOpen then
     Exit;
+  Options := Reflect.Text.GetMenuOptions;
+
   Index := Reflect.Text.GetMenuIndex(Option, Options);
   MenuX := Reflect.Smart.GetFieldInt(0, Client_MenuX) + 4;
   MenuY := Reflect.Smart.GetFieldInt(0, Client_MenuY) + 4;
@@ -1434,12 +355,12 @@ begin
   Result := True;
 end;
 
-function R_isDoingAnimation(animationIDs:array of integer;time:integer):boolean;
+function TReflectLocalPlayer.isDoingAnim(animationIDs:TIntegerArray;time:integer):Boolean;
 var _time:treflecttimer;
 begin
   _time.restart;
-  while (_time.Elapsedtime < time) and ReflectPlayer.isLoggedIn do begin
-     if(InIntArray(animationIDs, ReflectPlayer.GetAnimation)) then
+  while (_time.Elapsedtime < time) and Self.isLoggedIn do begin
+     if(InIntArray(animationIDs, Self.GetAnimation)) then
      begin
        result := true;
        exit;
@@ -1493,19 +414,37 @@ begin
   SetImageTarget(ITarget);
 end;
 
-function R_MSToTile(TP:TPoint;dist:integer=10):TPoint;
+procedure getRealMousePos(var X, Y : Integer);
+var
+  KMTarget, ITarget: Integer;
+begin
+  if not IsTargetValid() then daLogger.Error('Target invalid', []);
+  KMTarget := GetKeyMouseTarget;
+  ITarget := GetImageTarget;
+  if not findAndSetTarget('SMART', True) then
+    findAndSetTarget('Old', True);
+
+  GetMousePos(X, Y);
+  FreeTarget(GetImageTarget);
+  SetKeyMouseTarget(KMTarget);
+  SetImageTarget(ITarget);
+
+  X := X - 3;
+  Y := Y - 25;
+end;
+
+function R_MSToMSTile(TP:TPoint;var myTile:Tpoint;dist:integer=10):TPoint;
 var _x, _y, i: integer;
     tiles, realTiles : TPointArray;
-    myTile : TPoint;
     found : boolean;
 begin
-  myTile := TReflectionTiles.GetGlobalTile;
+  myTile := Reflect.Tiles.GetGlobalTile;
   for _x:=(-dist) to dist do
     for _y:=(-dist) to dist do begin
       inc(i);
       setLength(tiles, i);
       setLength(realTiles, i);
-      tiles[i-1] := TReflectionTiles.TileToMS(Point(myTile.x+_x, myTile.y+_y), 0, 0, 0);
+      tiles[i-1] := Reflect.Tiles.TileToMS(Point(myTile.x+_x, myTile.y+_y), 0, 0, 0);
       realTiles[i-1] := Point(myTile.x+_x, myTile.y+_y);
     end;
 
@@ -1517,44 +456,27 @@ begin
     end;
 end;
 
-function R_ToggleRun(turnOn : boolean):boolean;
-var W : TReflectWidget;
-    prev : boolean;
-    tim : TReflectTimer;
+function R_MSToMMTile(TP:TPoint;var myTile:Tpoint;dist:integer=10):TPoint;
+var _x, _y, i: integer;
+    tiles, realTiles : TPointArray;
+    found : boolean;
 begin
-  if (turnOn and not TReflectLocalPlayer.IsRunOn) or (not turnOn and TReflectLocalPlayer.IsRunOn) then begin
-    W.GetWidget(Widget_Orbs_Container, Orbs_RunToggle);
-    if W.NotNull then begin
-      prev := TReflectLocalPlayer.IsRunOn;
-      result := W.Interact;
-      W.Free;
-      tim.Restart;
-      while (prev = TReflectLocalPlayer.IsRunOn) and (tim.Elapsedtime < 2500) do
-        sleepScript(50);
+  myTile := Reflect.Tiles.GetGlobalTile;
+  for _x:=(-dist) to dist do
+    for _y:=(-dist) to dist do begin
+      inc(i);
+      setLength(tiles, i);
+      setLength(realTiles, i);
+      tiles[i-1] := Reflect.Tiles.TileToMM(Point(myTile.x+_x, myTile.y+_y));
+      realTiles[i-1] := Point(myTile.x+_x, myTile.y+_y);
     end;
-  end;
-end;
 
-function R_QuickDeposit(action : string):boolean;
-var W : TReflectWidget;
-begin
-  if R_DepositMenuOpen then begin
-    if action = 'inv' then
-      W.GetWidget(Widget_DepositMenu_Container, DepositMenu_DepositInv)
-    else if action = 'equ' then
-      W.GetWidget(Widget_DepositMenu_Container, DepositMenu_DepositEqu)
-    else
-      W.GetWidget(Widget_DepositMenu_Container, DepositMenu_DepositLoot);
-  end else begin
-    if action = 'inv' then
-      W.GetWidget(WIDGET_Bank_Container, BankMenu_DepositInv)
-    else
-      W.GetWidget(WIDGET_Bank_Container, BankMenu_DepositEqu);
-  end;
-  if W.NotNull then begin
-    result := W.Interact;
-    W.Free;
-  end;
+  for i:=0 to high(tiles) do
+    if not found or (distance(TP.X, TP.Y, tiles[i].X, tiles[i].Y) < distance(TP.X, TP.Y, myTile.X, myTile.Y)) then begin
+      myTile := tiles[i];
+      result := realTiles[i];
+      found := true;
+    end;
 end;
 
 Function GetUpText_WhiteColor: String;
@@ -1566,7 +488,7 @@ function slotActivated(i : integer):boolean;
 var TB:Tbox;
     x,y : integer;
 begin
-  TB := TReflectionInventory.InvBox(i);
+  TB := Reflect.Inv.InvBox(i);
   Result := findColor(x, y, 16777215, TB.x1, TB.y1, TB.x2, TB.y2);
 end;
 
@@ -1574,7 +496,7 @@ function anySlotActivated(soft:boolean=false):boolean;
 var _string : string;
     i : integer;
 begin
-  if TReflectionGametab.CurrentColor <> Gametab_Inventory then
+  if Reflect.GameTab.CurrentColor <> Gametab_Inventory then
     exit(false);
 
   if not soft then begin
@@ -1593,29 +515,21 @@ var tempBox:TBox;
     i : integer;
     upt : string;
 begin
-  if TReflectionGametab.CurrentColor <> Gametab_Inventory then
+  if Reflect.GameTab.CurrentColor <> Gametab_Inventory then
     exit;
 
   upt := GetUpText_WhiteColor;
   if (pos('->', upt) > 0) and (pos('Use', upt) > 0) then
     for i:=1 to 28 do
       if slotActivated(i) then begin
-        if TReflectionGametab.CurrentColor <> Gametab_Inventory then
+        if Reflect.GameTab.CurrentColor <> Gametab_Inventory then
           Reflect.Gametab.Open(Gametab_Inventory);
-        tempBox := TReflectionInventory.invBox(i);
+        tempBox := Reflect.Inv.invBox(i);
         Reflect.Mouse.Move(point(randomRange(tempBox.x1, tempBox.x2), randomRange(tempBox.y1, tempBox.y2)), 0, 0);
         sleepScript(500+random(250));
         Reflect.Mouse.Click(Mouse_left);
         sleepScript(500+random(250));
       end;
-end;
-
-function depositItemBox(Item: Integer): TBox;
-begin
-  Result.X1 := 132 + (Item - 1) mod 7 * 40;
-  Result.Y1 := 75 + (Item - 1) div 7 * 42;
-  Result.X2 := Result.X1 + 30;
-  Result.Y2 := Result.Y1 + 30;
 end;
 
 function itemInSlot(I: Integer): Boolean;
@@ -1626,21 +540,11 @@ begin
   if not inRange(I, 1, 28) then
     Exit;
 
-  if R_DepositMenuOpen(false) then
-    TB := depositItemBox(I)
+  if Reflect.Bank.IsDepositBoxOpen then
+    TB := Reflect.Bank.DepositBoxBox(I)
   else
-    TB := TReflectionInventory.invBox(I);
+    TB := Reflect.Inv.invBox(I);
   result := findColor(x, y, 65536, TB.x1, TB.y1, TB.x2, TB.y2);
-end;
-
-function R_CountItems(IDs:Tintegerarray):integer;
-var i : integer;
-    _items : TReflectInvItemArray;
-begin
-  _items.GetAll;
-  for i:=0 to high(_items) do
-    if inIntArray(IDs, _items[i].GetID) then
-      result := result + _items[i].GetQuantity;
 end;
 
 function IsMenuOpen:boolean;
@@ -1664,62 +568,56 @@ begin
 end;
 
 function R_InteractTile(tile:Tpoint; actions:tstringarray; x:integer = 0; y:integer = 0; z:integer = 0; doSecond:boolean=true):boolean;
-var RSTile : TPoint;
+var tries, pitch : integer;
+    RSTile, MouseLoc : TPoint;
     yaw : extended;
-    _x, _y, pitch, i : integer;
 begin
-  if R_TileOnMS(Tile, RSTile, x, y, z) then
-    for i:=0 to high(actions) do begin
-      getMousePos(_x, _y);
-      if not Reflect.Text.OptionExists(actions[i]) or (distance(_x, _y, rsTile.x, rsTile.y) > 5) then
+  for tries:=0 to 1 do begin
+    if tries = 1 then begin
+      yaw := 360 - Reflect.Compass.AngleDeg;
+      pitch := round((Reflect.Compass.GetPitch - 128) / 25.5);
+      Reflect.Compass.Make('rand');
+      Reflect.Compass.MakePitch(9);
+    end;
+
+    if R_TileOnMS(Tile, RSTile, x, y, z) then begin
+      getMousePos(MouseLoc.x, MouseLoc.y);
+      if not Reflect.Text.OptionExistsMulti(actions) or (distance(MouseLoc.x, MouseLoc.y, rsTile.x, rsTile.y) > 5) then
         Reflect.Mouse.Move(rsTile, 5, 5);
-      if(Reflect.Text.IsUpText(actions[i])) then begin
-        FastClick(mouse_left);
-        result := true;
-        break;
-      end else begin
-        if Reflect.Text.OptionExists(actions[i]) then begin
-          FastClick(mouse_right);
-          result := Reflect.Text.ChooseOption(actions[i]);
-          break;
+
+      if Reflect.Text.IsUpTextMulti(actions) then begin
+        if isMenuOpen then begin
+          result := Reflect.Text.ChooseOptionMulti(actions);
         end else begin
-          exitMenu;
+          FastClick(mouse_left);
+          result := true;
+        end;
+      end else begin
+        if isMenuOpen then begin
+          result := Reflect.Text.ChooseOptionMulti(actions);
+        end else begin
+          FastClick(mouse_right);
+          result := Reflect.Text.ChooseOptionMulti(actions);
         end;
       end;
     end;
 
-  if not result and doSecond then begin
-    yaw := 360 - Reflect.Compass.AngleDeg;
-    pitch := round((Reflect.Compass.GetPitch - 128) / 25.5);
-    Reflect.Compass.Make('rand');
-    Reflect.Compass.MakePitch(9);
+    if tries = 1 then begin
+      Reflect.Compass.Make(yaw);
+      Reflect.Compass.MakePitch(pitch);
+    end;
 
-    if R_TileOnMS(Tile, RSTile, x, y, z) then
-      for i:=0 to high(actions) do begin
-        getMousePos(_x, _y);
-        if not Reflect.Text.OptionExists(actions[i]) or (distance(_x, _y, rsTile.x, rsTile.y) > 5) then
-          Reflect.Mouse.Move(rsTile, 5, 5);
-        if(Reflect.Text.IsUpText(actions[i])) then begin
-          FastClick(mouse_left);
-          result := true;
-          break;
-        end else begin
-          if Reflect.Text.OptionExists(actions[i]) then begin
-            FastClick(mouse_right);
-            result := Reflect.Text.ChooseOption(actions[i]);
-            break;
-          end else begin
-            exitMenu;
-          end;
-        end;
-      end;
+    if result then
+      break
+    else if isMenuOpen then
+      exitMenu;
 
-    Reflect.Compass.Make(yaw);
-    Reflect.Compass.MakePitch(pitch);
+    if not doSecond then
+      break;
   end;
 end;
 
-function R_InteractNPC(IDs:TIntegerArray; actions:tstringarray; isFree:boolean; x:integer = 0; y:integer = 0; z:integer = 50):boolean;
+function R_InteractNPC(IDs:TIntegerArray; actions:tstringarray; x:integer = 0; y:integer = 0; z:integer = 50):boolean;
 var RsTile, npcTile : TPoint;
     i : integer;
     _npcs : TReflectNPCArray;
@@ -1727,7 +625,7 @@ begin
   _npcs.GetAll;
   for i:=0 to high(_npcs) do begin
     npcTile := _npcs[i].GetTile;
-    if inIntArray(IDs, _npcs[i].GetId) and ((not(_npcs[i].IsUnderAttack) and ((_npcs[i].GetInteractingIndex <= 0) or (_npcs[i].GetInteractingIndex = me_indice))) or not isFree) then begin
+    if inIntArray(IDs, _npcs[i].GetId) then begin
       if not R_TileOnMS(npcTile, RSTile, x, y, z) then begin
         ReflectPlayer.BlindWalkMM(npcTile, 5);
         ReflectPlayer.FFlag(2+randomRange(-2, 2));
@@ -1740,18 +638,19 @@ begin
   end;
 end;
 
-function R_TryInteractNPC(IDs:TIntegerArray; actions:tstringarray; isFree:boolean; tries:integer; x:integer = 0; y:integer = 0; z:integer = 50):boolean;
+function R_TryInteractNPC(IDs:TIntegerArray; actions:tstringarray; tries:integer; x:integer = 0; y:integer = 0; z:integer = 50):boolean;
 var i : integer;
 begin
   i := 0;
   result := false;
   while (i<tries) and not result and ReflectPlayer.isLoggedIn do begin
-    result := R_InteractNPC(IDs, actions, isFree, x, y, z);
+    result := R_InteractNPC(IDs, actions, x, y, z);
     inc(i);
   end;
 end;
 
 function TReflectDoor.Open(wantOut: boolean): boolean;
+
 function openDaDoor(daDoor:TReflectDoor):boolean;
 var tP : TPoint;
     tObj : TReflectObject;
@@ -1762,11 +661,11 @@ begin
     if not R_TileOnMS(daDoor.Tile, tP, daDoor.Offset[0], daDoor.Offset[1], daDoor.Offset[2]) then
       ReflectPlayer.BlindWalkMM(Point(daDoor.Tile.x+daDoor.TileOffset[0], daDoor.Tile.y+daDoor.TileOffset[1]), 1);
     updateScreen('Opening door.');
-    result := R_InteractTile(daDoor.Tile, ['Open'], daDoor.Offset[0], daDoor.Offset[1], daDoor.Offset[2]);
+    result := R_InteractTile(daDoor.Tile, daDoor.Actions, daDoor.Offset[0], daDoor.Offset[1], daDoor.Offset[2]);
     ReflectPlayer.FFlag(0, 2500+random(500));
     timer.restart;
     tObj.GetAt(ObjBoundary, daDoor.Tile);
-    while timer.Elapsedtime < 2500 and inIntArray(daDoor.IDs, tObj.GetID) do begin
+    while (timer.Elapsedtime < 2500) and inIntArray(daDoor.IDs, tObj.GetID) do begin
       sleepScript(50);
       tObj.GetAt(ObjBoundary, daDoor.Tile);
     end;
@@ -1776,6 +675,7 @@ begin
       ReflectPlayer.BlindWalkMM(daDoor.Tile, 1);
   end;
 end;
+
 begin
   if wantOut then begin
     if Reflect.Tiles.InPolygon(Self.TileEncompass) then
@@ -1794,8 +694,8 @@ procedure updateAllRefVars;
 begin
   updateScreen('Updating ref vars');
   ReflectPlayer.Create;
-  me_name := ReflectPlayer._GetName;
-  me_indice := ReflectPlayer.GetPlayerIndex;
+  me_name := ReflectPlayer.GetName;
+  me_indice := ReflectPlayer.GetIndex;
 end;
 
 function GenerateRandomString:string;
@@ -1845,15 +745,15 @@ begin
   breakForTimer.restart;
   breakUpdate.restart;
 
-  updateScreen('Taking a break. '+TReflectionTime.msToTime((breakForFinal-breakForTimer.Elapsedtime), TIME_Bare)+' break time left.');
-  daLogger.Status('Its been '+TReflectionTime.msToTime(breakInFinal, TIME_FORMAL)+'. Taking a '+TReflectionTime.msToTime(breakForFinal, TIME_FORMAL)+' long break.', []);
+  updateScreen('Taking a break. '+Reflect.Time.msToTime((breakForFinal-breakForTimer.Elapsedtime), TIME_Bare)+' break time left.');
+  daLogger.Status('Its been '+Reflect.Time.msToTime(breakInFinal, TIME_FORMAL)+'. Taking a '+Reflect.Time.msToTime(breakForFinal, TIME_FORMAL)+' long break.', []);
   ReflectPlayer.LogOut;
   while breakForTimer.Elapsedtime < breakForFinal do begin
-    updateScreen('Taking a break. '+TReflectionTime.msToTime((breakForFinal-breakForTimer.Elapsedtime), TIME_Bare)+' break time left.');
+    updateScreen('Taking a break. '+Reflect.Time.msToTime((breakForFinal-breakForTimer.Elapsedtime), TIME_Bare)+' break time left.');
     sleepScript(1500+random(5000));
     if breakUpdate.Elapsedtime > 300000 then begin
       breakUpdate.restart;
-      daLogger.Status(TReflectionTime.msToTime((breakForFinal-breakForTimer.Elapsedtime), TIME_FORMAL)+' break time left.', []);
+      daLogger.Status(Reflect.Time.msToTime((breakForFinal-breakForTimer.Elapsedtime), TIME_FORMAL)+' break time left.', []);
     end;
   end;
 
@@ -1861,7 +761,7 @@ begin
   breakInFinal := breakIn + randomRange(-breakInRandom, breakInRandom);
   inc(breaks);
   updateScreen('Break time is up.');
-  daLogger.Status('Break time is up. Next break in '+TReflectionTime.msToTime(breakInFinal, TIME_FORMAL), []);
+  daLogger.Status('Break time is up. Next break in '+Reflect.Time.msToTime(breakInFinal, TIME_FORMAL), []);
 end;
 
 function getNearPlayersAmount:integer;
@@ -2169,23 +1069,7 @@ begin
   daLogger.Status('Saying: '''+toStr(_string)+''' outloud too '+intToStr(people)+' people.', []);
   for i:=0 to high(_string) do
     if useAutoResponder then
-      TReflectionKeyboard.TypeSend(_string[i], true);
-end;
-
-procedure doConversation(_strings:TStringArray);
-var tim : TReflectTimer;
-    newArray : TStringArray;
-begin
-  newArray := _strings;
-  setLength(newArray, length(newArray) + 1);
-  newArray[high(newArray)] := 'Click here to continue';
-
-  tim.Restart;
-  while (tim.Elapsedtime < 2500) do begin
-    if TReflectionChat.NpcChooseOption(newArray) then
-      tim.Restart;
-    sleepScript(random(1000));
-  end;
+      Reflect.Keyboard.TypeSend(_string[i], true);
 end;
 
 procedure dismissAllRandoms;
@@ -2219,7 +1103,7 @@ begin
   {$ENDIF}
   for i:=0 to high(rewardIDs) do begin
     if _item.Find(rewardIDs[i]) then begin
-      if TReflectionGametab.CurrentColor <> Gametab_Inventory then
+      if Reflect.Gametab.CurrentColor <> Gametab_Inventory then
         Reflect.Gametab.Open(Gametab_Inventory);
       updateScreen('Solving lamp.');
       daLogger.Status('Solving lamp...', []);
@@ -2255,7 +1139,7 @@ begin
             updateScreen('Talking to: '+name);
             if R_InteractTile(tile, ['Talk'], 0, 0, 50) then begin
               sleepScript(1000+random(1000));
-              doConversation([]);
+              Reflect.Chat.doConversation([]);
               daLogger.Status('Talked to random: '+name, []);
             end;
           end else begin
@@ -2294,39 +1178,60 @@ begin
     maxS := 19;
   {$ENDIF}
   case random(maxS) of
-    0:TReflectionAntiban.RandomRClick;
-    1:hoverSkill(-1);
-    2:TReflectionAntiban.PickUpMouse;
-    3:TReflectionAntiban.SleepAndMoveMouse(random(2500));
-    4:TReflectionAntiban.RandomMovement;
-    5:TReflectionAntiban.CompassMovement(0, 360, false);
-    6:TReflectionAntiban.HumanRandomMouse;
-    7:TReflectionAntiban.ExamineInv;
-    8:TReflectionAntiban.RandomFKeys(false);
-    9:TReflectionAntiban.RandomTab(false);
-    10:TReflectionAntiban.BoredHuman;
-    11:TReflectionAntiban.RandomTab(true);
-    12:TReflectionAntiban.MMouseOffClient('rand');
-    13:TReflectionAntiban.MMouseOffClient('top');
-    14:TReflectionAntiban.MMouseOffClient('bottom');
-    15:TReflectionAntiban.MMouseOffClient('left');
-    16:TReflectionAntiban.MMouseOffClient('right');
+    0:Reflect.Antiban.RandomRClick;
+    1:Reflect.Antiban.hoverSkill(-1);
+    2:Reflect.Antiban.PickUpMouse;
+    3:Reflect.Antiban.SleepAndMoveMouse(random(2500));
+    4:Reflect.Antiban.RandomMovement;
+    5:Reflect.Antiban.CompassMovement(0, 360, false);
+    6:Reflect.Antiban.HumanRandomMouse;
+    7:Reflect.Antiban.ExamineInv;
+    8:Reflect.Antiban.RandomFKeys(false);
+    9:Reflect.Antiban.RandomTab(false);
+    10:Reflect.Antiban.BoredHuman;
+    11:Reflect.Antiban.RandomTab(true);
+    12:Reflect.Antiban.MMouseOffClient('rand');
+    13:Reflect.Antiban.MMouseOffClient('top');
+    14:Reflect.Antiban.MMouseOffClient('bottom');
+    15:Reflect.Antiban.MMouseOffClient('left');
+    16:Reflect.Antiban.MMouseOffClient('right');
     17:doAntibanTalk;
     {$IFDEF CHOPPER}
-      18:hoverSkill(Skill_Woodcutting);
+      18:Reflect.Antiban.hoverSkill(Skill_Woodcutting);
     {$ENDIF}
     {$IFDEF FISHER}
-      18:hoverSkill(Skill_Fishing);
+      18:Reflect.Antiban.hoverSkill(Skill_Fishing);
     {$ENDIF}
     {$IFDEF FIREMAKER}
-      18:hoverSkill(Skill_Firemaking);
+      18:Reflect.Antiban.hoverSkill(Skill_Firemaking);
     {$ENDIF}
     {$IFDEF MINER}
-      18:hoverSkill(Skill_Mining);
+      18:Reflect.Antiban.hoverSkill(Skill_Mining);
     {$ENDIF}
     {$IFDEF COOKER}
-      18:hoverSkill(Skill_Cooking);
+      18:Reflect.Antiban.hoverSkill(Skill_Cooking);
     {$ENDIF}
+  end;
+end;
+
+procedure levelUpCheck;
+var i : integer;
+begin
+  if R_DidLevelUp or R_DidLevelUpExtra then begin
+    if useFakeWaitTime and wasWorking then begin
+      updateScreen('Doing fake ''antiban'' wait.');
+      sleepScript(1000+random(7500));
+    end;
+    wasWorking := false;
+    updateScreen('Clicking level up!');
+
+    for i:=0 to 1000 do
+      if not FileExists(ScriptPath+'ineedbot''s clicking level up '+toStr(i)+'.png')then
+        break;
+    doProggy(ScriptPath+'ineedbot''s clicking level up '+toStr(i)+'.png');
+
+    R_DidLevelUp(true);
+    R_DidLevelUpExtra(true);
   end;
 end;
 
@@ -2334,22 +1239,7 @@ procedure doAntiban;
 var i : integer;
 begin
   if checkForLevelTimer.Elapsedtime > checkForLevelOften then begin
-    if R_DidLevelUp or R_DidLevelUpExtra then begin
-      if useFakeWaitTime and wasWorking then begin
-        updateScreen('Doing fake ''antiban'' wait.');
-        sleepScript(1000+random(7500));
-      end;
-      wasWorking := false;
-      updateScreen('Clicking level up!');
-
-      for i:=0 to 1000 do
-        if not FileExists(ScriptPath+'ineedbot''s clicking level up '+toStr(i)+'.png')then
-          break;
-      doProggy(ScriptPath+'ineedbot''s clicking level up '+toStr(i)+'.png');
-
-      R_DidLevelUp(true);
-      R_DidLevelUpExtra(true);
-    end;
+    levelUpCheck;
     checkForLevelTimer.Restart;
   end;
 
@@ -2482,7 +1372,7 @@ begin
         chatTimers[sendType].Restart;
         sleepScript(1000+random(5000));
         if useAutoResponder then
-          TReflectionKeyboard.typeSend(respondString, true);
+          Reflect.Keyboard.typeSend(respondString, true);
         sleepScript(random(750));
       end;
       if sendType = 6 then
@@ -2499,7 +1389,7 @@ begin
   end;
   doAntiban;
   if closeAllTimer.Elapsedtime > closeAllOften then begin
-    R_closeAllMenus;
+    Reflect.Interfaces.CloseAll;
     closeAllTimer.Restart;
   end;
   if lookForChatTimer.Elapsedtime > lookForChatOften then begin
