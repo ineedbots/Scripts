@@ -4,7 +4,7 @@ program newLapeFisher;
 {$i Reflection/Reflection.Simba}
 {$i [Reflection] ineedbot's functions.simba}
 
-const Version = 5.193;
+const Version = 5.194;
 
       PicturePage = 'http://pastebin.com/raw/hs3w81WZ';
       ScriptPage = 'https://raw.githubusercontent.com/ineedbots/Scripts/master/%5BReflection%5D%20ineedbot''s%20AIO%20Fisher.simba';
@@ -1875,8 +1875,7 @@ begin
       graphicOpti.DrawEllipse(RSTile, 5, 5, clGray, false);
       if R_TileOnMS(daLocation.DoorObjects[i].Tile, RSTile, daLocation.DoorObjects[i].Offset[0], daLocation.DoorObjects[i].Offset[1], daLocation.DoorObjects[i].Offset[2]) then begin
         tempObject.GetAt(ObjBoundary, daLocation.DoorObjects[i].Tile);
-        tempInt := tempObject.GetId;
-        if inIntArray(daLocation.DoorObjects[i].IDs, tempInt) then begin
+        if not Reflect.Smart.IsNull(tempObject.Reference) and inIntArray(daLocation.DoorObjects[i].IDs, tempObject.GetId) then begin
           graphicOpti.DrawClippedText('Closed door', 'upchars07', RSTile, true, clGray);
         end else begin
           graphicOpti.DrawClippedText('Opened door', 'upchars07', RSTile, true, clGray);
@@ -4150,16 +4149,16 @@ var tempObj : TReflectObject;
 begin
    tile := Reflect.Tiles.GetGlobalTile;
    tempObj.GetAt(ObjGame, point(tile.x-1, tile.y));
-   if tempObj.Reference = 0 or tempObj.getID < deadObjID then
+   if Reflect.Smart.IsNull(tempObj.Reference) or tempObj.getID < deadObjID then
     exit(tempObj.getTile);
    tempObj.GetAt(ObjGame, point(tile.x+1, tile.y));
-   if tempObj.Reference = 0 or tempObj.getID < deadObjID then
+   if Reflect.Smart.IsNull(tempObj.Reference) or tempObj.getID < deadObjID then
     exit(tempObj.getTile);
    tempObj.GetAt(ObjGame, point(tile.x, tile.y-1));
-   if tempObj.Reference = 0 or tempObj.getID < deadObjID then
+   if Reflect.Smart.IsNull(tempObj.Reference) or tempObj.getID < deadObjID then
     exit(tempObj.getTile);
    tempObj.GetAt(ObjGame, point(tile.x, tile.y+1));
-   if tempObj.Reference = 0 or tempObj.getID < deadObjID then
+   if Reflect.Smart.IsNull(tempObj.Reference) or tempObj.getID < deadObjID then
     exit(tempObj.getTile);
    exit(Point(0, 0));
 end;
@@ -4185,8 +4184,9 @@ begin
       normal:
       RSTile := Reflect.Tiles.GetGlobalTile;
       tempO.GetAt(ObjGame, RSTile);
-      fireID := tempO.getId;
-      if tempO.Reference = 0 or fireID < deadObjID then begin
+      if not Reflect.Smart.IsNull(tempO.Reference) then
+        fireID := tempO.getId;
+      if fireID < deadObjID then begin
         updateScreen('Going to make fire...');
         if Reflect.Gametab.CurrentColor <> Gametab_Inventory then
           Reflect.Gametab.Open(Gametab_Inventory);
@@ -4242,7 +4242,7 @@ begin
         end;
         timer.restart;
         tempO.GetAt(ObjGame, RSTile);
-        while timer.ElapsedTime < 2500 and not inIntArray(FireIDs, tempO.GetId) do begin
+        while timer.ElapsedTime < 2500 and (Reflect.Smart.IsNull(tempO.Reference) or not inIntArray(FireIDs, tempO.GetId)) do begin
           sleepScript(50);
           tempO.GetAt(ObjGame, RSTile);
         end;

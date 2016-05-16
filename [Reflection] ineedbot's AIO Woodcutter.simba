@@ -4,7 +4,7 @@ program newLapeCutter;
 {$i Reflection/Reflection.Simba}
 {$i [Reflection] ineedbot's functions.simba}
 
-const Version = 4.153;
+const Version = 4.154;
 
       PicturePage = 'http://pastebin.com/raw/mJtA7u8d';
       ScriptPage = 'https://raw.githubusercontent.com/ineedbots/Scripts/master/%5BReflection%5D%20ineedbot''s%20AIO%20Woodcutter.simba';
@@ -1708,8 +1708,7 @@ begin
       graphicOpti.DrawEllipse(RSTile, 5, 5, clGray, false);
       if R_TileOnMS(daLocation.DoorObjects[i].Tile, RSTile, daLocation.DoorObjects[i].Offset[0], daLocation.DoorObjects[i].Offset[1], daLocation.DoorObjects[i].Offset[2]) then begin
         tObj.GetAt(ObjBoundary, daLocation.DoorObjects[i].Tile);
-        tempInt := tObj.GetId;
-        if inIntArray(daLocation.DoorObjects[i].IDs, tempInt) then begin
+        if not Reflect.Smart.IsNull(tObj.Reference) and inIntArray(daLocation.DoorObjects[i].IDs, tObj.GetId) then begin
           graphicOpti.DrawClippedText('Closed door', 'upchars07', RSTile, true, clGray);
         end else begin
           graphicOpti.DrawClippedText('Opened door', 'upchars07', RSTile, true, clGray);
@@ -1924,7 +1923,7 @@ begin
     goodArray := true;
     for h:=daLocation.Firelanes[i].EndFireTile.X to daLocation.Firelanes[i].StartFireTile.X do begin
       _obj.GetAt(ObjGame, Point(h, daLocation.Firelanes[i].EndFireTile.Y));
-      if inIntArray(FireIDs, _obj.GetId) then begin
+      if not Reflect.Smart.IsNull(_obj.Reference) and inIntArray(FireIDs, _obj.GetId) then begin
         goodArray := false;
         break;
       end;
@@ -4949,7 +4948,7 @@ begin
     if Reflect.Gametab.CurrentColor <> Gametab_Inventory then
       Reflect.Gametab.Open(Gametab_Inventory);
     _obj.GetAt(ObjGame, tP);
-    if not inIntArray(FireIDs, _obj.GetID) then begin
+    if Reflect.Smart.IsNull(_obj.Reference) or not inIntArray(FireIDs, _obj.GetID) then begin
       if not anySlotActivated(true) then begin
         for h:=0 to high(TinderIds) do begin
           if(_item.Find(TinderIds[h]))then begin
@@ -5059,13 +5058,13 @@ begin
 
       fail.restart;
       _obj.GetAt(ObjGame, tP);
-      while not inIntArray(FireIDs, _obj.GetId) and (fail.Elapsedtime < 2500) do
+      while (Reflect.Smart.IsNull(_obj.Reference) or not inIntArray(FireIDs, _obj.GetId)) and (fail.Elapsedtime < 2500) do
         _obj.GetAt(ObjGame, tP);
       tP := Reflect.Tiles.GetGlobalTile;
     end else begin
       for h:=tP.x downto daLocation.FireLanes[goodLane].EndFireTile.X do begin
         _obj.GetAt(ObjGame, Point(h, tP.y));
-        if not inIntArray(FireIDs, _obj.GetID) then begin
+        if Reflect.Smart.IsNull(_obj.Reference) or not inIntArray(FireIDs, _obj.GetID) then begin
           tP := Point(h, tP.y);
           break;
         end else begin

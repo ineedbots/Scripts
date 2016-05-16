@@ -1,6 +1,6 @@
 //Feel free to use code, MAKE SURE TO GIVE CREDIT WHERE DUE! -ineedbot
 const
-      fVersion = 2.1;
+      fVersion = 2.11;
 
       fScriptPage = 'https://raw.githubusercontent.com/ineedbots/Scripts/master/%5BReflection%5D%20ineedbot''s%20functions.simba';
 
@@ -590,14 +590,19 @@ begin
           result := Reflect.Text.ChooseOptionMulti(actions);
         end else begin
           FastClick(mouse_left);
-          result := true;
+          if isArrInStr(actions, 'Walk') then
+            result := Reflect.Mouse.DidClick(false)
+          else
+            result := Reflect.Mouse.DidClick(True);
         end;
       end else begin
         if isMenuOpen then begin
           result := Reflect.Text.ChooseOptionMulti(actions);
         end else begin
-          FastClick(mouse_right);
-          result := Reflect.Text.ChooseOptionMulti(actions);
+          if Reflect.Text.OptionExistsMulti(actions) then begin
+            FastClick(mouse_right);
+            result := Reflect.Text.ChooseOptionMulti(actions);
+          end;
         end;
       end;
     end;
@@ -657,17 +662,21 @@ var tP : TPoint;
     timer : TReflectTimer;
 begin
   tObj.GetAt(ObjBoundary, daDoor.Tile);
-  if inIntArray(daDoor.IDs, tObj.GetID) then begin
-    if not R_TileOnMS(daDoor.Tile, tP, daDoor.Offset[0], daDoor.Offset[1], daDoor.Offset[2]) then
+  if not Reflect.Smart.IsNull(tObj.Reference) and inIntArray(daDoor.IDs, tObj.GetID) then begin
+    if not R_TileOnMS(daDoor.Tile, tP, daDoor.Offset[0], daDoor.Offset[1], daDoor.Offset[2]) then begin
       ReflectPlayer.BlindWalkMM(Point(daDoor.Tile.x+daDoor.TileOffset[0], daDoor.Tile.y+daDoor.TileOffset[1]), 1);
+      ReflectPlayer.FFlag(0, 2500+random(500));
+    end;
     updateScreen('Opening door.');
     result := R_InteractTile(daDoor.Tile, daDoor.Actions, daDoor.Offset[0], daDoor.Offset[1], daDoor.Offset[2]);
-    ReflectPlayer.FFlag(0, 2500+random(500));
-    timer.restart;
-    tObj.GetAt(ObjBoundary, daDoor.Tile);
-    while (timer.Elapsedtime < 2500) and inIntArray(daDoor.IDs, tObj.GetID) do begin
-      sleepScript(50);
+    if result then begin
+      ReflectPlayer.FFlag(0, 2500+random(500));
+      timer.restart;
       tObj.GetAt(ObjBoundary, daDoor.Tile);
+      while (timer.Elapsedtime < 2500) and not Reflect.Smart.IsNull(tObj.Reference) and inIntArray(daDoor.IDs, tObj.GetID) do begin
+        sleepScript(50);
+        tObj.GetAt(ObjBoundary, daDoor.Tile);
+      end;
     end;
   end else begin
     result := true;
