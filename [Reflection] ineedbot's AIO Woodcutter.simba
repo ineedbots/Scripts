@@ -4,7 +4,7 @@ program newLapeCutter;
 {$i Reflection/Reflection.Simba}
 {$i [Reflection] ineedbot's functions.simba}
 
-const Version = 4.154;
+const Version = 4.155;
 
       PicturePage = 'http://pastebin.com/raw/mJtA7u8d';
       ScriptPage = 'https://raw.githubusercontent.com/ineedbots/Scripts/master/%5BReflection%5D%20ineedbot''s%20AIO%20Woodcutter.simba';
@@ -3792,7 +3792,7 @@ begin
       setLength(daLocation.Logs, 1);
       daLocation.Logs[0].ID := 1519;
 
-      daLocation.treeLocations := [Point(2517, 3598)];
+      daLocation.treeLocations := [Point(2520, 3579)];
 
       setLength(daLocation.TreeObjects, 5)
       with daLocation.TreeObjects[0] do begin
@@ -3867,6 +3867,7 @@ begin
         Plane := 0;
         Name := 'Bank';
       end;
+      setLength(daLocation.customTPAs, 1);
       daLocation.customTPAs[0] := [Point(2445, 3435){plane 0 stairs}, Point(2445, 3434){plane 1 stairs}];
 
       case job of
@@ -4011,6 +4012,7 @@ begin
       daLocation.TreeLocations := [Point(3248, 3202)];
       daLocation.PathToBank := [Point(3248, 3202), Point(3243, 3201), Point(3238, 3201), Point(3236, 3206), Point(3236, 3211), Point(3234, 3216), Point(3229, 3218), Point(3224, 3218), Point(3219, 3218), Point(3215, 3215), Point(3214, 3210), Point(3209, 3210), Point(3206, 3209)];
       daLocation.PathToTree := [Point(3206, 3210), Point(3211, 3210), Point(3215, 3213), Point(3215, 3218), Point(3220, 3218), Point(3225, 3218), Point(3230, 3218), Point(3232, 3213), Point(3234, 3208), Point(3236, 3203), Point(3241, 3201), Point(3246, 3201), Point(3248, 3201)];
+      setLength(daLocation.customTPAs, 1);
       daLocation.customTPAs[0] := [Point(3205, 3208){'Climb-'}];
 
       setLength(daLocation.TreeObjects, 1)
