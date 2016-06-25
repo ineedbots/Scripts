@@ -1,14 +1,13 @@
-program newLapeCutter;
+program newerLapeCutter;
 {$DEFINE SMART}
 {$DEFINE CHOPPER}
 {$i Reflection/Reflection.Simba}
 {$i [Reflection] ineedbot's functions.simba}
 
-const Version = 4.155;
+const Version = 5.0;
 
-      PicturePage = 'http://pastebin.com/raw/mJtA7u8d';
+      PicturePage = 'http://pastebin.com/raw/zF7qBL4J';
       ScriptPage = 'https://raw.githubusercontent.com/ineedbots/Scripts/master/%5BReflection%5D%20ineedbot''s%20AIO%20Woodcutter.simba';
-      ForumPage = 'https://villavu.com/forum/showthread.php?t=100300';
 
 //Feel free to use code, GIVE CREDIT WHERE DUE! -ineedbot
 
@@ -19,7 +18,7 @@ type TreeObject = record
      Offset : array[0..2] of integer;
      TileOffset : array[0..1] of integer;
      Timer : TReflectTimer;
-     Index : Integer;
+     Index, Plane : Integer;
      Options : TStringArray;
 end;
 TreeObjectArray = array of TreeObject;
@@ -28,7 +27,7 @@ function TreeObject.isAlive:boolean;
 var TempObject : TReflectObject;
 begin
   TempObject.GetAt(ObjGame, self.Tile);
-  if inIntArray(self.AliveIDs, TempObject.GetId) then
+  if not Reflect.Smart.IsNull(TempObject.Reference) and inIntArray(self.AliveIDs, TempObject.GetId) then
     exit(true);
 end;
 
@@ -36,7 +35,7 @@ function TreeObject.isDead:boolean;
 var TempObject : TReflectObject;
 begin
   TempObject.GetAt(ObjGame, self.Tile);
-  if inIntArray(self.DeadIDs, TempObject.GetId) then
+  if not Reflect.Smart.IsNull(TempObject.Reference) and inIntArray(self.DeadIDs, TempObject.GetId) then
     exit(true);
 end;
 
@@ -130,7 +129,8 @@ type BankNPC = record
 end;
 
 type FireLane = record
-     StartFireTile, EndFireTile : TPoint;
+     Plane, Length : Integer;
+     Tile : TPoint;
 end;
 
 type workedLog = record
@@ -141,10 +141,11 @@ type Location = record
      Name : string;
      RunDirections : TStringArray;
      ID, distanceCheck : integer;
+     TreeLocations : TPointArray;
      canFire, canFletch, canBank, isDynamic, isSell, isFar, isPower : boolean;
      FletchPoint : TPoint;
      FireLanes : array of FireLane;
-     PathToBank, PathToTree, TreeLocations : TPointArray;
+     PathToBank, PathToTree : TPointArray;
      customIDs : array of TIntegerArray;
      customTPAs : array of TPointArray;
      BankLocations : array of BankLocation;
@@ -154,31 +155,67 @@ type Location = record
      Logs : array of workedLog;
 end;
 
-var WorldList, TradingSticksIDs, GreeGreeIDs, ChopAnimationIDs, KnifeIDs, TinderIDs, FireIDs, FireAnimIDs, AxeIDs, CoinsIDs, ShaftIDs, FletchAnimationIDs, NestIDs: TIntegerArray;
-    gItemOften, distanceCheck, statsProfit, statsFletchXP, statsFireXp, StartFireXP, playNum, statsWoodXP, tim2, job, AmountAmount, RunAmount, Nests, StartWoodXP, StartWoodLevel, StartFletchXP, LastXPXPCheck, nullInt, updateScreenOften, cpuLoadWait, cpuLoadOften : integer;
-    LastXPCheck, tim, gItemTim : TReflectTimer;
-    PreviousTree : TreeObject;
-    daLocation : Location;
-    dropOnly, useBreaks, started, loading, saving, MouseKeys, UseSpec, disableBank, useStats : boolean;
-    sdrop, script, sgitemt, sbreak, sbrfor, sbfor, sbin, sbrin, swait, schat, scriptstatus, sname, spass, spin, samount, sloc, swood, santi, srun, sworld, sspec, sbank, smouse, ssound, schatt, swaitt, swaito, supdatet, sscreent, slchatt, slevelt, scloset, sdismisst : string;
-    graphicOpti : TMufasaBitmap;
-    statsServer : TStats;
-    DsgnForm, DsgnForm2, DsgnForm3:TForm;
-    UsernameBox,PasswordBox,PinBox,AntibanBox,RunBox,AmountBox,WorldBox,LocalBox,NetworkBox,playBox,bIn, brIn, bFor, brFor, soundBox, chatTimeBox, screenTimeBox, waitOftenBox, waitTimeBox, dismissTimeBox, updateTimeBox, levelTimeBox, closeTimeBox, lookChatTimeBox, gItemTimeBox: TEdit;
-    Image: TImage;
-    UpdateButton,PlayButton,LoadButton,SaveButton,Q3Box,brakebutton,extraButton: TButton;
-    SpecBox,BankBox,MousekeysBox,chatBox,waitBox,brakebox,dropBox: TCheckBox;
-    LocationBox,WoodBox: TComboBox;
-    bmp0: TBitmap;
-    Label1, Label2, label3, Label4, Label5, Label6, Label7, label8, Label9, Label10, Label11, Label12, label13, Label14, Label15, Label16, Label17, Label18: TLabel;
+var
+  graphicOpti: TMufasaBitmap;
+
+  statsServer: TStats;
+
+  daLocation: Location;
+
+  PreviousTree: TreeObject;
+
+  statsTimer,LastXPCheck,gItemTim: TReflectTimer;
+
+  playNum,job,RunAmount,AmountAmount,cpuLoadOften,cpuLoadWait,
+  updateScreenOften,ItemCheckDistance,statsProfit,
+  statsTime,statsFireXP,statsFletchXP,StartFletchXP,
+  statsWoodXP,nullINT,gItemOften,Nests,StartWoodLevel,
+  startWoodXp,LastXPXP,StartFireXP: integer;
+
+  WorldList,TradingSticksIDs,GreeGreeIDs,ChopAnimationIDs,KnifeIDs,TinderIDs,
+  FireIDs,FireAnimIDs,AxeIDs,CoinsIDs,ShaftIDs,FletchAnimationIDs,
+  NestIDs: TIntegerArray;
+
+  started,loading,saving,MouseKeys,DisableBank,UseSpec,useBreaks,
+  dropOnly,useStats: boolean;
+
+  sdrop,sbrin,sbreak,sbin,sbrfor,sbfor,swait,schat,sname,spass,spin,samount,
+  sloc,stype,santi,srun,sworld,sspec,sbank,smouse,ssound,schatt,swaitt,swaito,
+  supdatet,sscreent,slchatt,slevelt,scloset,sdismisst,sitemd,scriptstatus,sitemt: string;
+
+  TFormMain,TFormBreak,TFormExtra: TForm;
+
+  TLabelPin,TLabelWorld,TLabelRun,TLabelAnti,TLabelAmount,TLabelPlayNum,
+  TLabelbIn,TLabelbrIn,TLabelbFor,TLabelItemDis,TLabelLookForChatTime,
+  TLabelCloseTime,TLabelLevelUpTime,TLabelUpdateTime,TLabelDismissTime,
+  TLabelWaitTime,TLabelWaitOften,TLabelbrFor,TLabelScreenTime,TLabelSound,
+  TLabelChatTime,TLabelItemTime: TLabel;
+
+  TEditUser,TEditPass,TEditPin,TEditWorld,TEditRun,TEditAnti,TEditAmount,
+  TEditPlayNum,TEditbIn,TEditbrIn,TEditItemDis,TEditLookForChatTime,
+  TEditCloseTime,TEditLevelUpTime,TEditUpdateTime,TEditDismissTime,
+  TEditWaitTime,TEditWaitOften,TEditbFor,TEditbrFor,TEditScreenTime,
+  TEditSound,TEditChatTime,TEditItemTime: TEdit;
+
+  TButtonPlay,TButtonLoad,TButtonSave,TButtonBreak,TButtonExtra: TButton;
+
+  TCheckBoxBreak,TCheckBoxTalk,TCheckBoxWait,TCheckBoxMouse,TCheckBoxSpec,
+  TCheckBoxBank,TCheckBoxDropOnly: TCheckBox;
+
+  TComboBoxLoc,TComboBoxType: TComboBox;
+
+  TMainImage: TImage;
+
+  TMainBMP: TBitmap;
 
 procedure doUpdate;     //thanks shuttleu
 var NetworkVersion : extended;
-    FileNew : string;
+    FileNew, script : string;
     ThisFile : integer;
 begin
   if DirectoryExists(ScriptPath + '.git\') then
     exit;
+  script := Reflect.Misc.GetPage(scriptPage);
   try
     NetworkVersion := strToFloat(between('Version = ', ';', script));
   except
@@ -188,7 +225,7 @@ begin
     end;
   end;
   daLogger.Status('ineedbot''s Woodcutter:  Local Version: '+FloatToStr(Version)+'  Network Version: '+FloatToStr(NetworkVersion), []);
-  if(Version < NetworkVersion) or forceUpdate then begin
+  if(Version < NetworkVersion) then begin
     FileNew := ScriptPath + '[Reflection] ineedbot''s AIO Woodcutter.simba';
     ThisFile := Rewritefile(FileNew, true);
     try
@@ -210,88 +247,152 @@ begin
   end;
 end;
 
+procedure YourClickProcedure(Sender: TObject);
+{$IFNDEF CODEINSIGHT}
+native;
+{$ENDIF}
+begin
+  case sender of
+    TButtonBreak:begin
+      TFormBreak.ShowModal();
+    end;
+    TButtonExtra:begin
+      TFormExtra.ShowModal();
+    end;
+    TButtonPlay:begin
+      started := true;
+      TFormMain.Close;
+    end;
+    TButtonLoad:begin
+      loading := true;
+      TFormMain.Close;
+    end;
+    TButtonSave:begin
+      schat := tostr(TCheckBoxTalk.getstate);
+      swait := tostr(TCheckBoxWait.getstate);
+      sname := TEditUser.Gettext;
+      spass := TEditPass.gettext;
+      spin := TEditPin.gettext;
+      samount := TEditAmount.gettext;
+      stype := tostr(TComboBoxType.getitemindex);
+      sloc := tostr(TComboBoxLoc.getitemindex);
+      santi := TEditAnti.gettext;
+      srun := TEditRun.gettext;
+      sworld := TEditWorld.gettext;
+      sspec := tostr(TCheckBoxSpec.getstate);
+      sbank := tostr(TCheckBoxBank.getstate);
+      smouse := tostr(TCheckBoxMouse.getstate);
+      sbreak := tostr(TCheckBoxBreak.getstate);
+      sbfor := TEditbFor.gettext;
+      sbrfor := TEditbrFor.gettext;
+      sbin := TEditbin.gettext;
+      sbrin := TEditbrin.gettext;
+      ssound := TEditSound.getText;
+      sdismisst := TEditDismissTime.getText;
+      slchatt := TEditLookForChatTime.getText;
+      schatt := TEditChatTime.getText;
+      supdatet := TEditUpdateTime.getText;
+      sscreent := TEditScreenTime.getText;
+      slevelt := TEditLevelUpTime.getTExt;
+      swaitt := TEditWaitTime.getText;
+      swaito := TEditWaitOften.getText;
+      scloset := TEditCloseTime.getTExt;
+      sitemd := TEditItemDis.getText;
+      sdrop := tostr(TCheckBoxDropOnly.getstate);
+      sitemt := TEditItemTime.getText;
+      saving := true;
+      TFormMain.Close;
+     end;
+  end;
+end;
+
 procedure _OnChange2;
 var i : integer;
 begin
-  woodBox.Clear;
-  woodBox.setText('Type of tree');
+  TComboBoxType.Clear;
+  TComboBoxType.setText('Type of wood:');
   i := -1;
-  case LocationBox.getItemIndex of
+  case TComboBoxLoc.getItemIndex of
     (i:=i+1):begin   //lumbridge
-      woodBox.AddItem('Oaks (sell)', nil);
-      woodBox.AddItem('Willows (sell)', nil);
-      woodBox.AddItem('West Willows', nil);
-      woodBox.AddItem('West Willows(2)', nil);
-      woodBox.AddItem('North Willows', nil);
-      woodBox.AddItem('Yews', nil);
-      woodBox.AddItem('Yews (sell)', nil);
-      woodBox.AddItem('Progressive Chopping', nil);
+      TComboBoxType.AddItem('Oaks (sell)', nil);
+      TComboBoxType.AddItem('Willows (sell)', nil);
+      TComboBoxType.AddItem('West Willows', nil);
+      TComboBoxType.AddItem('West Willows(2)', nil);
+      TComboBoxType.AddItem('North Willows', nil);
+      TComboBoxType.AddItem('Yews', nil);
+      TComboBoxType.AddItem('Yews (sell)', nil);
+      TComboBoxType.AddItem('Progressive Chopping', nil);
     end;
     (i:=i+1):begin      //draynor
-      woodBox.AddItem('Oaks', nil);
-      woodBox.AddItem('Willows', nil);
-      woodBox.AddItem('Yews', nil);
+      TComboBoxType.AddItem('Oaks', nil);
+      TComboBoxType.AddItem('Willows', nil);
+      TComboBoxType.AddItem('Yews', nil);
     end;
     (i:=i+1):begin   //Rimmington
-      woodBox.AddItem('Willows (p.s.)', nil);
-      woodBox.AddItem('Yews (p.s.)', nil);
-      woodBox.AddItem('Willows (sell)', nil);
-      woodBox.AddItem('Yews', nil);
-      woodBox.AddItem('Yews (sell)', nil);
+      TComboBoxType.AddItem('Willows (p.s.)', nil);
+      TComboBoxType.AddItem('Yews (p.s.)', nil);
+      TComboBoxType.AddItem('Willows (sell)', nil);
+      TComboBoxType.AddItem('Yews', nil);
+      TComboBoxType.AddItem('Yews (sell)', nil);
     end;
     (i:=i+1):begin      //Falador
-      woodBox.AddItem('Oaks', nil);
-      woodBox.AddItem('Yews', nil);
+      TComboBoxType.AddItem('Oaks', nil);
+      TComboBoxType.AddItem('Yews', nil);
     end;
     (i:=i+1):begin   //edgeville
-      woodBox.AddItem('Yews', nil);
+      TComboBoxType.AddItem('Yews', nil);
     end;
     (i:=i+1):begin     //varrock
-      woodBox.AddItem('Oaks (west)', nil);
-      woodBox.AddItem('Yews (palace)', nil);
-      woodBox.AddItem('Oaks (east)', nil);
-      woodBox.AddItem('Yews (pray)', nil);
-      woodBox.AddItem('Yews (east)', nil);
+      TComboBoxType.AddItem('Oaks (west)', nil);
+      TComboBoxType.AddItem('Yews (palace)', nil);
+      TComboBoxType.AddItem('Oaks (east)', nil);
+      TComboBoxType.AddItem('Yews (pray)', nil);
+      TComboBoxType.AddItem('Yews (east)', nil);
     end;
     (i:=i+1):begin   //seers
-      woodBox.AddItem('Oaks', nil);
-      woodBox.AddItem('Willows', nil);
-      woodBox.AddItem('Maples', nil);
-      woodBox.AddItem('Yews', nil);
-      woodBox.AddItem('Magics', nil);
-      woodBox.AddItem('Magics (2)', nil);
+      TComboBoxType.AddItem('Oaks', nil);
+      TComboBoxType.AddItem('Willows', nil);
+      TComboBoxType.AddItem('Maples', nil);
+      TComboBoxType.AddItem('Yews', nil);
+      TComboBoxType.AddItem('Magics', nil);
+      TComboBoxType.AddItem('Magics (2)', nil);
     end;
     (i:=i+1):begin   //catherby
-      woodBox.AddItem('Willows', nil);
-      woodBox.AddItem('Yews', nil);
+      TComboBoxType.AddItem('Willows', nil);
+      TComboBoxType.AddItem('Yews', nil);
     end;
     (i:=i+1):begin   //tree gnome village
-      woodBox.AddItem('Yews', nil);
-      woodBox.AddItem('Yews (2)', nil);
+      TComboBoxType.AddItem('Yews', nil);
+      TComboBoxType.AddItem('Yews (2)', nil);
     end;
     (i:=i+1):begin     //barb
-      woodBox.AddItem('Willows', nil);
+      TComboBoxType.AddItem('Willows', nil);
     end;
     (i:=i+1):begin     //deul
-      woodBox.AddItem('Magics', nil);
+      TComboBoxType.AddItem('Magics', nil);
     end;
     (i:=i+1):begin     //ape
-      woodBox.AddItem('Teaks', nil);
+      TComboBoxType.AddItem('Teaks', nil);
     end;
     (i:=i+1):begin     //castle
-      woodBox.AddItem('Teaks', nil);
+      TComboBoxType.AddItem('Teaks', nil);
     end;
     (i:=i+1):begin     //two bai
-      woodBox.AddItem('Teaks', nil);
-      woodBox.AddItem('Teaks(2)', nil);
-      woodBox.AddItem('Mahogany', nil);
+      TComboBoxType.AddItem('Teaks', nil);
+      TComboBoxType.AddItem('Teaks(2)', nil);
+      TComboBoxType.AddItem('Mahogany', nil);
     end;
     (i:=i+1):begin     //powerchop
-      woodBox.AddItem('Normal Trees', nil);
-      woodBox.AddItem('Oaks', nil);
-      woodBox.AddItem('Willows', nil);
+      TComboBoxType.AddItem('Normal Trees', nil);
+      TComboBoxType.AddItem('Oaks', nil);
+      TComboBoxType.AddItem('Willows', nil);
     end;
   end;
+end;
+
+procedure breakCheck;
+begin
+  TButtonBreak.setEnabled(toStr(TCheckBoxBreak.getState) = 'cbChecked');
 end;
 
 procedure OnChange(Sender: TObject);
@@ -302,70 +403,12 @@ begin
   _OnChange2;
 end;
 
-procedure YourClickProcedure(Sender: TObject);
+procedure brakeHandle(Sender: TObject);
 {$IFNDEF CODEINSIGHT}
 native;
 {$ENDIF}
 begin
-  case sender of
-    brakeButton:begin
-      DsgnForm2.ShowModal();
-    end;
-    extraButton:begin
-      DsgnForm3.ShowModal();
-    end;
-    UpdateButton:begin
-      forceUpdate := true;
-      started := true;
-      DsgnForm.Close;
-    end;
-    PlayButton:begin
-      started := true;
-      DsgnForm.Close;
-    end;
-    LoadButton:begin
-      loading := true;
-      DsgnForm.Close;
-    end;
-    SaveButton:begin
-      sname := Usernamebox.Gettext;
-      swait := tostr(waitbox.getstate);
-      spass := Passwordbox.gettext;
-      spin := pinbox.gettext;
-      samount := amountbox.gettext;
-      swood := tostr(woodbox.getitemindex);
-      sloc := tostr(locationbox.getitemindex);
-      santi := antibanbox.gettext;
-      srun := runbox.gettext;
-      sworld := worldbox.gettext;
-      sbank := tostr(bankbox.getstate);
-      smouse := tostr(mousekeysbox.getstate);
-      schat := tostr(chatbox.getstate);
-      sspec := tostr(specbox.getstate);
-      sbreak := tostr(brakebox.getstate);
-      sbfor := bFor.gettext;
-      sbrfor := brFor.gettext;
-      sbin := bin.gettext;
-      sbrin := brin.gettext;
-      ssound := soundBox.getText;
-      sdismisst := dismissTimeBox.getText;
-      slchatt := lookChatTimeBox.getText;
-      schatt := chatTimeBox.getText;
-      supdatet := updateTimeBox.getText;
-      sscreent := screenTimeBox.getText;
-      slevelt := levelTimeBox.getTExt;
-      swaitt := waitTimeBox.getText;
-      swaito := waitOftenBox.getText;
-      scloset := closeTimeBox.getTExt;
-      sgitemt := gItemTimeBox.getTExt;
-      sdrop := tostr(dropBox.getstate);
-      saving := true;
-      DsgnForm.Close;
-     end;
-    Q3Box:begin
-      openWebPage(ForumPage);
-    end;
-  end;
+  breakCheck;
 end;
 
 procedure OnlyPostiveNumbers(Sender: TObject; var Key:Char);
@@ -403,6 +446,14 @@ begin
   end;
 end;
 
+procedure NoKeys(Sender: TObject; var Key: Char);
+{$IFNDEF CODEINSIGHT}
+native;
+{$ENDIF}
+begin
+  Key := #0;
+end;
+
 procedure OnlyPostiveNumbers2(Sender: TObject; var Key:Char);
 {$IFNDEF CODEINSIGHT}
 native;
@@ -417,346 +468,288 @@ begin
   end;
 end;
 
-procedure NoKeys(Sender: TObject; var Key: Char);
-{$IFNDEF CODEINSIGHT}
-native;
-{$ENDIF}
-begin
-  Key := #0;
-end;
-
-procedure breakCheck;
-begin
-  brakeButton.setEnabled(toStr(brakeBox.getState) = 'cbChecked');
-end;
-
-procedure brakeHandle(Sender: TObject);
-{$IFNDEF CODEINSIGHT}
-native;
-{$ENDIF}
-begin
-  breakCheck;
-end;
-
 procedure InitForm;
-var TempFont : TFont;
+var
+  tempFont : TFont;
 begin
- DsgnForm.init(nil);
-  with DsgnForm do
+  tempFont.Init;
+  tempFont.setColor(0);
+//TFormMain\\
+ TFormMain.Init(nil);
+  with TFormMain do
     begin
-      setCaption('ineedbot''s AIO Woodcutter v' + toStr(Version)+'('+floatToStr(fversion)+')');
+      SetCaption('ineedbot''s AIO Woodcutter');
       setBorderStyle(bsSingle);
+      SetBounds(0,0,374,208);
       SetPosition(poScreenCenter);
-      setWidth(512);
-      setHeight(333);
   end;
-  Image.init(DsgnForm);
-  with Image do
+  TMainImage.init(TFormMain);
+  with TMainImage do
     begin
-      setParent(DsgnForm);
-      setLeft(0);
-      setTop(0);
-      setWidth(512);
-      setHeight(333);
-      setPicture(bmp0);
+      setParent(TFormMain);
+      SetBounds(0,0,374,208);
+      setPicture(TMainBMP);
   end;
- UsernameBox.init(DsgnForm);
-  with UsernameBox do
+//TLabelPin\\
+ TLabelPin.Init(TFormMain);
+  with TLabelPin do
     begin
-      setParent(DsgnForm);
-      setText('Username or eMail');
-      setLeft(3);
-      setTop(37);
-      setWidth(257);
-      setHeight(23);
+      SetParent(TFormMain);
+      SetCaption('Pin:');
+      SetBounds(2,57,53,16);
+      setFont(tempFont);
   end;
- PasswordBox.init(DsgnForm);
-  with PasswordBox do
+//TLabelWorld\\
+ TLabelWorld.Init(TFormMain);
+  with TLabelWorld do
     begin
-      setParent(DsgnForm);
-      setText('Password');
-      setLeft(270);
-      setTop(37);
-      setWidth(234);
-      setHeight(23);
+      SetParent(TFormMain);
+      SetCaption('World:');
+      SetBounds(2,82,68,16);
+      setFont(tempFont);
+  end;
+//TLabelRun\\
+ TLabelRun.Init(TFormMain);
+  with TLabelRun do
+    begin
+      SetParent(TFormMain);
+      SetCaption('When to run:');
+      SetBounds(2,107,57,16);
+      setFont(tempFont);
+  end;
+//TLabelAnti\\
+ TLabelAnti.Init(TFormMain);
+  with TLabelAnti do
+    begin
+      SetParent(TFormMain);
+      SetCaption('Antiban often:');
+      SetBounds(2,132,58,16);
+      setFont(tempFont);
+  end;
+//TLabelAmount\\
+ TLabelAmount.Init(TFormMain);
+  with TLabelAmount do
+    begin
+      SetParent(TFormMain);
+      SetCaption('Amount to cut:');
+      SetBounds(2,157,80,16);
+      setFont(tempFont);
+  end;
+//TLabelPlayNum\\
+ TLabelPlayNum.Init(TFormMain);
+  with TLabelPlayNum do
+    begin
+      SetParent(TFormMain);
+      SetCaption('Player number:');
+      SetBounds(116,182,85,16);
+      setFont(tempFont);
+  end;
+//TEditUser\\
+ TEditUser.Init(TFormMain);
+  with TEditUser do
+    begin
+      SetParent(TFormMain);
+      SetText('Username or email');
+      SetBounds(2,27,219,23);
+      setFont(tempFont);
+  end;
+//TEditPass\\
+ TEditPass.Init(TFormMain);
+  with TEditPass do
+    begin
+      SetParent(TFormMain);
+      SetText('Password');
+      SetBounds(225,27,147,23);
+      setFont(tempFont);
       setPasswordChar('*');
       setMaxLength(20);
   end;
- PinBox.init(DsgnForm);
-  with PinBox do
+//TEditPin\\
+ TEditPin.Init(TFormMain);
+  with TEditPin do
     begin
-      setParent(DsgnForm);
-      setText('');
-      setLeft(47);
-      setTop(82);
-      setWidth(80);
-      setHeight(23);
-      setMaxLength(4);
+      SetParent(TFormMain);
+      SetText('');
+      SetBounds(26,52,36,23);
+      setFont(tempFont);
       setPasswordChar('*');
+      setMaxLength(4);
       setONKEYPRESS(OnlyPostiveNumbers);
   end;
-  WorldBox.init(DsgnForm);
-  with WorldBox do
+//TEditWorld\\
+ TEditWorld.Init(TFormMain);
+  with TEditWorld do
     begin
-      setParent(DsgnForm);
-      setText('');
-      setLeft(67);
-      setTop(116);
-      setWidth(80);
-      setHeight(23);
+      SetParent(TFormMain);
+      SetText('');
+      SetBounds(40,77,80,23);
+      setFont(tempFont);
       setONKEYPRESS(OnlyPostiveNumbers2);
-      setMaxLength(25);
   end;
-  RunBox.init(DsgnForm);
-  with RunBox do
+//TEditRun\\
+ TEditRun.Init(TFormMain);
+  with TEditRun do
     begin
-      setParent(DsgnForm);
-      setText('50');
-      setLeft(118);
-      setTop(152);
-      setWidth(80);
-      setHeight(23);
-      setONKEYPRESS(onlyPostiveNumbers);
+      SetParent(TFormMain);
+      SetText('75');
+      SetBounds(75,102,30,23);
+      setFont(tempFont);
       setMaxLength(3);
+      setONKEYPRESS(OnlyPostiveNumbers);
   end;
- AmountBox.init(DsgnForm);
-  with AmountBox do
+//TEditAnti\\
+ TEditAnti.Init(TFormMain);
+  with TEditAnti do
     begin
-      setParent(DsgnForm);
-      setText('-1');
-      setLeft(167);
-      setTop(188);
-      setWidth(80);
-      setHeight(23);
-      setONKEYPRESS(OnlyNumbers);
+      SetParent(TFormMain);
+      SetText('1000');
+      SetBounds(82,127,48,23);
+      setFont(tempFont);
       setMaxLength(6);
+      setONKEYPRESS(OnlyPostiveNumbers);
   end;
-  Q3Box.init(DsgnForm);
-  with Q3Box do
+//TEditAmount\\
+ TEditAmount.Init(TFormMain);
+  with TEditAmount do
     begin
-      setParent(DsgnForm);
-      setCaption('?');
-      setLeft(257);
-      setTop(187);
-      setWidth(32);
-      setHeight(25);
+      SetParent(TFormMain);
+      SetText('-1');
+      SetBounds(88,152,48,23);
+      setFont(tempFont);
+      setMaxLength(6);
+      setONKEYPRESS(OnlyPostiveNumbers);
+  end;
+//TEditPlayNum\\
+ TEditPlayNum.Init(TFormMain);
+  with TEditPlayNum do
+    begin
+      SetParent(TFormMain);
+      SetText('0');
+      SetBounds(200,180,20,23);
+      setFont(tempFont);
+      setMaxLength(2);
+      setONKEYPRESS(OnlyPostiveNumbers);
+  end;
+//TButtonPlay\\
+ TButtonPlay.Init(TFormMain);
+  with TButtonPlay do
+    begin
+      SetParent(TFormMain);
+      SetCaption('Play');
+      SetBounds(296,180,75,25);
+      setFont(tempFont);
       setOnClick(YourClickProcedure);
   end;
-  AntibanBox.init(DsgnForm);
-  with AntibanBox do
+//TButtonLoad\\
+ TButtonLoad.Init(TFormMain);
+  with TButtonLoad do
     begin
-      setParent(DsgnForm);
-      setText('2000');
-      setLeft(134);
-      setTop(227);
-      setWidth(80);
-      setHeight(23);
-      setONKEYPRESS(OnlyPostiveNumbers);
-      setMaxLength(6);
+      SetParent(TFormMain);
+      SetCaption('Load');
+      SetBounds(2,180,50,25);
+      setFont(tempFont);
+      setOnClick(YourClickProcedure);
   end;
-  TempFont.Init;
-  TempFont.setColor(16776960);
-  waitBox.init(DsgnForm);
-  with waitBox do
+//TButtonSave\\
+ TButtonSave.Init(TFormMain);
+  with TButtonSave do
     begin
-      setParent(DsgnForm);
-      setCaption('Use waits between chopping?');
-      setState(0);
-      setLeft(17);
-      setTop(250);
-      //setFont(tempFont);
+      SetParent(TFormMain);
+      SetCaption('Save');
+      SetBounds(54,180,50,25);
+      setFont(tempFont);
+      setOnClick(YourClickProcedure);
   end;
-  chatBox.init(DsgnForm);
-  with chatBox do
+//TButtonBreak\\
+ TButtonBreak.Init(TFormMain);
+  with TButtonBreak do
     begin
-      setParent(DsgnForm);
-      setCaption('autoResponder?');
-      setState(0);
-      setLeft(200);
-      setTop(250);
-      //setFont(tempFont);
-  end;
-  SpecBox.init(DsgnForm);
-  with SpecBox do
-    begin
-      setParent(DsgnForm);
-      setCaption('Dragon axe spec?');
-      setState(0);
-      setLeft(17);
-      setTop(275);
-      //setFont(tempFont);
-  end;
-  MousekeysBox.init(DsgnForm);
-  with MousekeysBox do
-    begin
-      setParent(DsgnForm);
-      setCaption('Mouse keys?');
-      setState(0);
-      setLeft(211);
-      setTop(275);
-      //setFont(tempFont);
-  end;
- BankBox.init(DsgnForm);
-  with BankBox do
-    begin
-      setParent(DsgnForm);
-      setCaption('Force Disable Bank?');
-      setState(0);
-      setLeft(343);
-      setTop(275);
-      //setFont(tempFont);
-  end;
-  brakeBox.init(DsgnForm);
-  with brakeBox do
-    begin
-      setParent(DsgnForm);
-      setCaption('');
-      setState(0);
-      setLeft(310);
-      setTop(250);
-      setOnChange(brakeHandle);
-  end;
-  brakeButton.init(DsgnForm);
-  with brakeButton do
-    begin
-      setParent(DsgnForm);
-      setCaption('BreakHandler');
-      setLeft(325);
-      setTop(250);
-      setWidth(75);
-      setHeight(25);
+      SetParent(TFormMain);
+      SetCaption('Break handler');
+      SetBounds(160,152,85,25);
+      setFont(tempFont);
       setOnClick(YourClickProcedure);
       setEnabled(false);
   end;
-  extraButton.init(DsgnForm);
-  with extraButton do
+//TButtonExtra\\
+ TButtonExtra.Init(TFormMain);
+  with TButtonExtra do
     begin
-      setParent(DsgnForm);
-      setCaption('Extra');
-      setLeft(415);
-      setTop(250);
-      setWidth(65);
-      setHeight(25);
+      SetParent(TFormMain);
+      SetCaption('Extras');
+      SetBounds(304,152,60,25);
+      setFont(tempFont);
       setOnClick(YourClickProcedure);
   end;
-  PlayBox.init(DsgnForm);
-  with PlayBox do
+//TCheckBoxBreak\\
+ TCheckBoxBreak.Init(TFormMain);
+  with TCheckBoxBreak do
     begin
-      setParent(DsgnForm);
-      setText('0');
-      setLeft(250);
-      setTop(305);
-      setWidth(40);
-      setHeight(23);
-      setONKEYPRESS(OnlyPostiveNumbers);
-  end;
-  LoadButton.init(DsgnForm);
-  with LoadButton do
-    begin
-      setParent(DsgnForm);
-      setCaption('Load');
-      setLeft(8);
-      setTop(305);
-      setWidth(75);
-      setHeight(25);
-      setOnClick(YourClickProcedure);
-  end;
- SaveButton.init(DsgnForm);
-  with SaveButton do
-    begin
-      setParent(DsgnForm);
-      setCaption('Save');
-      setLeft(89);
-      setTop(305);
-      setWidth(75);
-      setHeight(25);
-      setOnClick(YourClickProcedure);
-  end;
-  PlayButton.init(DsgnForm);
-  with PlayButton do
-    begin
-      setParent(DsgnForm);
-      setCaption('Play');
-      setLeft(436);
-      setTop(305);
-      setWidth(75);
-      setHeight(25);
-      setOnClick(YourClickProcedure);
-  end;
- LocalBox.init(DsgnForm);
-  with LocalBox do
-    begin
-      setParent(DsgnForm);
-      setText(floattoStr(version)+'('+floattoStr(fVersion)+')');
-      setLeft(375);
-      setTop(85);
-      setWidth(65);
-      setHeight(23);
-      setONKEYPRESS(NoKeys);
-  end;
- Label1.init(DsgnForm);
-  with Label1 do
-    begin
-      setParent(DsgnForm);
-      setCaption('Local Version:');
-      setLeft(294);
-      setTop(85);
+      SetParent(TFormMain);
+      SetCaption('');
+      SetBounds(140,154,23,19);
+      setState(0);
+      setOnChange(brakeHandle);
       setFont(tempFont);
   end;
- Label2.init(DsgnForm);
-  with Label2 do
+//TCheckBoxTalk\\
+ TCheckBoxTalk.Init(TFormMain);
+  with TCheckBoxTalk do
     begin
-      setParent(DsgnForm);
-      setCaption('Network Version:');
-      setLeft(270);
-      setTop(120);
+      SetParent(TFormMain);
+      SetCaption('Use auto responder?');
+      SetBounds(140,52,101,19);
+      setState(0);
       setFont(tempFont);
   end;
- NetworkBox.init(DsgnForm);
-  with NetworkBox do
+//TCheckBoxWait\\
+ TCheckBoxWait.Init(TFormMain);
+  with TCheckBoxWait do
     begin
-      setParent(DsgnForm);
-      setText(between('Version = ', ';', script)+'('+between('fVersion = ', ';', fscript)+')');
-      setLeft(375);
-      setTop(120);
-      setWidth(65);
-      setHeight(23);
-      setONKEYPRESS(NoKeys);
-  end;
- UpdateButton.init(DsgnForm);
-  with UpdateButton do
-    begin
-      setParent(DsgnForm);
-      setCaption('Update');
-      setLeft(445);
-      setTop(100);
-      setWidth(65);
-      setHeight(25);
-      setOnClick(YourClickProcedure);
-  end;
-  Label3.init(DsgnForm);
-  TempFont.setColor(16776960);
-  with Label3 do
-    begin
-      setParent(DsgnForm);
-      setCaption('Player number:');
-      setLeft(165);
-      setTop(305);
-      setWidth(42);
-      setHeight(16);
+      SetParent(TFormMain);
+      SetCaption('Force waits after actions?');
+      SetBounds(140,72,103,19);
+      setState(0);
       setFont(tempFont);
   end;
-  LocationBox.init(DsgnForm);
-  with LocationBox do
+//TCheckBoxMouse\\
+ TCheckBoxMouse.Init(TFormMain);
+  with TCheckBoxMouse do
     begin
-      setParent(DsgnForm);
-      setLeft(205);
-      setTop(4);
-      setWidth(150);
-      setHeight(23);
-      setText('Location');
-      setONKEYPRESS(NoKeys);
-      setOnExit(OnChange);
+      SetParent(TFormMain);
+      SetCaption('Use mouse keys?');
+      SetBounds(140,92,115,19);
+      setState(0);
+      setFont(tempFont);
+  end;
+//TCheckBoxSpec\\
+ TCheckBoxSpec.Init(TFormMain);
+  with TCheckBoxSpec do
+    begin
+      SetParent(TFormMain);
+      SetCaption('Use DAxe Spec?');
+      SetBounds(140,112,107,19);
+      setState(0);
+      setFont(tempFont);
+  end;
+//TCheckBoxBank\\
+ TCheckBoxBank.Init(TFormMain);
+  with TCheckBoxBank do
+    begin
+      SetParent(TFormMain);
+      SetCaption('Force disable banking?');
+      SetBounds(140,132,105,19);
+      setState(0);
+      setFont(tempFont);
+  end;
+//TComboBoxLoc\\
+ TComboBoxLoc.Init(TFormMain);
+  with TComboBoxLoc do
+    begin
+      SetParent(TFormMain);
+      SetBounds(2,2,219,23);
+      setCaption('Location:');
+      //add your items here
       AddItem('Lumbridge', nil);
       AddItem('Draynor', nil);
       AddItem('Rimmington', nil);
@@ -772,566 +765,446 @@ begin
       AddItem('Castle Wars', nil);
       AddItem('Tai Bwo Wannai', nil);
       AddItem('Powerchop', nil);
+      //End items
+      setFont(tempFont);
+      setONKEYPRESS(NoKeys);
+      setOnExit(OnChange);
   end;
- WoodBox.init(DsgnForm);
-  with WoodBox do
+//TComboBoxType\\
+ TComboBoxType.Init(TFormMain);
+  with TComboBoxType do
     begin
-      setParent(DsgnForm);
-      setLeft(360);
-      setTop(4);
-      setWidth(150);
-      setHeight(23);
-      setText('Type of tree');
+      SetParent(TFormMain);
+      SetBounds(225,2,147,23);
+      setCaption('Type of wood:');
+      setFont(tempFont);
       setONKEYPRESS(NoKeys);
   end;
 
-  DsgnForm2.init(nil);
-  with DsgnForm2 do
+  TFormBreak.init(nil);
+  with TFormBreak do
     begin
-      setCaption('Break Handler');
+      SetCaption('Break Handler');
       setBorderStyle(bsSingle);
+      SetBounds(0,0,255,120);
       SetPosition(poScreenCenter);
-      setWidth(255);
-      setHeight(120);
   end;
-  TempFont.setColor(0);
-  Label4.init(DsgnForm2);
-  with Label4 do
+  TLabelbIn.init(TFormBreak);
+  with TLabelbIn do
     begin
-      setParent(DsgnForm2);
+      setParent(TFormBreak);
       setCaption('Break after/every/within:');
-      setLeft(5);
-      setTop(5);
+      SetBounds(5,5,68,16);
       setFont(tempFont);
   end;
-  Label5.init(DsgnForm2);
-  with Label5 do
+  TLabelbrIn.init(TFormBreak);
+  with TLabelbrIn do
     begin
-      setParent(DsgnForm2);
+      setParent(TFormBreak);
       setCaption('Random:');
-      setLeft(5);
-      setTop(30);
+      SetBounds(5,30,68,16);
       setFont(tempFont);
   end;
-  Label6.init(DsgnForm2);
-  with Label6 do
+  TLabelbFor.init(TFormBreak);
+  with TLabelbFor do
     begin
-      setParent(DsgnForm2);
+      setParent(TFormBreak);
       setCaption('Break for:');
-      setLeft(5);
-      setTop(65);
+      SetBounds(5,65,68,16);
       setFont(tempFont);
   end;
-  Label7.init(DsgnForm2);
-  with Label7 do
+  TLabelbrFor.init(TFormBreak);
+  with TLabelbrFor do
     begin
-      setParent(DsgnForm2);
+      setParent(TFormBreak);
       setCaption('Random:');
-      setLeft(5);
-      setTop(90);
+      SetBounds(5,90,68,16);
       setFont(tempFont);
   end;
-  bIn.init(DsgnForm2);
-  with bIn do
+  TEditbIn.init(TFormBreak);
+  with TEditbIn do
     begin
-      setParent(DsgnForm2);
+      setParent(TFormBreak);
       setText('90');
-      setLeft(150);
-      setTop(2);
-      setWidth(100);
-      setHeight(23);
+      SetBounds(150,2,100,23);
       setONKEYPRESS(OnlyPostiveNumbers);
       setMaxLength(9);
+      setFont(tempFont);
   end;
-  brIn.init(DsgnForm2);
-  with brIn do
+  TEditbrIn.init(TFormBreak);
+  with TEditbrIn do
     begin
-      setParent(DsgnForm2);
+      setParent(TFormBreak);
       setText('30');
-      setLeft(150);
-      setTop(30);
-      setWidth(100);
-      setHeight(23);
+      SetBounds(150,30,100,23);
       setONKEYPRESS(OnlyPostiveNumbers);
       setMaxLength(9);
+      setFont(tempFont);
   end;
-  bFor.init(DsgnForm2);
-  with bFor do
+  TEditbFor.init(TFormBreak);
+  with TEditbFor do
     begin
-      setParent(DsgnForm2);
+      setParent(TFormBreak);
       setText('10');
-      setLeft(150);
-      setTop(67);
-      setWidth(100);
-      setHeight(23);
+      SetBounds(150,67,100,23);
       setONKEYPRESS(OnlyPostiveNumbers);
       setMaxLength(9);
+      setFont(tempFont);
   end;
-  brFor.init(DsgnForm2);
-  with brFor do
+  TEditbrFor.init(TFormBreak);
+  with TEditbrFor do
     begin
-      setParent(DsgnForm2);
+      setParent(TFormBreak);
       setText('5');
-      setLeft(150);
-      setTop(92);
-      setWidth(100);
-      setHeight(23);
+      SetBounds(150,92,100,23);
       setONKEYPRESS(OnlyPostiveNumbers);
       setMaxLength(9);
+      setFont(tempFont);
   end;
 
-  DsgnForm3.init(nil);
-  with DsgnForm3 do
+  TFormExtra.init(nil);
+  with TFormExtra do
     begin
       setCaption('Extras');
       setBorderStyle(bsSingle);
+      SetBounds(0,0,255,330);
       SetPosition(poScreenCenter);
-      setWidth(255);
-      setHeight(300);
   end;
-  Label8.init(DsgnForm3);
-  with Label8 do
+  TLabelSound.init(TFormExtra);
+  with TLabelSound do
     begin
-      setParent(DsgnForm3);
+      setParent(TFormExtra);
       setCaption('Sound:');
-      setLeft(5);
-      setTop(5);
+      SetBounds(5,5,68,16);
       setFont(tempFont);
   end;
-  soundBox.init(DsgnForm3);
-  with soundBox do
+  TEditSound.init(TFormExtra);
+  with TEditSound do
     begin
-      setParent(DsgnForm3);
-      setText('C:\Windows\Media\Windows Notify Messaging.wav');
-      setLeft(150);
-      setTop(5);
-      setWidth(100);
-      setHeight(23);
+      setParent(TFormExtra);
+      setText('C:\Windows\Media\Windows Notify.wav');
+      SetBounds(150,5,100,23);
+      setFont(tempFont);
   end;
-  Label9.init(DsgnForm3);
-  with Label9 do
+  TLabelChatTime.init(TFormExtra);
+  with TLabelChatTime do
     begin
-      setParent(DsgnForm3);
+      setParent(TFormExtra);
       setCaption('Chat time often:');
-      setLeft(5);
-      setTop(30);
+      SetBounds(5,30,68,16);
       setFont(tempFont);
   end;
-  chatTimeBox.init(DsgnForm3);
-  with chatTimeBox do
+  TEditChatTime.init(TFormExtra);
+  with TEditChatTime do
     begin
-      setParent(DsgnForm3);
+      setParent(TFormExtra);
       setText('200000');
-      setLeft(150);
-      setTop(30);
-      setWidth(100);
-      setHeight(23);
+      SetBounds(150,30,100,23);
       setONKEYPRESS(OnlyNumbers);
       setMaxLength(9);
+      setFont(tempFont);
   end;
-  Label10.init(DsgnForm3);
-  with Label10 do
+  TLabelScreenTime.init(TFormExtra);
+  with TLabelScreenTime do
     begin
-      setParent(DsgnForm3);
+      setParent(TFormExtra);
       setCaption('Screen time often:');
-      setLeft(5);
-      setTop(55);
+      SetBounds(5,55,68,16);
       setFont(tempFont);
   end;
-  screenTimeBox.init(DsgnForm3);
-  with screenTimeBox do
+  TEditScreenTime.init(TFormExtra);
+  with TEditScreenTime do
     begin
-      setParent(DsgnForm3);
+      setParent(TFormExtra);
       setText('1000');
-      setLeft(150);
-      setTop(55);
-      setWidth(100);
-      setHeight(23);
+      SetBounds(150,55,100,23);
       setONKEYPRESS(OnlyNumbers);
       setMaxLength(9);
+      setFont(tempFont);
   end;
-  Label11.init(DsgnForm3);
-  with Label11 do
+  TLabelWaitTime.init(TFormExtra);
+  with TLabelWaitTime do
     begin
-      setParent(DsgnForm3);
+      setParent(TFormExtra);
       setCaption('Wait time:');
-      setLeft(5);
-      setTop(80);
+      SetBounds(5,80,68,16);
       setFont(tempFont);
   end;
-  waitTimeBox.init(DsgnForm3);
-  with waitTimeBox do
+  TEditWaitTime.init(TFormExtra);
+  with TEditWaitTime do
     begin
-      setParent(DsgnForm3);
+      setParent(TFormExtra);
       setText('-1');
-      setLeft(150);
-      setTop(80);
-      setWidth(100);
-      setHeight(23);
+      SetBounds(150,80,100,23);
       setONKEYPRESS(OnlyNumbers);
       setMaxLength(9);
-  end;
-  Label12.init(DsgnForm3);
-  with Label12 do
-    begin
-      setParent(DsgnForm3);
-      setCaption('Wait often:');
-      setLeft(5);
-      setTop(105);
       setFont(tempFont);
   end;
-  waitOftenBox.init(DsgnForm3);
-  with waitOftenBox do
+  TLabelWaitOften.init(TFormExtra);
+  with TLabelWaitOften do
     begin
-      setParent(DsgnForm3);
+      setParent(TFormExtra);
+      setCaption('Wait often:');
+      SetBounds(5,105,68,16);
+      setFont(tempFont);
+  end;
+  TEditWaitOften.init(TFormExtra);
+  with TEditWaitOften do
+    begin
+      setParent(TFormExtra);
       setText('250');
-      setLeft(150);
-      setTop(105);
-      setWidth(100);
-      setHeight(23);
+      SetBounds(150,105,100,23);
       setONKEYPRESS(OnlyPostiveNumbers);
       setMaxLength(9);
+      setFont(tempFont);
   end;
-  Label13.init(DsgnForm3);
-  with Label13 do
+  TLabelDismissTime.init(TFormExtra);
+  with TLabelDismissTime do
     begin
-      setParent(DsgnForm3);
+      setParent(TFormExtra);
       setCaption('Dismiss time:');
-      setLeft(5);
-      setTop(130);
+      SetBounds(5,130,68,16);
       setFont(tempFont);
   end;
-  dismissTimeBox.init(DsgnForm3);
-  with dismissTimeBox do
+  TEditDismissTime.init(TFormExtra);
+  with TEditDismissTime do
     begin
-      setParent(DsgnForm3);
+      setParent(TFormExtra);
       setText('10000');
-      setLeft(150);
-      setTop(130);
-      setWidth(100);
-      setHeight(23);
+      SetBounds(150,130,100,23);
       setONKEYPRESS(OnlyNumbers);
       setMaxLength(9);
+      setFont(tempFont);
   end;
-  Label14.init(DsgnForm3);
-  with Label14 do
+  TLabelUpdateTime.init(TFormExtra);
+  with TLabelUpdateTime do
     begin
-      setParent(DsgnForm3);
+      setParent(TFormExtra);
       setCaption('Update time:');
-      setLeft(5);
-      setTop(155);
+      SetBounds(5,155,68,16);
       setFont(tempFont);
   end;
-  updateTimeBox.init(DsgnForm3);
-  with updateTimeBox do
+  TEditUpdateTime.init(TFormExtra);
+  with TEditUpdateTime do
     begin
-      setParent(DsgnForm3);
+      setParent(TFormExtra);
       setText('45000');
-      setLeft(150);
-      setTop(155);
-      setWidth(100);
-      setHeight(23);
+      SetBounds(150,155,100,23);
       setONKEYPRESS(OnlyNumbers);
       setMaxLength(9);
+      setFont(tempFont);
   end;
-  Label15.init(DsgnForm3);
-  with Label15 do
+  TLabelLevelUpTime.init(TFormExtra);
+  with TLabelLevelUpTime do
     begin
-      setParent(DsgnForm3);
+      setParent(TFormExtra);
       setCaption('Level up time:');
-      setLeft(5);
-      setTop(180);
+      SetBounds(5,180,68,16);
       setFont(tempFont);
   end;
-  levelTimeBox.init(DsgnForm3);
-  with levelTimeBox do
+  TEditLevelUpTime.init(TFormExtra);
+  with TEditLevelUpTime do
     begin
-      setParent(DsgnForm3);
+      setParent(TFormExtra);
       setText('2500');
-      setLeft(150);
-      setTop(180);
-      setWidth(100);
-      setHeight(23);
+      SetBounds(150,180,100,23);
       setONKEYPRESS(OnlyNumbers);
       setMaxLength(9);
+      setFont(tempFont);
   end;
-  Label16.init(DsgnForm3);
-  with Label16 do
+  TLabelCloseTime.init(TFormExtra);
+  with TLabelCloseTime do
     begin
-      setParent(DsgnForm3);
+      setParent(TFormExtra);
       setCaption('Close stuff time:');
-      setLeft(5);
-      setTop(205);
+      SetBounds(5,205,68,16);
       setFont(tempFont);
   end;
-  closeTimeBox.init(DsgnForm3);
-  with closeTimeBox do
+  TEditCloseTime.init(TFormExtra);
+  with TEditCloseTime do
     begin
-      setParent(DsgnForm3);
+      setParent(TFormExtra);
       setText('10000');
-      setLeft(150);
-      setTop(205);
-      setWidth(100);
-      setHeight(23);
+      SetBounds(150,205,100,23);
       setONKEYPRESS(OnlyNumbers);
       setMaxLength(9);
+      setFont(tempFont);
   end;
-  Label17.init(DsgnForm3);
-  with Label17 do
+  TLabelLookForChatTime.init(TFormExtra);
+  with TLabelLookForChatTime do
     begin
-      setParent(DsgnForm3);
+      setParent(TFormExtra);
       setCaption('Look for chat time:');
-      setLeft(5);
-      setTop(230);
+      SetBounds(5,230,68,16);
       setFont(tempFont);
   end;
-  lookChatTimeBox.init(DsgnForm3);
-  with lookChatTimeBox do
+  TEditLookForChatTime.init(TFormExtra);
+  with TEditLookForChatTime do
     begin
-      setParent(DsgnForm3);
+      setParent(TFormExtra);
       setText('2000');
-      setLeft(150);
-      setTop(230);
-      setWidth(100);
-      setHeight(23);
+      SetBounds(150,230,100,23);
       setONKEYPRESS(OnlyNumbers);
       setMaxLength(9);
-  end;
-  Label18.init(DsgnForm3);
-  with Label18 do
-    begin
-      setParent(DsgnForm3);
-      setCaption('Look for nest time:');
-      setLeft(5);
-      setTop(255);
       setFont(tempFont);
   end;
-  gItemTimeBox.init(DsgnForm3);
-  with gItemTimeBox do
+  TLabelItemDis.init(TFormExtra);
+  with TLabelItemDis do
     begin
-      setParent(DsgnForm3);
-      setText('5000');
-      setLeft(150);
-      setTop(255);
-      setWidth(100);
-      setHeight(23);
-      setONKEYPRESS(OnlyNumbers);
-      setMaxLength(9);
+      setParent(TFormExtra);
+      setCaption('Nest check distance:');
+      SetBounds(5,255,68,16);
+      setFont(tempFont);
   end;
-  dropBox.init(DsgnForm3);
-  with dropBox do
+  TEditItemDis.init(TFormExtra);
+  with TEditItemDis do
     begin
-      setParent(DsgnForm3);
+      setParent(TFormExtra);
+      setText('20');
+      SetBounds(150,255,100,23);
+      setONKEYPRESS(OnlyPostiveNumbers);
+      setMaxLength(3);
+      setFont(tempFont);
+  end;
+  TCheckBoxDropOnly.init(TFormExtra);
+  with TCheckBoxDropOnly do
+    begin
+      setFont(tempFont);
+      setParent(TFormExtra);
       setCaption('Drop only?');
       setState(0);
-      setLeft(5);
-      setTop(280);
-      //setFont(tempFont);
+      SetBounds(5,280,68,16);
   end;
-  TempFont.Free;
+  TLabelItemTime.init(TFormExtra);
+  with TLabelItemTime do
+    begin
+      setParent(TFormExtra);
+      setCaption('Look for nest time:');
+      SetBounds(5,305,68,16);
+      setFont(tempFont);
+  end;
+  TEditItemTime.init(TFormExtra);
+  with TEditItemTime do
+    begin
+      setParent(TFormExtra);
+      setText('5000');
+      SetBounds(150,305,100,23);
+      setONKEYPRESS(OnlyNumbers);
+      setMaxLength(9);
+  end;
+  tempFont.Free;
 end;
 
-procedure ShowFormModal();
+procedure ShowFormModal;
 {$IFNDEF CODEINSIGHT}
 native;
 {$ENDIF}
-var i, h : integer;
-    strings : TStringArray;
+var
+  i, h : integer;
+  strings : TStringArray;
 begin
   InitForm;
 
   if loading or saving then begin
     saving := false;
     loading := false;
-    usernamebox.setText(sname);
-    passwordbox.setText(spass);
-    pinbox.setText(spin);
-    worldbox.setText(sworld);
-    runbox.setText(srun);
-    antibanbox.setText(santi);
-    amountbox.setText(samount);
+    TEditUser.setText(sname);
+    TEditPass.setText(spass);
+    TEditPin.setText(spin);
+    TEditWorld.setText(sworld);
+
+    if (Length(santi) > 0) then
+      TEditAnti.setText(santi)
+    else
+      TEditAnti.setText('0');
+
+    if (Length(srun) > 0) then
+      TEditRun.setText(srun)
+    else
+      TEditRun.setText('0');
+
+    if (Length(samount) > 0) then
+      TEditAmount.setText(samount)
+    else
+      TEditAmount.setText('0');
+
     if (Length(sloc) > 0) then
-      locationbox.setItemIndex(StrToInt(sloc))
+      TComboBoxLoc.setItemIndex(StrToInt(sloc))
     else
-      locationbox.setItemIndex(0);
+      TComboBoxLoc.setItemIndex(0);
     _OnChange2;
-    if (Length(swood) > 0) then
-      woodbox.setItemIndex(StrToInt(swood))
+
+    if (Length(stype) > 0) then
+      TComboBoxType.setItemIndex(StrToInt(stype))
     else
-      woodbox.setItemIndex(0);
-    if(sspec = 'cbUnchecked')then begin
-      specbox.setState(0);
-    end else begin
-      specbox.setState(1);
-    end;
-    if(sbank = 'cbUnchecked')then begin
-      bankbox.setState(0);
-    end else begin
-      bankbox.setState(1);
-    end;
-    if(smouse = 'cbUnchecked')then begin
-      mousekeysbox.setState(0);
-    end else begin
-      mousekeysbox.setState(1);
-    end;
-    if(schat = 'cbUnchecked')then begin
-      chatbox.setState(0);
-    end else begin
-      chatbox.setState(1);
-    end;
-    if(swait = 'cbUnchecked')then begin
-      waitbox.setState(0);
-    end else begin
-      waitbox.setState(1);
-    end;
-    if(sbreak = 'cbUnchecked')then begin
-      brakebox.setState(0);
-    end else begin
-      brakebox.setState(1);
-    end;
+      TComboBoxType.setItemIndex(0);
+
+    if(sbank = 'cbUnchecked')then
+      TCheckBoxBank.setState(0)
+    else
+      TCheckBoxBank.setState(1);
+
+    if(sspec = 'cbUnchecked')then
+      TCheckBoxSpec.setState(0)
+    else
+      TCheckBoxSpec.setState(1);
+
+    if(schat = 'cbUnchecked')then
+      TCheckBoxTalk.setState(0)
+    else
+      TCheckBoxTalk.setState(1);
+
+    if(swait = 'cbUnchecked')then
+      TCheckBoxWait.setState(0)
+    else
+      TCheckBoxWait.setState(1);
+
+    if(smouse = 'cbUnchecked')then
+      TCheckBoxMouse.setState(0)
+    else
+      TCheckBoxMouse.setState(1);
+
+    if(sbreak = 'cbUnchecked')then
+      TCheckBoxBreak.setState(0)
+    else
+      TCheckBoxBreak.setState(1);
     breakCheck;
-    bin.setText(sbin);
-    brin.setText(sbrin);
-    bfor.setText(sbfor);
-    brfor.setText(sbrfor);
 
-    soundBox.setText(ssound);
-    closeTimeBox.setText(scloset);
-    waitOftenBox.setText(swaito);
-    waitTimeBox.setText(swaitt);
-    levelTimeBox.setText(slevelt);
-    screenTimeBox.setText(sscreent);
-    updateTimeBox.setText(supdatet);
-    chatTimeBox.setText(schatt);
-    lookChatTimeBox.setText(slchatt);
-    dismissTimeBox.setText(sdismisst);
-    gItemTimeBox.setText(sgitemt);
+    TEditbin.setText(sbin);
+    TEditbrin.setText(sbrin);
+    TEditbfor.setText(sbfor);
+    TEditbrfor.setText(sbrfor);
 
-    if(sdrop = 'cbUnchecked')then begin
-      dropBox.setState(0);
-    end else begin
-      dropBOx.setState(1);
-    end;
+    if(sdrop = 'cbUnchecked')then
+      TCheckBoxDropOnly.setState(0)
+    else
+      TCheckBoxDropOnly.setState(1);
 
-    playbox.setText(tostr(playNum));
+    TEditSound.setText(ssound);
+    TEditCloseTime.setText(scloset);
+    TEditWaitOften.setText(swaito);
+    TEditWaitTime.setText(swaitt);
+    TEditLevelUpTime.setText(slevelt);
+    TEditScreenTime.setText(sscreent);
+    TEditUpdateTime.setText(supdatet);
+    TEditChatTime.setText(schatt);
+    TEditLookForChatTime.setText(slchatt);
+    TEditDismissTime.setText(sdismisst);
+
+    TEditItemDis.setText(sitemd);
+
+    TEditItemTime.setText(sitemt);
+
+    TEditPlayNum.setText(tostr(playNum));
   end;
 
-  DsgnForm.showModal();
-
-  ReflectPlayer.Username := UsernameBox.getText;
-  ReflectPlayer.Password := PasswordBox.getText;
-  ReflectPlayer.Pin := PinBox.getText;
-
-  ReflectPlayer.Active := true;
-
-  SMARTShowConsole := false;
-  case random(8) of
-    0:SMARTUserAgent := 'Mozilla/5.0 (Windows NT 6.3; WOW64; rv:36.0) Gecko/20100101 Firefox/36.0';
-    1:SMARTUserAgent := 'Mozilla/5.0 (Windows NT 6.3; WOW64; rv:39.0) Gecko/20100101 Firefox/39.0';
-    2:SMARTUserAgent := 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:36.0) Gecko/20100101 Firefox/36.0';
-    3:SMARTUserAgent := 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:39.0) Gecko/20100101 Firefox/39.0';
-    4:SMARTUserAgent := 'Mozilla/5.0 (Windows NT 6.3; WOW64; rv:37.0) Gecko/20100101 Firefox/37.0';
-    5:SMARTUserAgent := 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:37.0) Gecko/20100101 Firefox/37.0';
-    6:SMARTUserAgent := 'Mozilla/5.0 (Windows NT 6.3; WOW64; rv:38.0) Gecko/20100101 Firefox/38.0';
-    7:SMARTUserAgent := 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:38.0) Gecko/20100101 Firefox/38.0';
-  end;
-
-  strings := GetWordsEx(WorldBox.getText, '1234567890');
-  if (length(strings) > 0) then
-    SmartWorld := StrToInt(Strings[0]);
-
-  setLength(WorldList, length(strings));
-  for i := 0 to high(strings) do
-    WorldList[i] := StrToInt(strings[i]);
-
-  MouseKeys := (toStr(MouseKeysBox.getState) = 'cbChecked');
-  UseSpec := (toStr(SpecBox.getState) = 'cbChecked');
-  DisableBank := (toStr(BankBox.getState) = 'cbChecked');
-  useAutoResponder := (toStr(ChatBox.getState) = 'cbChecked');
-  useBreaks := (toStr(brakeBox.getState) = 'cbChecked');
-  useFakeWaitTime := (toStr(WaitBox.getState) = 'cbChecked');
-  dropOnly := (toStr(dropBox.getState) = 'cbChecked');
-
-  if (Length(closeTimeBox.getText) > 0) then
-    closeAllOften := StrToInt(closeTimeBox.GetText)
-  else
-    closeAllOften := 0;
-  if (Length(dismissTimeBox.getText) > 0) then
-    dismissAllOften := StrToInt(dismissTimeBox.GetText)
-  else
-    dismissAllOften := 0;
-  if (Length(lookChatTimeBox.getText) > 0) then
-    lookForChatOften := StrToInt(lookChatTimeBox.GetText)
-  else
-    lookForChatOften := 0;
-  if (Length(levelTimeBox.getText) > 0) then
-    checkForLevelOften := StrToInt(levelTimeBox.GetText)
-  else
-    checkForLevelOften := 0;
-  if (Length(chatTimeBox.getText) > 0) then
-    chatTimeOften := StrToInt(chatTimeBox.GetText)
-  else
-    chatTimeOften := 0;
-  if (Length(updateTimeBox.getText) > 0) then
-    updateAllOften := StrToInt(updateTimeBox.GetText)
-  else
-    updateAllOften := 0;
-  if (Length(waitOftenBox.getText) > 0) then
-    cpuLoadOften := StrToInt(waitOftenBox.GetText)
-  else
-    cpuLoadOften := 0;
-  if (Length(waitTimeBox.getText) > 0) then
-    cpuLoadWait := StrToInt(waitTimeBox.GetText)
-  else
-    cpuLoadWait := 0;
-  if (Length(screenTimeBox.getText) > 0) then
-    updateScreenOften := StrToInt(screenTimeBox.GetText)
-  else
-    updateScreenOften := 0;
-  if (Length(gItemTimeBox.getText) > 0) then
-    gItemOften := StrToInt(gItemTimeBox.GetText)
-  else
-    gItemOften := 0;
-
-  if (Length(RunBox.getText) > 0) then
-    RunAmount := StrToInt(RunBox.getText)
-  else
-    RunAmount := 0;
-  if (Length(AmountBox.getText) > 0) then
-    AmountAmount := StrToInt(AmountBox.getText)
-  else
-    AmountAmount := 0;
-  if (Length(AntiBanBox.getText) > 0) then
-    AntiAmount := StrToInt(AntiBanBox.getText)
-  else
-    AntiAmount := 0;
-  if (Length(playBox.getText) > 0) then
-    playNum := StrToInt(playBox.getText)
-  else
-    playNum := 0;
-
-  if (Length(bin.getText) > 0) then
-    breakIn := StrToInt(bin.getText)
-  else
-    breakIn := 0;
-  if (Length(brin.getText) > 0) then
-    breakInRandom := StrToInt(brin.getText)
-  else
-    breakInRandom := 0;
-  if (Length(bfor.getText) > 0) then
-    breakFor := StrToInt(bfor.getText)
-  else
-    breakFor := 0;
-  if (Length(brfor.getText) > 0) then
-    breakForRandom := StrToInt(brfor.getText)
-  else
-    breakForRandom := 0;
+  TFormMain.ShowModal;
 
   i := -1;
   h := -1;
-  case LocationBox.getItemIndex of
+  case TComboBoxLoc.getItemIndex of
     (i:=i+1):begin //lumb
-      case WoodBox.getItemIndex of
+      case TComboBoxType.getItemIndex of
         (h:=h+1):Job:=0;  //    oak sell
         (h:=h+1):Job:=1;  //            willow sell
         (h:=h+1):Job:=2;  //    west will
@@ -1343,14 +1216,14 @@ begin
       end;
     end;
     (i:=i+1):begin //draynor
-      case WoodBox.getItemIndex of
+      case TComboBoxType.getItemIndex of
         (h:=h+1):Job:=8;  //oak
         (h:=h+1):Job:=9;  // willow
         (h:=h+1):Job:=10;  //  yew
       end;
     end;
     (i:=i+1):begin // rimm
-      case WoodBox.getItemIndex of
+      case TComboBoxType.getItemIndex of
         (h:=h+1):Job:=11;  // will ps
         (h:=h+1):Job:=12;  //     yew ps
         (h:=h+1):Job:=13;  // will sell
@@ -1359,18 +1232,18 @@ begin
       end;
     end;
     (i:=i+1):begin //fala
-      case WoodBox.getItemIndex of
+      case TComboBoxType.getItemIndex of
         (h:=h+1):Job:=16;  //  oak
         (h:=h+1):Job:=17;  //   yew
       end;
     end;
     (i:=i+1):begin // edge
-      case WoodBox.getItemIndex of
+      case TComboBoxType.getItemIndex of
         (h:=h+1):Job:=18;  //       yew
       end;
     end;
     (i:=i+1):begin //varr
-      case WoodBox.getItemIndex of
+      case TComboBoxType.getItemIndex of
         (h:=h+1):Job:=19;  //   oak west
         (h:=h+1):Job:=20;  //    yew palc
         (h:=h+1):Job:=21;  //   oak east
@@ -1379,7 +1252,7 @@ begin
       end;
     end;
     (i:=i+1):begin //seers
-      case WoodBox.getItemIndex of
+      case TComboBoxType.getItemIndex of
         (h:=h+1):Job:=24;  // oak
         (h:=h+1):Job:=25;  //   willow
         (h:=h+1):Job:=26;  //     maople
@@ -1389,52 +1262,182 @@ begin
       end;
     end;
     (i:=i+1):begin //cath
-      case WoodBox.getItemIndex of
+      case TComboBoxType.getItemIndex of
         (h:=h+1):Job:=30;  //  will
         (h:=h+1):Job:=31;  //      yew
       end;
     end;
     (i:=i+1):begin //tree g
-      case WoodBox.getItemIndex of
+      case TComboBoxType.getItemIndex of
         (h:=h+1):Job:=32;  //  yew
         (h:=h+1):Job:=33;  //  yew 2
       end;
     end;
     (i:=i+1):begin //      barb
-      case WoodBox.getItemIndex of
+      case TComboBoxType.getItemIndex of
         (h:=h+1):Job:=34;  //   will
       end;
     end;
     (i:=i+1):begin //      deul
-      case WoodBox.getItemIndex of
+      case TComboBoxType.getItemIndex of
         (h:=h+1):Job:=35;  //   mag
       end;
     end;
     (i:=i+1):begin //      ape
-      case WoodBox.getItemIndex of
+      case TComboBoxType.getItemIndex of
         (h:=h+1):Job:=36;  //   teak
       end;
     end;
     (i:=i+1):begin //      castle wars
-      case WoodBox.getItemIndex of
+      case TComboBoxType.getItemIndex of
         (h:=h+1):Job:=37;  //   teak
       end;
     end;
     (i:=i+1):begin //      two baw
-      case WoodBox.getItemIndex of
+      case TComboBoxType.getItemIndex of
         (h:=h+1):Job:=38;  //   teak
         (h:=h+1):Job:=39;  //   teak 2
         (h:=h+1):Job:=40;  //   mah
       end;
     end;
     (i:=i+1):begin //      power
-      case WoodBox.getItemIndex of
+      case TComboBoxType.getItemIndex of
         (h:=h+1):Job:=41;  //   tree
         (h:=h+1):Job:=42;  //       oak
         (h:=h+1):Job:=43;  //          willow
       end;
     end;
   end;
+
+  ReflectPlayer.Username := TEditUser.getText;
+  ReflectPlayer.Password := TEditPass.getText;
+  ReflectPlayer.Pin := TEditPin.getText;
+  ReflectPlayer.Active := true;
+
+  SmartShowConsole := false;
+  case random(8) of
+    0:SmartUserAgent := 'Mozilla/5.0 (Windows NT 6.3; WOW64; rv:36.0) Gecko/20100101 Firefox/36.0';
+    1:SmartUserAgent := 'Mozilla/5.0 (Windows NT 6.3; WOW64; rv:39.0) Gecko/20100101 Firefox/39.0';
+    2:SmartUserAgent := 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:36.0) Gecko/20100101 Firefox/36.0';
+    3:SmartUserAgent := 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:39.0) Gecko/20100101 Firefox/39.0';
+    4:SmartUserAgent := 'Mozilla/5.0 (Windows NT 6.3; WOW64; rv:37.0) Gecko/20100101 Firefox/37.0';
+    5:SmartUserAgent := 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:37.0) Gecko/20100101 Firefox/37.0';
+    6:SmartUserAgent := 'Mozilla/5.0 (Windows NT 6.3; WOW64; rv:38.0) Gecko/20100101 Firefox/38.0';
+    7:SmartUserAgent := 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:38.0) Gecko/20100101 Firefox/38.0';
+  end;
+
+  strings := GetWordsEx(TEditWorld.getText, '1234567890');
+  if (length(strings) > 0) then
+    SmartWorld := StrToInt(Strings[0]);
+
+  setLength(WorldList, length(strings));
+  for i := 0 to high(strings) do
+    WorldList[i] := StrToInt(strings[i]);
+
+  MouseKeys := (toStr(TCheckBoxMouse.getState) = 'cbChecked');
+  DisableBank := (toStr(TCheckBoxBank.getState) = 'cbChecked');
+  UseSpec := (toStr(TCheckBoxSpec.getState) = 'cbChecked');
+  useBreaks := (toStr(TCheckBoxBreak.getState) = 'cbChecked');
+  useAutoResponder := (toStr(TCheckBoxTalk.getState) = 'cbChecked');
+  useFakeWaitTime := (toStr(TCheckBoxWait.getState) = 'cbChecked');
+  dropOnly := (toStr(TCheckBoxDropOnly.getState) = 'cbChecked');
+
+  if (Length(TEditRun.getText) > 0) then
+    RunAmount := StrToInt(TEditRun.getText)
+  else
+    RunAmount := 0;
+
+  if (Length(TEditAmount.getText) > 0) then
+    AmountAmount := StrToInt(TEditAmount.getText)
+  else
+    AmountAmount := 0;
+
+  if (Length(TEditAnti.getText) > 0) then
+    AntiAmount := StrToInt(TEditAnti.getText)
+  else
+    AntiAmount := 0;
+
+  if (Length(TEditPlayNum.getText) > 0) then
+    playNum := StrToInt(TEditPlayNum.getText)
+  else
+    playNum := 0;
+
+  if (Length(TEditCloseTime.getText) > 0) then
+    closeAllOften := StrToInt(TEditCloseTime.GetText)
+  else
+    closeAllOften := 0;
+
+  if (Length(TEditDismissTime.getText) > 0) then
+    dismissAllOften := StrToInt(TEditDismissTime.GetText)
+  else
+    dismissAllOften := 0;
+
+  if (Length(TEditLookForChatTime.getText) > 0) then
+    lookForChatOften := StrToInt(TEditLookForChatTime.GetText)
+  else
+    lookForChatOften := 0;
+
+  if (Length(TEditLevelupTime.getText) > 0) then
+    checkForLevelOften := StrToInt(TEditLevelupTime.GetText)
+  else
+    checkForLevelOften := 0;
+
+  if (Length(TEditChatTime.getText) > 0) then
+    chatTimeOften := StrToInt(TEditChatTime.GetText)
+  else
+    chatTimeOften := 0;
+
+  if (Length(TEditUpdateTime.getText) > 0) then
+    updateAllOften := StrToInt(TEditUpdateTime.GetText)
+  else
+    updateAllOften := 0;
+
+  if (Length(TEditWaitOften.getText) > 0) then
+    cpuLoadOften := StrToInt(TEditWaitOften.GetText)
+  else
+    cpuLoadOften := 0;
+
+  if (Length(TEditWaitTime.getText) > 0) then
+    cpuLoadWait := StrToInt(TEditWaitTime.GetText)
+  else
+    cpuLoadWait := 0;
+
+  if (Length(TEditScreenTime.getText) > 0) then
+    updateScreenOften := StrToInt(TEditScreenTime.GetText)
+  else
+    updateScreenOften := 0;
+
+  if (Length(TEditbin.getText) > 0) then
+    breakIn := StrToInt(TEditbin.getText)
+  else
+    breakIn := 0;
+
+  if (Length(TEditbrin.getText) > 0) then
+    breakInRandom := StrToInt(TEditbrin.getText)
+  else
+    breakInRandom := 0;
+
+  if (Length(TEditbfor.getText) > 0) then
+    breakFor := StrToInt(TEditbfor.getText)
+  else
+    breakFor := 0;
+
+  if (Length(TEditbrfor.getText) > 0) then
+    breakForRandom := StrToInt(TEditbrfor.getText)
+  else
+    breakForRandom := 0;
+
+  if (Length(TEditItemDis.getText) > 0) then
+    ItemCheckDistance := StrToInt(TEditItemDis.GetText)
+  else
+    ItemCheckDistance := 0;
+
+  if (Length(TEditItemTime.getText) > 0) then
+    gItemOften := StrToInt(TEditItemTime.GetText)
+  else
+    gItemOften := 0;
+
+  SoundString := TEditSound.getText;
 
   breakIn := breakIn*60000;
   breakInRandom := breakInRandom*60000;
@@ -1444,131 +1447,110 @@ begin
   breakInTimer.restart;
   breakInFinal := breakIn + randomRange(-breakInRandom, breakInRandom);
 
-  SoundString := SoundBox.getText;
-
-  DsgnForm.Free;
-  DsgnForm2.Free;
-  DsgnForm3.Free;
+  TFormBreak.Free;
+  TFormExtra.Free;
+  TFormMain.Free;
 end;
 
-procedure safeShowModal;
-var PictureString : string;
-    bmp1:integer;
+procedure ShowForm();
+var
+  tempBMP : integer;
+  IniString, picString : string;
 begin
   daLogger.Init('Script', TReflectLoggerLevel.Status);
 
-  try
-    PictureString := GetPage(PicturePage);
-  except
-    begin
-      daLogger.Error('Failed to get picture string from: '+PicturePage, []);
-    end;
-  end;
-  bmp1 := BitmapFromString(512, 333, PictureString);
-  bmp0.Init;
-  bmp0 := GetMufasaBitmap(bmp1).ToTBitmap;
-  freeBitmap(bmp1);
+  picString := GetPage(PicturePage);
 
-  try
-    script := Reflect.Misc.GetPage(scriptPage);
-  except
-    begin
-      daLogger.Error('Failed to get script from: '+scriptPage,[]);
-    end;
-  end;
-  try
-    fScript := Reflect.Misc.GetPage(fscriptPage);
-  except
-    begin
-      daLogger.Error('Failed to get fscript from: '+fscriptPage,[]);
-    end;
-  end;
+  tempBMP := BitmapFromString(374, 208, picString);
+  TMainBMP.Init;
+  TMainBMP := GetMufasaBitmap(tempBMP).ToTBitmap;
+  freeBitmap(tempBMP);
 
-   forceUpdate := false;
-   started := false;
-   saving := false;
-   loading := false;
-   job := -1;
-   playNum := 0;
+  started := false;
+  saving := false;
+  loading := false;
+  job := -1;
+  playNum := 0;
+  IniString := scriptPath+'ineedbot''s AIO Woodcutter user details.ini';
 
-   PictureString := scriptPath+'ineedbot''s AIO Woodcutter user details.ini';
-
-   sync(showFormModal);
-   while saving or loading do begin
+  sync(ShowFormModal);
+  while saving or loading do begin
     if saving then begin
-      writeini('wait', intToStr(playNum), swait, PictureString);
-      writeini('chat', intToStr(playNum), schat, PictureString);
-      writeini('name', intToStr(playNum), sname, PictureString);
-      writeini('pass', intToStr(playNum), spass, PictureString);
-      writeini('pin', intToStr(playNum), spin, PictureString);
-      writeini('world', intToStr(playNum), sworld, PictureString);
-      writeini('amount', intToStr(playNum), samount, PictureString);
-      writeini('run', intToStr(playNum), srun, PictureString);
-      writeini('anti', intToStr(playNum), santi, PictureString);
-      writeini('wood', intToStr(playNum), swood, PictureString);
-      writeini('loc', intToStr(playNum), sloc, PictureString);
-      writeini('mouse', intToStr(playNum), smouse, PictureString);
-      writeini('spec', intToStr(playNum), sspec, PictureString);
-      writeini('bank', intToStr(playNum), sbank, PictureString);
-      writeini('bfor', intToStr(playNum), sbfor, PictureString);
-      writeini('brfor', intToStr(playNum), sbrfor, PictureString);
-      writeini('bin', intToStr(playNum), sbin, PictureString);
-      writeini('brin', intToStr(playNum), sbrin, PictureString);
-      writeini('brake', intToStr(playNum), sbreak, PictureString);
-      writeini('sound', intToStr(playNum), ssound, PictureString);
-      writeini('dismisst', intToStr(playNum), sdismisst, PictureString);
-      writeini('lchatt', intToStr(playNum), slchatt, PictureString);
-      writeini('chatt', intToStr(playNum), schatt, PictureString);
-      writeini('updatet', intToStr(playNum), supdatet, PictureString);
-      writeini('screent', intToStr(playNum), sscreent, PictureString);
-      writeini('levelt', intToStr(playNum), slevelt, PictureString);
-      writeini('waitt', intToStr(playNum), swaitt, PictureString);
-      writeini('waito', intToStr(playNum), swaito, PictureString);
-      writeini('closet', intToStr(playNum), scloset, PictureString);
-      writeini('gitemt', intToStr(playNum), sgitemt, PictureString);
-      writeini('drop', intToStr(playNum), sdrop, PictureString);
+      writeini('chat', intToStr(playNum), schat, IniString);
+      writeini('wait', intToStr(playNum), swait, IniString);
+      writeini('name', intToStr(playNum), sname, IniString);
+      writeini('pass', intToStr(playNum), spass, IniString);
+      writeini('pin', intToStr(playNum), spin, IniString);
+      writeini('world', intToStr(playNum), sworld, IniString);
+      writeini('amount', intToStr(playNum), samount, IniString);
+      writeini('run', intToStr(playNum), srun, IniString);
+      writeini('anti', intToStr(playNum), santi, IniString);
+      writeini('type', intToStr(playNum), stype, IniString);
+      writeini('loc', intToStr(playNum), sloc, IniString);
+      writeini('mouse', intToStr(playNum), smouse, IniString);
+      writeini('bank', intToStr(playNum), sbank, IniString);
+      writeini('spec', intToStr(playNum), sspec, IniString);
+      writeini('bfor', intToStr(playNum), sbfor, IniString);
+      writeini('brfor', intToStr(playNum), sbrfor, IniString);
+      writeini('bin', intToStr(playNum), sbin, IniString);
+      writeini('brin', intToStr(playNum), sbrin, IniString);
+      writeini('brake', intToStr(playNum), sbreak, IniString);
+      writeini('sound', intToStr(playNum), ssound, IniString);
+      writeini('dismisst', intToStr(playNum), sdismisst, IniString);
+      writeini('lchatt', intToStr(playNum), slchatt, IniString);
+      writeini('chatt', intToStr(playNum), schatt, IniString);
+      writeini('updatet', intToStr(playNum), supdatet, IniString);
+      writeini('screent', intToStr(playNum), sscreent, IniString);
+      writeini('levelt', intToStr(playNum), slevelt, IniString);
+      writeini('waitt', intToStr(playNum), swaitt, IniString);
+      writeini('waito', intToStr(playNum), swaito, IniString);
+      writeini('closet', intToStr(playNum), scloset, IniString);
+      writeini('itemd', intToStr(playNum), sitemd, IniString);
+      writeini('drop', intToStr(playNum), sdrop, IniString);
+      writeini('itemt', intToStr(playNum), sitemt, IniString);
     end;
-    if (loading or saving) and FileExists(PictureString) then begin
-      schat := ReadINI('chat', intToStr(playNum), PictureString);
-      swait := ReadINI('wait', intToStr(playNum), PictureString);
-      sname := ReadINI('name', intToStr(playNum), PictureString);
-      spass := ReadINI('pass', intToStr(playNum), PictureString);
-      spin := ReadINI('pin', intToStr(playNum), PictureString);
-      sworld := ReadINI('world', intToStr(playNum), PictureString);
-      samount := ReadINI('amount', intToStr(playNum), PictureString);
-      srun := ReadINI('run', intToStr(playNum), PictureString);
-      santi := ReadINI('anti', intToStr(playNum), PictureString);
-      swood := ReadINI('wood', intToStr(playNum), PictureString);
-      sloc := ReadINI('loc', intToStr(playNum), PictureString);
-      smouse := ReadINI('mouse', intToStr(playNum), PictureString);
-      sspec := ReadINI('spec', intToStr(playNum), PictureString);
-      sbank := ReadINI('bank', intToStr(playNum), PictureString);
-      sbfor := ReadINI('bfor', intToStr(playNum), PictureString);
-      sbrfor := ReadINI('brfor', intToStr(playNum), PictureString);
-      sbin := ReadINI('bin', intToStr(playNum), PictureString);
-      sbrin := ReadINI('brin', intToStr(playNum), PictureString);
-      sbreak := ReadINI('brake', intToStr(playNum), PictureString);
-      ssound := ReadINI('sound', intToStr(playNum), PictureString);
-      sdismisst := ReadINI('dismisst', intToStr(playNum), PictureString);
-      slchatt := ReadINI('lchatt', intToStr(playNum), PictureString);
-      schatt := ReadINI('chatt', intToStr(playNum), PictureString);
-      supdatet := ReadINI('updatet', intToStr(playNum), PictureString);
-      sscreent := ReadINI('screent', intToStr(playNum), PictureString);
-      slevelt := ReadINI('levelt', intToStr(playNum), PictureString);
-      swaitt := ReadINI('waitt', intToStr(playNum), PictureString);
-      swaito := ReadINI('waito', intToStr(playNum), PictureString);
-      scloset := ReadINI('closet', intToStr(playNum), PictureString);
-      sgitemt := ReadINI('gitemt', intToStr(playNum), PictureString);
-      sdrop := ReadINI('drop', intToStr(playNum), PictureString);
+    if (loading or saving) and FileExists(IniString) then begin
+      schat := ReadINI('chat', intToStr(playNum), IniString);
+      swait := ReadINI('wait', intToStr(playNum), IniString);
+      sname := ReadINI('name', intToStr(playNum), IniString);
+      spass := ReadINI('pass', intToStr(playNum), IniString);
+      spin := ReadINI('pin', intToStr(playNum), IniString);
+      sworld := ReadINI('world', intToStr(playNum), IniString);
+      samount := ReadINI('amount', intToStr(playNum), IniString);
+      srun := ReadINI('run', intToStr(playNum), IniString);
+      santi := ReadINI('anti', intToStr(playNum), IniString);
+      stype := ReadINI('type', intToStr(playNum), IniString);
+      sloc := ReadINI('loc', intToStr(playNum), IniString);
+      smouse := ReadINI('mouse', intToStr(playNum), IniString);
+      sbank := ReadINI('bank', intToStr(playNum), IniString);
+      sspec := ReadINI('spec', intToStr(playNum), IniString);
+      sbfor := ReadINI('bfor', intToStr(playNum), IniString);
+      sbrfor := ReadINI('brfor', intToStr(playNum), IniString);
+      sbin := ReadINI('bin', intToStr(playNum), IniString);
+      sbrin := ReadINI('brin', intToStr(playNum), IniString);
+      sbreak := ReadINI('brake', intToStr(playNum), IniString);
+      ssound := ReadINI('sound', intToStr(playNum), IniString);
+      sdismisst := ReadINI('dismisst', intToStr(playNum), IniString);
+      slchatt := ReadINI('lchatt', intToStr(playNum), IniString);
+      schatt := ReadINI('chatt', intToStr(playNum), IniString);
+      supdatet := ReadINI('updatet', intToStr(playNum), IniString);
+      sscreent := ReadINI('screent', intToStr(playNum), IniString);
+      slevelt := ReadINI('levelt', intToStr(playNum), IniString);
+      swaitt := ReadINI('waitt', intToStr(playNum), IniString);
+      swaito := ReadINI('waito', intToStr(playNum), IniString);
+      scloset := ReadINI('closet', intToStr(playNum), IniString);
+      sitemd := ReadINI('itemd', intToStr(playNum), IniString);
+      sdrop := ReadINI('drop', intToStr(playNum), IniString);
+      sitemt := ReadINI('itemt', intToStr(playNum), IniString);
     end;
     sync(showFormModal);
   end;
 
-   bmp0.Free;
+  TMainBMP.free;
 end;
 
 procedure doUpdateScreen;
-var currentWoodXp, CurrentWoodLevel, currentFletchXp, currentFireXP, tempInt, i, h, tempCheck, tempCheck2, TimeRunning: integer;
+var currentWoodXp, CurrentWoodLevel, currentFletchXp, currentFireXP, tempInt, i, h, tempCheck, tempCheck2, TimeRunning, myPlane: integer;
     _items : TReflectInvItemArray;
     perHour : extended;
     _eitems : TReflectWornEquipmentArray;
@@ -1588,6 +1570,8 @@ begin
 
   TimeRunning := GetTimeRunning;
   perHour := 3600000/TimeRunning;
+
+  myPlane := Reflect.Tiles.GetPlane;
 
   tempInt := Reflect.Gametab.CurrentColor;
   if tempInt = Gametab_Inventory then begin
@@ -1654,10 +1638,12 @@ begin
   end;
 
   for i:=0 to high(DaLocation.BankLocations) do begin
-    if R_TileOnMM(DaLocation.BankLocations[i].Tile, RSTile) then begin
-      graphicOpti.DrawEllipse(RSTile, 5, 5, clBlue, false);
-      if R_TileOnMS(DaLocation.BankLocations[i].Tile, RSTile, DaLocation.BankLocations[i].Offset[0], DaLocation.BankLocations[i].Offset[1], DaLocation.BankLocations[i].Offset[2]) then begin
-        graphicOpti.DrawClippedText(DaLocation.BankLocations[i].Name, 'upchars07', RSTile, true, clBlue);
+    if myPlane = DaLocation.BankLocations[i].Plane then begin
+      if R_TileOnMM(DaLocation.BankLocations[i].Tile, RSTile) then begin
+        graphicOpti.DrawEllipse(RSTile, 5, 5, clBlue, false);
+        if R_TileOnMS(DaLocation.BankLocations[i].Tile, RSTile, DaLocation.BankLocations[i].Offset[0], DaLocation.BankLocations[i].Offset[1], DaLocation.BankLocations[i].Offset[2]) then begin
+          graphicOpti.DrawClippedText(DaLocation.BankLocations[i].Name, 'upchars07', RSTile, true, clBlue);
+        end;
       end;
     end;
   end;
@@ -1672,16 +1658,18 @@ begin
   end;
 
   for i:=0 to high(DaLocation.FireLanes) do begin
-    if R_TileOnMM(daLocation.FireLanes[i].StartFireTile, RSTile) then begin
-      graphicOpti.DrawEllipse(RSTile, 5, 5, clOrange, false);
-      if R_TileOnMS(daLocation.FireLanes[i].StartFireTile, RSTile) then begin
-        graphicOpti.DrawClippedText('FireStart', 'upchars07', RSTile, true, clOrange);
+    if myPlane = DaLocation.FireLanes[i].Plane then begin
+      if R_TileOnMM(daLocation.FireLanes[i].Tile, RSTile) then begin
+        graphicOpti.DrawEllipse(RSTile, 5, 5, clOrange, false);
+        if R_TileOnMS(daLocation.FireLanes[i].Tile, RSTile) then begin
+          graphicOpti.DrawClippedText('FireStart', 'upchars07', RSTile, true, clOrange);
+        end;
       end;
-    end;
-    if R_TileOnMM(daLocation.FireLanes[i].EndFireTile, RSTile) then begin
-      graphicOpti.DrawEllipse(RSTile, 5, 5, clOrange, false);
-      if R_TileOnMS(daLocation.FireLanes[i].EndFireTile, RSTile) then begin
-        graphicOpti.DrawClippedText('FireEnd', 'upchars07', RSTile, true, clOrange);
+      if R_TileOnMM(Point(daLocation.FireLanes[i].Tile.x-daLocation.FireLanes[i].Length, daLocation.FireLanes[i].Tile.y), RSTile) then begin
+        graphicOpti.DrawEllipse(RSTile, 5, 5, clOrange, false);
+        if R_TileOnMS(Point(daLocation.FireLanes[i].Tile.x-daLocation.FireLanes[i].Length, daLocation.FireLanes[i].Tile.y), RSTile) then begin
+          graphicOpti.DrawClippedText('FireEnd', 'upchars07', RSTile, true, clOrange);
+        end;
       end;
     end;
   end;
@@ -1704,42 +1692,49 @@ begin
   end;
 
   for i:=0 to high(daLocation.DoorObjects) do begin
-    if R_TileOnMM(daLocation.DoorObjects[i].Tile, RSTile) then begin
-      graphicOpti.DrawEllipse(RSTile, 5, 5, clGray, false);
-      if R_TileOnMS(daLocation.DoorObjects[i].Tile, RSTile, daLocation.DoorObjects[i].Offset[0], daLocation.DoorObjects[i].Offset[1], daLocation.DoorObjects[i].Offset[2]) then begin
-        tObj.GetAt(ObjBoundary, daLocation.DoorObjects[i].Tile);
-        if not Reflect.Smart.IsNull(tObj.Reference) and inIntArray(daLocation.DoorObjects[i].IDs, tObj.GetId) then begin
-          graphicOpti.DrawClippedText('Closed door', 'upchars07', RSTile, true, clGray);
-        end else begin
-          graphicOpti.DrawClippedText('Opened door', 'upchars07', RSTile, true, clGray);
+    if myPlane = daLocation.DoorObjects[i].Plane then begin
+      if R_TileOnMM(daLocation.DoorObjects[i].Tile, RSTile) then begin
+        graphicOpti.DrawEllipse(RSTile, 5, 5, clGray, false);
+        if R_TileOnMS(daLocation.DoorObjects[i].Tile, RSTile, daLocation.DoorObjects[i].Offset[0], daLocation.DoorObjects[i].Offset[1], daLocation.DoorObjects[i].Offset[2]) then begin
+          tObj.GetAt(ObjBoundary, daLocation.DoorObjects[i].Tile);
+          if not Reflect.Smart.IsNull(tObj.Reference) then begin
+            graphicOpti.DrawClippedText('Closed door', 'upchars07', RSTile, true, clGray);
+          end else begin
+            graphicOpti.DrawClippedText('Opened door', 'upchars07', RSTile, true, clGray);
+          end;
         end;
       end;
     end;
   end;
 
   for i:=0 to high(daLocation.TreeObjects) do begin
-    tObj.GetAt(ObjGame, daLocation.TreeObjects[i].Tile);
-    h := tObj.GetId;
-    if inIntArray(daLocation.TreeObjects[i].AliveIDs, h) then begin
-      t_string := 'Alive '+daLocation.TreeObjects[i].Name;
-      daLocation.TreeObjects[i].Timer.Restart;
-      daLocation.TreeObjects[i].Timer.StartTime := -1;
-    end else begin
-      if inIntArray(daLocation.TreeObjects[i].DeadIDs, h) then begin
-        if (daLocation.TreeObjects[i].Timer.StartTime = -1) then
-          daLocation.TreeObjects[i].Timer.reStart;
-        t_string := 'Dead '+daLocation.TreeObjects[i].Name+'('+floatToStr(daLocation.TreeObjects[i].Timer.Elapsedtime / 1000)+')';
+    if myPlane = daLocation.TreeObjects[i].Plane then begin
+      tObj.GetAt(ObjGame, daLocation.TreeObjects[i].Tile);
+      if not Reflect.Smart.IsNull(tObj.Reference) then
+        h := tObj.GetId
+      else
+        h := -1;
+      if inIntArray(daLocation.TreeObjects[i].AliveIDs, h) then begin
+        t_string := 'Alive '+daLocation.TreeObjects[i].Name;
+        daLocation.TreeObjects[i].Timer.Restart;
+        daLocation.TreeObjects[i].Timer.StartTime := -1;
       end else begin
-        if (daLocation.TreeObjects[i].Timer.StartTime = -1) then
-          daLocation.TreeObjects[i].Timer.reStart;
-        t_string := 'Unknown '+daLocation.TreeObjects[i].Name+' ID('+intToStr(h)+')';
+        if inIntArray(daLocation.TreeObjects[i].DeadIDs, h) then begin
+          if (daLocation.TreeObjects[i].Timer.StartTime = -1) then
+            daLocation.TreeObjects[i].Timer.reStart;
+          t_string := 'Dead '+daLocation.TreeObjects[i].Name+'('+floatToStr(daLocation.TreeObjects[i].Timer.Elapsedtime / 1000)+')';
+        end else begin
+          if (daLocation.TreeObjects[i].Timer.StartTime = -1) then
+            daLocation.TreeObjects[i].Timer.reStart;
+          t_string := 'Unknown '+daLocation.TreeObjects[i].Name+' ID('+intToStr(h)+')';
+        end;
       end;
-    end;
 
-    if R_TileOnMM(daLocation.TreeObjects[i].Tile, RSTile) then begin
-      graphicOpti.DrawEllipse(RSTile, 5, 5, clAqua, false);
-      if R_TileOnMS(daLocation.TreeObjects[i].Tile, RSTile, daLocation.TreeObjects[i].Offset[0], daLocation.TreeObjects[i].Offset[1], daLocation.TreeObjects[i].Offset[2]) then begin
-        graphicOpti.DrawClippedText(t_string, 'upchars07', RSTile, true, clAqua);
+      if R_TileOnMM(daLocation.TreeObjects[i].Tile, RSTile) then begin
+        graphicOpti.DrawEllipse(RSTile, 5, 5, clAqua, false);
+        if R_TileOnMS(daLocation.TreeObjects[i].Tile, RSTile, daLocation.TreeObjects[i].Offset[0], daLocation.TreeObjects[i].Offset[1], daLocation.TreeObjects[i].Offset[2]) then begin
+          graphicOpti.DrawClippedText(t_string, 'upchars07', RSTile, true, clAqua);
+        end;
       end;
     end;
   end;
@@ -1870,14 +1865,20 @@ begin
   timer.restart;
   invC := Reflect.Inv.Count;
   tObj.GetAt(ObjGame, _treeTile);
-  _id := tObj.GetId;
+  if not Reflect.Smart.IsNull(tObj.Reference) then
+    _id := tObj.GetId
+  else
+    _id := -1;
   while ReflectPlayer.IsLoggedIn and (timer.Elapsedtime < 5000) and (invC = Reflect.Inv.Count) and
   not ReflectPlayer.IsUnderAttack and inIntArray(_ids, _id) do begin
     randomHandler;
     FixActive;
     UpdateScreen('Chopping tree...');
     tObj.GetAt(ObjGame, _treeTile);
-    _id := tObj.GetId;
+    if not Reflect.Smart.IsNull(tObj.Reference) then
+      _id := tObj.GetId
+    else
+      _id := -1;
   end;
   result := (invC <> Reflect.Inv.Count);
 end;
@@ -1920,17 +1921,19 @@ var i, h : integer;
     goodArray : boolean;
 begin
   for i:=0 to high(daLocation.Firelanes) do begin
-    goodArray := true;
-    for h:=daLocation.Firelanes[i].EndFireTile.X to daLocation.Firelanes[i].StartFireTile.X do begin
-      _obj.GetAt(ObjGame, Point(h, daLocation.Firelanes[i].EndFireTile.Y));
-      if not Reflect.Smart.IsNull(_obj.Reference) and inIntArray(FireIDs, _obj.GetId) then begin
-        goodArray := false;
-        break;
+    if Reflect.Tiles.GetPlane = daLocation.Firelanes[i].Plane then begin
+      goodArray := true;
+      for h:=daLocation.Firelanes[i].Tile.x downto (daLocation.Firelanes[i].Tile.x - daLocation.Firelanes[i].Length) do begin
+        _obj.GetAt(ObjGame, Point(h, daLocation.Firelanes[i].Tile.Y));
+        if not Reflect.Smart.IsNull(_obj.Reference) and inIntArray(FireIDs, _obj.GetId) then begin
+          goodArray := false;
+          break;
+        end;
       end;
-    end;
-    if goodArray then begin
-      setLength(result, length(result)+1);
-      result[high(result)] := i;
+      if goodArray then begin
+        setLength(result, length(result)+1);
+        result[high(result)] := i;
+      end;
     end;
   end;
 end;
@@ -1941,7 +1944,6 @@ var wclevel, i, coins : integer;
     tP : TPoint;
     tB : TBox;
     _item : TReflectInvItem;
-    _items : TReflectInvItemArray;
     _obj : TReflectObject;
     foundAxe : boolean;
     logIDs : TIntegerArray;
@@ -1949,73 +1951,60 @@ begin
   case job of
     7:begin
       equ := R_GetEquipText;
-      wclevel := ReflectPlayer.GetMaxSkillLevel(SKILL_WOODCUTTING);
-      logIDs := daLocation.getLogIDs;
-      foundAxe := false;
-      coins := 0;
-      _items.GetAll;
-      for i:=0 to high(_items) do begin
-        if _items[i].GetName = 'Steel axe' then
-          foundAxe := true;
-        if inIntArray(CoinsIDs, _items[i].GetId) then
-          coins := _items[i].GetQuantity;
-      end;
-      if equ = 'Steel axe' then
-        foundAxe := true;
+      foundAxe := ((equ = 'Steel axe') or (_item.Find('Steel axe')));
+
       if (equ = 'Unarmed') and _item.Find('Bronze axe') then begin
         if Reflect.Gametab.CurrentColor <> Gametab_Inventory then
           Reflect.Gametab.Open(Gametab_Inventory);
-        Reflect.Mouse.Move(_item.getbox, mouse_left);
+        _item.Interact(Mouse_left);
         sleepScript(1000+random(1000));
       end;
+
+      wclevel := ReflectPlayer.GetMaxSkillLevel(SKILL_WOODCUTTING);
+
+      logIDs := daLocation.getLogIDs;
+
+      if _item.Find('Coins') then
+        coins := _item.GetQuantity
+      else
+        coins := 0;
+
       setLength(daLocation.DoorObjects, 2);
       with daLocation.DoorObjects[0] do begin
+        Plane := 0;
         TileOffset := [0, 0];
-        IDs := [7129, 1540];
         Tile := Point(3215, 3245);
         Offset := [-62, 0, 100];
         Actions := ['Open'];
         TileEncompass := [Point(3212, 3251), Point(3214, 3249), Point(3214, 3244), Point(3212, 3242), Point(3210, 3242), Point(3208, 3244), Point(3208, 3249), Point(3210, 3251)];
       end;
       with daLocation.DoorObjects[1] do begin
-        IDs := [7122, 1535];
+        Plane := 0;
         TileOffset := [0, 0];
         Tile := Point(3234, 3203);
         Actions := ['Open'];
         Offset := [-62, 0, 100];
         TileEncompass := [Point(3233, 3205), Point(3233, 3201), Point(3228, 3201), Point(3228, 3205)];
       end;
+
       if wclevel >= 6 then begin
         if coins >= 208 then begin
           if not foundAxe then begin
             while ReflectPlayer.IsLoggedIn and not foundAxe and (coins >= 208) do begin
-              equ := R_GetEquipText;
-              foundAxe := false;
-              coins := 0;
-              _items.GetAll;
-              for i:=0 to high(_items) do begin
-                if _items[i].GetName = 'Steel axe' then
-                  foundAxe := true;
-                if inIntArray(CoinsIDs, _items[i].GetId) then
-                  coins := _items[i].GetQuantity;
-              end;
-              if equ = 'Steel axe' then
-                foundAxe := true;
+              foundAxe := ((R_GetEquipText = 'Steel axe') or (_item.Find('Steel axe')));
+              if _item.Find('Coins') then
+                coins := _item.GetQuantity
+              else
+                coins := 0;
 
               updateScreen('Going to go buy axe.');
               if Reflect.Inv.IsFull then begin
-                _items.GetAll;
-                for i:=0 to high(_items) do begin
-                  if inIntArray(LogIDs, _items[i].GetId) then begin
-                    if Reflect.Gametab.CurrentColor <> Gametab_Inventory then
-                      Reflect.Gametab.Open(Gametab_Inventory);
-                    Reflect.Mouse.Move(_items[i].getbox, mouse_right);
-                    Reflect.Text.ChooseOption('Drop', 2500);
-                    sleepScript(random(1000));
-                    i := high(_items);
-                  end;
+                if _item.Find(LogIDs) then begin
+                  _item.Interact('Drop');
+                  sleepScript(1000+random(1000));
                 end;
               end;
+
               daLocation.DoorObjects[1].Open(false);
               if not Reflect.Shop.IsOpen then begin
                 updateScreen('Trading Bob.');
@@ -2036,6 +2025,7 @@ begin
           end;
         end;
       end;
+
       daLocation.DoorObjects[1].Open(true);
       if wclevel >= 15 then begin
         if wclevel >= 30 then begin
@@ -2056,7 +2046,6 @@ begin
           daLocation.isPower := false;
           daLocation.canFletch := true;
           daLocation.fletchPoint := Point(264, 413);
-          daLocation.TreeLocations := [Point(3234, 3244)];
 
           daLocation.RunDirections := ['rand'];
 
@@ -2072,6 +2061,7 @@ begin
             Tile := Point(3234, 3238);
             AliveIDs := [7482, 7422, 7480, 7424, 1760, 1750, 1756, 1758];
             DeadIds := [9471, 9711];
+            Plane := 0;
           end;
           with daLocation.TreeObjects[1] do begin
             Offset := [0, 0, 200];
@@ -2084,6 +2074,7 @@ begin
             Tile := Point(3234, 3244);
             AliveIDs := [7482, 7422, 7480, 7424, 1760, 1750, 1756, 1758];
             DeadIds := [9471, 9711];
+            Plane := 0;
           end;
         end else begin
           daLocation.ID := 0;
@@ -2103,7 +2094,6 @@ begin
           daLocation.isPower := false;
           daLocation.canFletch := true;
           daLocation.fletchPoint := Point(264, 413);
-          daLocation.TreeLocations := [Point(3206, 3242)];
 
           daLocation.RunDirections := ['rand'];
 
@@ -2119,6 +2109,7 @@ begin
             Tile := Point(3204, 3247);
             AliveIDs := [7417, 1751];
             DeadIDs := [1356];
+            Plane := 0;
           end;
           with daLocation.TreeObjects[1] do begin
             Offset := [0, 0, 200];
@@ -2131,6 +2122,7 @@ begin
             Tile := Point(3205, 3240);
             AliveIDs := [7417, 1751];
             DeadIDs := [1356];
+            Plane := 0;
           end;
         end;
       end else begin
@@ -2138,7 +2130,7 @@ begin
         setLength(daLocation.customIDs, 1);
         daLocation.customIDs[0] := [1278, 1276, 1286, 1282, 2091, 2092];
         daLocation.canFletch := true;
-        daLocation.fletchPoint := Point(79, 411);
+        daLocation.fletchPoint := Point(62, 421);
 
         daLocation.isPower := true;
         daLocation.RunDirections := ['n'];
@@ -2152,7 +2144,6 @@ end;
 
 procedure setupScript;
 var i : integer;
-    fireTiles, endfireTiles :TpointArray;
     AliveTreeIDs, DeadTreeIDs, AliveOakIDs, DeadOakIDs, AliveWillowIDs, DeadWillowIDs, AliveMapleIDs, DeadMapleIDs, AliveYewIDs, DeadYewIDs, AliveMagicIDs, DeadMagicIDs : TIntegerArray;
 begin
   graphicOpti.Init(Client.GetMBitmaps);
@@ -2173,15 +2164,15 @@ begin
   StartFletchXP := ReflectPlayer.GetSkillExp(SKILL_FLETCHING);
   StartFireXP := ReflectPlayer.GetSkillExp(SKILL_FIREMAKING);
 
-  LastXPXPCheck := StartWoodXP;
+  LastXPXP := StartWoodXP;
   LastXPCheck.restart;
   statsWoodXP := StartWoodXP;
   statsFletchXP := StartFletchXP;
   statsFireXp := StartFireXP;
   statsProfit := 0;
-  tim.restart;
+  StatsTimer.restart;
   gItemTim.restart;
-  tim2 := 50000 + random(400000);
+  StatsTime := 50000 + random(400000);
 
   Nests := 0;
 
@@ -2234,9 +2225,9 @@ begin
   daLocation.Name := '';
   daLocation.isFar := false;
   daLocation.isPower := false;
-  daLocation.fletchPoint := Point(0, 0);
+  daLocation.fletchPoint := Point(-1, -1);
 
-  PreviousTree.Tile := Point(0, 0);
+  PreviousTree.Tile := Point(-1, -1);
 
   case job of
     8..10:begin
@@ -2278,12 +2269,32 @@ begin
           daLocation.RunDirections := ['n', 'w'];
 
           daLocation.canFire := true;
-          fireTiles := [Point(3098, 3247), Point(3098, 3248), Point(3097, 3249), Point(3105, 3250), Point(3087, 3250)];
-          endFireTiles := [Point(3081, 3247), Point(3072, 3248), Point(3077, 3249), Point(3089, 3250), Point(3077, 3250)];
-          setLength(daLocation.FireLanes, length(fireTiles));
-          for i:=0 to high(fireTiles) do begin
-            daLocation.FireLanes[i].StartFireTile := fireTiles[i];
-            daLocation.FireLanes[i].EndFireTile := endfireTiles[i];
+
+          setLength(daLocation.FireLanes, 5);
+          with daLocation.FireLanes[0] do begin
+            Plane := 0;
+            Length := 17;
+            Tile := Point(3098, 3247);
+          end;
+          with daLocation.FireLanes[1] do begin
+            Plane := 0;
+            Length := 26;
+            Tile := Point(3098, 3248);
+          end;
+          with daLocation.FireLanes[2] do begin
+            Plane := 0;
+            Length := 20;
+            Tile := Point(3097, 3249);
+          end;
+          with daLocation.FireLanes[3] do begin
+            Plane := 0;
+            Length := 16;
+            Tile := Point(3105, 3250);
+          end;
+          with daLocation.FireLanes[4] do begin
+            Plane := 0;
+            Length := 10;
+            Tile := Point(3087, 3250);
           end;
 
           setLength(daLocation.Logs, 1);
@@ -2318,12 +2329,32 @@ begin
           daLocation.Logs[0].ID := 1519;
 
           daLocation.canFire := true;
-          fireTiles := [Point(3102, 3237), Point(3102, 3238), Point(3102, 3239), Point(3111, 3235), Point(3116, 3234)];
-          endFireTiles := [Point(3085, 3237), Point(3085, 3238), Point(3080, 3239), Point(3090, 3235), Point(3090, 3234)];
-          setLength(daLocation.FireLanes, length(fireTiles));
-          for i:=0 to high(fireTiles) do begin
-            daLocation.FireLanes[i].StartFireTile := fireTiles[i];
-            daLocation.FireLanes[i].EndFireTile := endfireTiles[i];
+
+          setLength(daLocation.FireLanes, 5);
+          with daLocation.FireLanes[0] do begin
+            Plane := 0;
+            Length := 17;
+            Tile := Point(3102, 3237);
+          end;
+          with daLocation.FireLanes[1] do begin
+            Plane := 0;
+            Length := 17;
+            Tile := Point(3102, 3238);
+          end;
+          with daLocation.FireLanes[2] do begin
+            Plane := 0;
+            Length := 22;
+            Tile := Point(3102, 3239);
+          end;
+          with daLocation.FireLanes[3] do begin
+            Plane := 0;
+            Length := 26;
+            Tile := Point(3116, 3234);
+          end;
+          with daLocation.FireLanes[4] do begin
+            Plane := 0;
+            Length := 21;
+            Tile := Point(3111, 3235);
           end;
 
           daLocation.TreeLocations := [Point(3083, 3237)];
@@ -2340,6 +2371,7 @@ begin
             DeadIds := DeadWillowIDs;
             Timer.Restart;
             Timer.StartTime := -1;
+            Plane := 0;
           end;
           with daLocation.TreeObjects[1] do begin
             Offset := [75, 75, 200];
@@ -2352,6 +2384,7 @@ begin
             DeadIds := DeadWillowIDs;
             Timer.Restart;
             Timer.StartTime := -1;
+            Plane := 0;
           end;
           {with daLocation.TreeObjects[2] do begin
             Offset := [75, 75, 200];
@@ -2364,6 +2397,7 @@ begin
             DeadIds := DeadWillowIDs;
             Timer.Restart;
             Timer.StartTime := -1;
+            Plane := 0;
           end;
           with daLocation.TreeObjects[3] do begin
             Offset := [75, 75, 200];
@@ -2376,6 +2410,7 @@ begin
             DeadIds := DeadWillowIDs;
             Timer.Restart;
             Timer.StartTime := -1;
+            Plane := 0;
           end;
           with daLocation.TreeObjects[4] do begin
             Offset := [75, 75, 200];
@@ -2388,6 +2423,7 @@ begin
             DeadIds := DeadWillowIDs;
             Timer.Restart;
             Timer.StartTime := -1;
+            Plane := 0;
           end; }
         end;
         10:begin
@@ -2418,6 +2454,7 @@ begin
            Tile := Point(3147, 3255);
            AliveIDs := AliveYewIDs;
            DeadIDs := DeadYewIDs;
+           Plane := 0;
           end;
           with daLocation.TreeObjects[1] do begin
            Offset := [0, 0, 250];
@@ -2430,6 +2467,7 @@ begin
            Tile := Point(3152, 3231);
            AliveIDs := AliveYewIDs;
            DeadIDs := DeadYewIDs;
+           Plane := 0;
           end;
           with daLocation.TreeObjects[2] do begin
            Offset := [0, 0, 250];
@@ -2442,6 +2480,7 @@ begin
            Tile := Point(3166, 3220);
            AliveIDs := AliveYewIDs;
            DeadIDs := DeadYewIDs;
+           Plane := 0;
           end;
           with daLocation.TreeObjects[3] do begin
            Offset := [0, 0, 250];
@@ -2454,6 +2493,7 @@ begin
            Tile := Point(3185, 3227);
            AliveIDs := AliveYewIDs;
            DeadIDs := DeadYewIDs;
+           Plane := 0;
           end;
         end;
       end;
@@ -2494,6 +2534,7 @@ begin
             Tile := Point(2731, 3485);
             AliveIDs := AliveOakIDs;
             DeadIDs := DeadOakIDs;
+            Plane := 0;
           end;
         end;
         25:begin
@@ -2519,6 +2560,7 @@ begin
            Tile := Point(2719, 3506);
            AliveIDs := AliveWillowIDs;
            DeadIDs := DeadWillowIDs;
+           Plane := 0;
           end;
           with daLocation.TreeObjects[1] do begin
            Offset := [0, 0, 200];
@@ -2531,6 +2573,7 @@ begin
            Tile := Point(2711, 3512);
            AliveIDs := AliveWillowIDs;
            DeadIDs := DeadWillowIDs;
+           Plane := 0;
           end;
           with daLocation.TreeObjects[2] do begin
            Offset := [0, 0, 200];
@@ -2543,6 +2586,7 @@ begin
            Tile := Point(2709, 3511);
            AliveIDs := AliveWillowIDs;
            DeadIDs := DeadWillowIDs;
+           Plane := 0;
           end;
           with daLocation.TreeObjects[3] do begin
            Offset := [0, 0, 200];
@@ -2555,6 +2599,7 @@ begin
            Tile := Point(2712, 3509);
            AliveIDs := AliveWillowIDs;
            DeadIDs := DeadWillowIDs;
+           Plane := 0;
           end;
           with daLocation.TreeObjects[4] do begin
            Offset := [0, 0, 200];
@@ -2567,6 +2612,7 @@ begin
            Tile := Point(2708, 3514);
            AliveIDs := AliveWillowIDs;
            DeadIDs := DeadWillowIDs;
+           Plane := 0;
           end;
         end;
         26:begin
@@ -2595,6 +2641,7 @@ begin
            Tile := Point(2721, 3502);
            AliveIDs := AliveMapleIDs;
            DeadIDs := DeadMapleIDs;
+           Plane := 0;
           end;
           with daLocation.TreeObjects[1] do begin
            Offset := [0, 0, 200];
@@ -2607,6 +2654,7 @@ begin
            Tile := Point(2727, 3502);
            AliveIDs := AliveMapleIDs;
            DeadIDs := DeadMapleIDs;
+           Plane := 0;
           end;
           with daLocation.TreeObjects[2] do begin
            Offset := [0, 0, 200];
@@ -2619,6 +2667,7 @@ begin
            Tile := Point(2730, 3502);
            AliveIDs := AliveMapleIDs;
            DeadIDs := DeadMapleIDs;
+           Plane := 0;
           end;
           with daLocation.TreeObjects[3] do begin
            Offset := [0, 0, 200];
@@ -2631,6 +2680,7 @@ begin
            Tile := Point(2732, 3500);
            AliveIDs := AliveMapleIDs;
            DeadIDs := DeadMapleIDs;
+           Plane := 0;
           end;
         end;
         27:begin
@@ -2659,6 +2709,7 @@ begin
            Tile := Point(2715, 3460);
            AliveIDs := AliveYewIds;
            DeadIDs := DeadYewIDs;
+           Plane := 0;
           end;
           with daLocation.TreeObjects[1] do begin
            Offset := [0, 0, 200];
@@ -2671,6 +2722,7 @@ begin
            Tile := Point(2706, 3460);
            AliveIDs := AliveYewIds;
            DeadIDs := DeadYewIDs;
+           Plane := 0;
           end;
           with daLocation.TreeObjects[2] do begin
            Offset := [0, 0, 200];
@@ -2683,6 +2735,7 @@ begin
            Tile := Point(2706, 3465);
            AliveIDs := AliveYewIds;
            DeadIDs := DeadYewIDs;
+           Plane := 0;
           end;
         end;
         28:begin
@@ -2711,6 +2764,7 @@ begin
            Tile := Point(2692, 3425);
            AliveIDs := AliveMagicIDs;
            DeadIDs := DeadMagicIDs;
+           Plane := 0;
           end;
           with daLocation.TreeObjects[1] do begin
            Offset := [0, 0, 200];
@@ -2723,6 +2777,7 @@ begin
            Tile := Point(2691, 3428);
            AliveIDs := AliveMagicIDs;
            DeadIDs := DeadMagicIDs;
+           Plane := 0;
           end;
           with daLocation.TreeObjects[2] do begin
            Offset := [0, 0, 200];
@@ -2735,6 +2790,7 @@ begin
            Tile := Point(2696, 3424);
            AliveIDs := AliveMagicIDs;
            DeadIDs := DeadMagicIDs;
+           Plane := 0;
           end;
         end;
         29:begin
@@ -2763,6 +2819,7 @@ begin
            Tile := Point(2705, 3397);
            AliveIDs := AliveMagicIDs;
            DeadIDs := DeadMagicIDs;
+           Plane := 0;
           end;
           with daLocation.TreeObjects[1] do begin
            Offset := [0, 0, 200];
@@ -2775,6 +2832,7 @@ begin
            Tile := Point(2705, 3399);
            AliveIDs := AliveMagicIDs;
            DeadIDs := DeadMagicIDs;
+           Plane := 0;
           end;
           with daLocation.TreeObjects[2] do begin
            Offset := [0, 0, 200];
@@ -2787,6 +2845,7 @@ begin
            Tile := Point(2699, 3397);
            AliveIDs := AliveMagicIDs;
            DeadIDs := DeadMagicIDs;
+           Plane := 0;
           end;
           with daLocation.TreeObjects[3] do begin
            Offset := [0, 0, 200];
@@ -2799,6 +2858,7 @@ begin
            Tile := Point(2699, 3399);
            AliveIDs := AliveMagicIDs;
            DeadIDs := DeadMagicIDs;
+           Plane := 0;
           end;
         end;
       end;
@@ -2838,6 +2898,7 @@ begin
             Tile := Point(2786, 3430);
             AliveIDs := AliveWillowIDs;
             DeadIDs := DeadWillowIDs;
+            Plane := 0;
           end;
           with daLocation.TreeObjects[1] do begin
             Offset := [0, 0, 200];
@@ -2850,6 +2911,7 @@ begin
             Tile := Point(2783, 3427);
             AliveIDs := AliveWillowIDs;
             DeadIDs := DeadWillowIDs;
+            Plane := 0;
           end;
           with daLocation.TreeObjects[2] do begin
             Offset := [0, 0, 200];
@@ -2862,6 +2924,7 @@ begin
             Tile := Point(2781, 3428);
             AliveIDs := AliveWillowIDs;
             DeadIDs := DeadWillowIDs;
+            Plane := 0;
           end;
           with daLocation.TreeObjects[3] do begin
             Offset := [0, 0, 200];
@@ -2874,6 +2937,7 @@ begin
             Tile := Point(2768, 3427);
             AliveIDs := AliveWillowIDs;
             DeadIDs := DeadWillowIDs;
+            Plane := 0;
           end;
           with daLocation.TreeObjects[4] do begin
             Offset := [0, 0, 200];
@@ -2886,6 +2950,7 @@ begin
             Tile := Point(2771, 3428);
             AliveIDs := AliveWillowIDs;
             DeadIDs := DeadWillowIDs;
+            Plane := 0;
           end;
         end;
         31:begin
@@ -2914,6 +2979,7 @@ begin
             Tile := Point(2758, 3434);
             AliveIDs := AliveYewIDs;
             DeadIDs := DeadYewIDs;
+            Plane := 0;
           end;
           with daLocation.TreeObjects[1] do begin
             Offset := [0, 0, 200];
@@ -2926,6 +2992,7 @@ begin
             Tile := Point(2756, 3431);
             AliveIDs := AliveYewIDs;
             DeadIDs := DeadYewIDs;
+            Plane := 0;
           end;
           with daLocation.TreeObjects[2] do begin
             Offset := [0, 0, 200];
@@ -2938,6 +3005,7 @@ begin
             Tile := Point(2761, 3432);
             AliveIDs := AliveYewIDs;
             DeadIDs := DeadYewIDs;
+            Plane := 0;
           end;
           with daLocation.TreeObjects[3] do begin
             Offset := [0, 0, 200];
@@ -2950,6 +3018,7 @@ begin
             Tile := Point(2755, 3434);
             AliveIDs := AliveYewIDs;
             DeadIDs := DeadYewIDs;
+            Plane := 0;
           end;
           with daLocation.TreeObjects[4] do begin
             Offset := [0, 0, 200];
@@ -2962,6 +3031,7 @@ begin
             Tile := Point(2760, 3428);
             AliveIDs := AliveYewIDs;
             DeadIDs := DeadYewIDs;
+            Plane := 0;
           end;
           with daLocation.TreeObjects[5] do begin
             Offset := [0, 0, 200];
@@ -2974,6 +3044,7 @@ begin
             Tile := Point(2766, 3428);
             AliveIDs := AliveYewIDs;
             DeadIDs := DeadYewIDs;
+            Plane := 0;
           end;
         end;
       end;
@@ -3014,6 +3085,7 @@ begin
         Tile := Point(3168, 3421);
         AliveIDs := AliveOakIDs;
         DeadIDs := DeadOakIDs;
+        Plane := 0;
       end;
       with daLocation.TreeObjects[1] do begin
         Offset := [0, 0, 200];
@@ -3026,6 +3098,7 @@ begin
         Tile := Point(3166, 3412);
         AliveIDs := AliveOakIDs;
         DeadIDs := DeadOakIDs;
+        Plane := 0;
       end;
       with daLocation.TreeObjects[2] do begin
         Offset := [0, 0, 200];
@@ -3038,6 +3111,7 @@ begin
         Tile := Point(3162, 3417);
         AliveIDs := AliveOakIDs;
         DeadIDs := DeadOakIDs;
+        Plane := 0;
       end;
     end;
     20:begin
@@ -3077,6 +3151,7 @@ begin
         Tile := Point(3205, 3504);
         AliveIDs := AliveYewIDs;
         DeadIDs := DeadYewIDs;
+        Plane := 0;
       end;
       with daLocation.TreeObjects[1] do begin
         Offset := [0, 0, 250];
@@ -3089,6 +3164,7 @@ begin
         Tile := Point(3209, 3500);
         AliveIDs := AliveYewIDs;
         DeadIDs := DeadYewIDs;
+        Plane := 0;
       end;
       with daLocation.TreeObjects[2] do begin
         Offset := [0, 0, 250];
@@ -3101,6 +3177,7 @@ begin
         Tile := Point(3222, 3503);
         AliveIDs := AliveYewIDs;
         DeadIDs := DeadYewIDs;
+        Plane := 0;
       end;
     end;
     21..23:begin
@@ -3141,6 +3218,7 @@ begin
             Tile := Point(3280, 3431);
             AliveIDs := AliveOakIDs;
             DeadIDs := DeadOakIDs;
+            Plane := 0;
           end;
           with daLocation.TreeObjects[1] do begin
             Offset := [0, 0, 200];
@@ -3153,6 +3231,7 @@ begin
             Tile := Point(3282, 3425);
             AliveIDs := AliveOakIDs;
             DeadIDs := DeadOakIDs;
+            Plane := 0;
           end;
           with daLocation.TreeObjects[2] do begin
             Offset := [0, 0, 200];
@@ -3165,6 +3244,7 @@ begin
             Tile := Point(3277, 3437);
             AliveIDs := AliveOakIDs;
             DeadIDs := DeadOakIDs;
+            Plane := 0;
           end;
         end;
         22:begin
@@ -3191,6 +3271,7 @@ begin
             Tile := Point(3249, 3473);
             AliveIDs := AliveYewIDs;
             DeadIDs := DeadYewIDs;
+            Plane := 0;
           end;
         end;
         23:begin
@@ -3219,6 +3300,7 @@ begin
             Tile := Point(3271, 3471);
             AliveIDs := AliveYewIDs;
             DeadIDs := DeadYewIDs;
+            Plane := 0;
           end;
           with daLocation.TreeObjects[1] do begin
             Offset := [0, 0, 200];
@@ -3231,6 +3313,7 @@ begin
             Tile := Point(3267, 3494);
             AliveIDs := AliveYewIDs;
             DeadIDs := DeadYewIDs;
+            Plane := 0;
           end;
           with daLocation.TreeObjects[2] do begin
             Offset := [0, 0, 200];
@@ -3243,6 +3326,7 @@ begin
             Tile := Point(3305, 3470);
             AliveIDs := AliveYewIDs;
             DeadIDs := DeadYewIDs;
+            Plane := 0;
           end;
         end;
       end;
@@ -3283,6 +3367,7 @@ begin
             Tile := Point(3001, 3367);
             AliveIDs := AliveOakIDs;
             DeadIDs := DeadOakIDs;
+            Plane := 0;
           end;
         end;
         13:begin
@@ -3312,6 +3397,7 @@ begin
             Tile := Point(2997, 3312);
             AliveIDs := AliveYewIDs;
             DeadIDs := DeadYewIDs;
+            Plane := 0;
           end;
           with daLocation.TreeObjects[1] do begin
             Offset := [0, 0, 200];
@@ -3324,6 +3410,7 @@ begin
             Tile := Point(3020, 3316);
             AliveIDs := AliveYewIDs;
             DeadIDs := DeadYewIDs;
+            Plane := 0;
           end;
           with daLocation.TreeObjects[2] do begin
             Offset := [0, 0, 200];
@@ -3336,6 +3423,7 @@ begin
             Tile := Point(3042, 3320);
             AliveIDs := AliveYewIDs;
             DeadIDs := DeadYewIDs;
+            Plane := 0;
           end;
         end;
       end;
@@ -3378,6 +3466,7 @@ begin
             Tile := Point(3057, 3255);
             AliveIDs := AliveWillowIDs;
             DeadIDs := DeadWillowIDs;
+            Plane := 0;
           end;
           with daLocation.TreeObjects[1] do begin
             Offset := [0, 0, 200];
@@ -3390,6 +3479,7 @@ begin
             Tile := Point(3062, 3255);
             AliveIDs := AliveWillowIDs;
             DeadIDs := DeadWillowIDs;
+            Plane := 0;
           end;
           with daLocation.TreeObjects[2] do begin
             Offset := [0, 0, 200];
@@ -3402,6 +3492,7 @@ begin
             Tile := Point(3063, 3253);
             AliveIDs := AliveWillowIDs;
             DeadIDs := DeadWillowIDs;
+            Plane := 0;
           end;
           with daLocation.TreeObjects[3] do begin
             Offset := [0, 0, 200];
@@ -3414,6 +3505,7 @@ begin
             Tile := Point(3057, 3252);
             AliveIDs := AliveWillowIDs;
             DeadIDs := DeadWillowIDs;
+            Plane := 0;
           end;
         end;
         14:begin
@@ -3451,6 +3543,7 @@ begin
             Tile := Point(2936, 3230);
             AliveIDs := AliveYewIDs;
             DeadIDs := DeadYewIDs;
+            Plane := 0;
           end;
           with daLocation.TreeObjects[1] do begin
             Offset := [0, 0, 200];
@@ -3463,6 +3556,7 @@ begin
             Tile := Point(2941, 3233);
             AliveIDs := AliveYewIDs;
             DeadIDs := DeadYewIDs;
+            Plane := 0;
           end;
           with daLocation.TreeObjects[2] do begin
             Offset := [0, 0, 200];
@@ -3475,6 +3569,7 @@ begin
             Tile := Point(2934, 3234);
             AliveIDs := AliveYewIDs;
             DeadIDs := DeadYewIDs;
+            Plane := 0;
           end;
           with daLocation.TreeObjects[3] do begin
             Offset := [0, 0, 200];
@@ -3487,6 +3582,7 @@ begin
             Tile := Point(2935, 3226);
             AliveIDs := AliveYewIDs;
             DeadIDs := DeadYewIDs;
+            Plane := 0;
           end;
         end;
         12:begin
@@ -3512,6 +3608,7 @@ begin
             Tile := Point(3054, 3271);
             AliveIDs := AliveYewIDs;
             DeadIDs := DeadYewIDs;
+            Plane := 0;
           end;
         end;
       end;
@@ -3556,6 +3653,7 @@ begin
             Tile := Point(2962, 3198);
             AliveIDs := AliveWillowIDs;
             DeadIds := DeadWillowIDs;
+            Plane := 0;
           end;
           with daLocation.TreeObjects[1] do begin
             Offset := [0, 0, 200];
@@ -3568,6 +3666,7 @@ begin
             Tile := Point(2963, 3195);
             AliveIDs := AliveWillowIDs;
             DeadIds := DeadWillowIDs;
+            Plane := 0;
           end;
           with daLocation.TreeObjects[2] do begin
             Offset := [0, 0, 200];
@@ -3580,6 +3679,7 @@ begin
             Tile := Point(2966, 3199);
             AliveIDs := AliveWillowIDs;
             DeadIds := DeadWillowIDs;
+            Plane := 0;
           end;
           with daLocation.TreeObjects[3] do begin
             Offset := [0, 0, 200];
@@ -3592,6 +3692,7 @@ begin
             Tile := Point(2961, 3195);
             AliveIDs := AliveWillowIDs;
             DeadIds := DeadWillowIDs;
+            Plane := 0;
           end;
         end;
         15:begin
@@ -3620,6 +3721,7 @@ begin
             Tile := Point(2936, 3230);
             AliveIDs := AliveYewIDs;
             DeadIDs := DeadYewIDs;
+            Plane := 0;
           end;
           with daLocation.TreeObjects[1] do begin
             Offset := [0, 0, 200];
@@ -3632,6 +3734,7 @@ begin
             Tile := Point(2941, 3233);
             AliveIDs := AliveYewIDs;
             DeadIDs := DeadYewIDs;
+            Plane := 0;
           end;
           with daLocation.TreeObjects[2] do begin
             Offset := [0, 0, 200];
@@ -3644,6 +3747,7 @@ begin
             Tile := Point(2934, 3234);
             AliveIDs := AliveYewIDs;
             DeadIDs := DeadYewIDs;
+            Plane := 0;
           end;
           with daLocation.TreeObjects[3] do begin
             Offset := [0, 0, 200];
@@ -3656,6 +3760,7 @@ begin
             Tile := Point(2935, 3226);
             AliveIDs := AliveYewIDs;
             DeadIDs := DeadYewIDs;
+            Plane := 0;
           end;
         end;
       end;
@@ -3697,6 +3802,7 @@ begin
         Tile := Point(3357, 3311);
         AliveIDs := AliveMagicIDs;
         DeadIDs := DeadMagicIDs;
+        Plane := 0;
       end;
       with daLocation.TreeObjects[1] do begin
         Offset := [0, 0, 200];
@@ -3709,6 +3815,7 @@ begin
         Tile := Point(3369, 3312);
         AliveIDs := AliveMagicIDs;
         DeadIDs := DeadMagicIDs;
+        Plane := 0;
       end;
     end;
     18:begin
@@ -3738,7 +3845,7 @@ begin
 
       setLength(daLocation.DoorObjects, 1);
       with daLocation.DoorObjects[0] do begin
-        IDs := [7143, 1543];
+        Plane := 0;
         Tile := Point(3091, 3470);
         TileOffset := [0, 0];
         Actions := ['Open'];
@@ -3758,6 +3865,7 @@ begin
         Tile := Point(3086, 3469);
         AliveIDs := AliveYewIDs;
         DeadIDs := DeadYewIDs;
+        Plane := 0;
       end;
       with daLocation.TreeObjects[1] do begin
         Offset := [0, 0, 200];
@@ -3770,6 +3878,7 @@ begin
         Tile := Point(3086, 3481);
         AliveIDs := AliveYewIDs;
         DeadIDs := DeadYewIDs;
+        Plane := 0;
       end;
     end;
     34:begin
@@ -3806,6 +3915,7 @@ begin
         Tile := Point(2517, 3598);
         AliveIDs := AliveWillowIDs;
         DeadIds := DeadWillowIDs;
+        Plane := 0;
       end;
       with daLocation.TreeObjects[1] do begin
         Offset := [0, 0, 200];
@@ -3818,6 +3928,7 @@ begin
         Tile := Point(2518, 3577);
         AliveIDs := AliveWillowIDs;
         DeadIds := DeadWillowIDs;
+        Plane := 0;
       end;
       with daLocation.TreeObjects[2] do begin
         Offset := [0, 0, 200];
@@ -3830,6 +3941,7 @@ begin
         Tile := Point(2517, 3579);
         AliveIDs := AliveWillowIDs;
         DeadIds := DeadWillowIDs;
+        Plane := 0;
       end;
       with daLocation.TreeObjects[3] do begin
         Offset := [0, 0, 200];
@@ -3842,6 +3954,7 @@ begin
         Tile := Point(2519, 3581);
         AliveIDs := AliveWillowIDs;
         DeadIds := DeadWillowIDs;
+        Plane := 0;
       end;
       with daLocation.TreeObjects[4] do begin
         Offset := [0, 0, 200];
@@ -3854,6 +3967,7 @@ begin
         Tile := Point(2517, 3582);
         AliveIDs := AliveWillowIDs;
         DeadIds := DeadWillowIDs;
+        Plane := 0;
       end;
     end;
     32..33:begin
@@ -3894,6 +4008,7 @@ begin
             Tile := Point(2433, 3426);
             AliveIDs := AliveYewIDs;
             DeadIDs := DeadYewIDs;
+            Plane := 0;
           end;
           with daLocation.TreeObjects[1] do begin
             Offset := [0, 0, 200];
@@ -3906,6 +4021,7 @@ begin
             Tile := Point(2439, 3436);
             AliveIDs := AliveYewIDs;
             DeadIDs := DeadYewIDs;
+            Plane := 0;
           end;
           with daLocation.TreeObjects[2] do begin
             Offset := [0, 0, 200];
@@ -3918,6 +4034,7 @@ begin
             Tile := Point(2433, 3441);
             AliveIDs := AliveYewIDs;
             DeadIDs := DeadYewIDs;
+            Plane := 0;
           end;
         end;
         33:begin
@@ -3943,6 +4060,7 @@ begin
             Tile := Point(2493, 3401);
             AliveIDs := AliveYewIDs;
             DeadIDs := DeadYewIDs;
+            Plane := 0;
           end;
           with daLocation.TreeObjects[1] do begin
             Offset := [0, 0, 200];
@@ -3955,6 +4073,7 @@ begin
             Tile := Point(2494, 3395);
             AliveIDs := AliveYewIDs;
             DeadIDs := DeadYewIDs;
+            Plane := 0;
           end;
           with daLocation.TreeObjects[2] do begin
             Offset := [0, 0, 200];
@@ -3967,6 +4086,7 @@ begin
             Tile := Point(2479, 3393);
             AliveIDs := AliveYewIDs;
             DeadIDs := DeadYewIDs;
+            Plane := 0;
           end;
           with daLocation.TreeObjects[3] do begin
             Offset := [0, 0, 200];
@@ -3979,6 +4099,7 @@ begin
             Tile := Point(2489, 3394);
             AliveIDs := AliveYewIDs;
             DeadIDs := DeadYewIDs;
+            Plane := 0;
           end;
         end;
       end;
@@ -4027,6 +4148,7 @@ begin
         Tile := Point(3250, 3202);
         AliveIDs := AliveYewIDs;
         DeadIDs := DeadYewIDs;
+        Plane := 0;
       end;
     end;
     4:begin
@@ -4041,12 +4163,22 @@ begin
       daLocation.Logs[0].ID := 1519;
 
       daLocation.canFire := true;
-      fireTiles := [Point(3243, 3307), Point(3244, 3308), Point(3245, 3309)];
-      endFireTiles := [Point(3220, 3307), Point(3226, 3308), Point(3228, 3309)];
-      setLength(daLocation.FireLanes, length(fireTiles));
-      for i:=0 to high(fireTiles) do begin
-        daLocation.FireLanes[i].StartFireTile := fireTiles[i];
-        daLocation.FireLanes[i].EndFireTile := endfireTiles[i];
+
+      setLength(daLocation.FireLanes, 3);
+      with daLocation.FireLanes[0] do begin
+        Plane := 0;
+        Length := 23;
+        Tile := Point(3243, 3307);
+      end;
+      with daLocation.FireLanes[1] do begin
+        Plane := 0;
+        Length := 18;
+        Tile := Point(3244, 3308);
+      end;
+      with daLocation.FireLanes[2] do begin
+        Plane := 0;
+        Length := 17;
+        Tile := Point(3245, 3309);
       end;
 
       setLength(daLocation.TreeObjects, 3)
@@ -4061,6 +4193,7 @@ begin
         Tile := Point(3220, 3306);
         AliveIDs := AliveWillowIDs;
         DeadIds := DeadWillowIDs;
+        Plane := 0;
       end;
       with daLocation.TreeObjects[1] do begin
         Offset := [0, 0, 200];
@@ -4073,6 +4206,7 @@ begin
         Tile := Point(3221, 3308);
         AliveIDs := AliveWillowIDs;
         DeadIds := DeadWillowIDs;
+        Plane := 0;
       end;
       with daLocation.TreeObjects[2] do begin
         Offset := [0, 0, 200];
@@ -4085,6 +4219,7 @@ begin
         Tile := Point(3222, 3302);
         AliveIDs := AliveWillowIDs;
         DeadIds := DeadWillowIDs;
+        Plane := 0;
       end;
     end;
     3:begin
@@ -4099,12 +4234,17 @@ begin
       daLocation.Logs[0].ID := 1519;
 
       daLocation.canFire := true;
-      fireTiles := [Point(3180, 3263), Point(3172, 3262)];
-      endFireTiles := [Point(3154, 3263), Point(3158, 3262)];
-      setLength(daLocation.FireLanes, length(fireTiles));
-      for i:=0 to high(fireTiles) do begin
-        daLocation.FireLanes[i].StartFireTile := fireTiles[i];
-        daLocation.FireLanes[i].EndFireTile := endfireTiles[i];
+
+      setLength(daLocation.FireLanes, 2);
+      with daLocation.FireLanes[0] do begin
+        Plane := 0;
+        Length := 26;
+        Tile := Point(3180, 3263);
+      end;
+      with daLocation.FireLanes[1] do begin
+        Plane := 0;
+        Length := 14;
+        Tile := Point(3172, 3262);
       end;
 
       setLength(daLocation.TreeObjects, 4)
@@ -4119,6 +4259,7 @@ begin
         Tile := Point(3167, 3273);
         AliveIDs := AliveWillowIDs;
         DeadIds := DeadWillowIDs;
+        Plane := 0;
       end;
       with daLocation.TreeObjects[1] do begin
         Offset := [0, 0, 200];
@@ -4131,6 +4272,7 @@ begin
         Tile := Point(3164, 3271);
         AliveIDs := AliveWillowIDs;
         DeadIds := DeadWillowIDs;
+        Plane := 0;
       end;
       with daLocation.TreeObjects[2] do begin
         Offset := [0, 0, 200];
@@ -4143,6 +4285,7 @@ begin
         Tile := Point(3162, 3268);
         AliveIDs := AliveWillowIDs;
         DeadIds := DeadWillowIDs;
+        Plane := 0;
       end;
       with daLocation.TreeObjects[3] do begin
         Offset := [0, 0, 200];
@@ -4155,6 +4298,7 @@ begin
         Tile := Point(3165, 3266);
         AliveIDs := AliveWillowIDs;
         DeadIds := DeadWillowIDs;
+        Plane := 0;
       end;
     end;
     2:begin
@@ -4169,12 +4313,22 @@ begin
       daLocation.Logs[0].ID := 1519;
 
       daLocation.canFire := true;
-      fireTiles := [Point(3183, 3276), Point(3183, 3277), Point(3171, 3275)];
-      endFireTiles := [Point(3158, 3276), Point(3166, 3277), Point(3158, 3275)];
-      setLength(daLocation.FireLanes, length(fireTiles));
-      for i:=0 to high(fireTiles) do begin
-        daLocation.FireLanes[i].StartFireTile := fireTiles[i];
-        daLocation.FireLanes[i].EndFireTile := endfireTiles[i];
+
+      setLength(daLocation.FireLanes, 3);
+      with daLocation.FireLanes[0] do begin
+        Plane := 0;
+        Length := 25;
+        Tile := Point(3183, 3276);
+      end;
+      with daLocation.FireLanes[1] do begin
+        Plane := 0;
+        Length := 17;
+        Tile := Point(3183, 3277);
+      end;
+      with daLocation.FireLanes[2] do begin
+        Plane := 0;
+        Length := 13;
+        Tile := Point(3171, 3275);
       end;
 
       setLength(daLocation.TreeObjects, 2)
@@ -4189,6 +4343,7 @@ begin
         Tile := Point(3178, 3274);
         AliveIDs := AliveWillowIDs;
         DeadIds := DeadWillowIDs;
+        Plane := 0;
       end;
       with daLocation.TreeObjects[1] do begin
         Offset := [0, 0, 200];
@@ -4201,6 +4356,7 @@ begin
         Tile := Point(3179, 3271);
         AliveIDs := AliveWillowIDs;
         DeadIds := DeadWillowIDs;
+        Plane := 0;
       end;
     end;
     0..1, 6:begin
@@ -4219,7 +4375,7 @@ begin
       setLength(daLocation.DoorObjects, 1);
       with daLocation.DoorObjects[0] do begin
         TileOffset := [0, 0];
-        IDs := [7129, 1540];
+        Plane := 0;
         Actions := ['Open'];
         Tile := Point(3215, 3245);
         Offset := [-62, 0, 100];
@@ -4252,6 +4408,7 @@ begin
             Tile := Point(3204, 3247);
             AliveIDs := AliveOakIDs;
             DeadIDs := DeadOakIDs;
+            Plane := 0;
           end;
           with daLocation.TreeObjects[1] do begin
             Offset := [0, 0, 200];
@@ -4264,6 +4421,7 @@ begin
             Tile := Point(3205, 3240);
             AliveIDs := AliveOakIDs;
             DeadIDs := DeadOakIDs;
+            Plane := 0;
           end;
         end;
         1:begin
@@ -4291,6 +4449,7 @@ begin
             Tile := Point(3234, 3238);
             AliveIDs := AliveWillowIDs;
             DeadIds := DeadWillowIDs;
+            Plane := 0;
           end;
           with daLocation.TreeObjects[1] do begin
             Offset := [0, 0, 200];
@@ -4303,6 +4462,7 @@ begin
             Tile := Point(3234, 3244);
             AliveIDs := AliveWillowIDs;
             DeadIds := DeadWillowIDs;
+            Plane := 0;
           end;
         end;
         6:begin
@@ -4317,6 +4477,21 @@ begin
 
           setLength(daLocation.Logs, 1);
           daLocation.Logs[0].ID := 1515;
+
+          setLength(daLocation.TreeObjects, 1)
+          with daLocation.TreeObjects[0] do begin
+            Offset := [0, 0, 200];
+            TileOffset := [0, 0];
+            Options := ['Chop down'];
+            Timer.Restart;
+            Timer.StartTime := -1;
+            Name := 'Yew';
+            Index := 0;
+            Tile := Point(3250, 3202);
+            AliveIDs := AliveYewIDs;
+            DeadIDs := DeadYewIDs;
+            Plane := 0;
+          end;
         end;
       end;
     end;
@@ -4343,6 +4518,7 @@ begin
         Tile := Point(2773, 2698);
         AliveIDs := [9036];
         DeadIDs := [9036];
+        Plane := 0;
       end;
       with daLocation.TreeObjects[1] do begin
         Offset := [0, 0, 200];
@@ -4355,6 +4531,7 @@ begin
         Tile := Point(2776, 2698);
         AliveIDs := [9036];
         DeadIDs := [9036];
+        Plane := 0;
       end;
       with daLocation.TreeObjects[2] do begin
         Offset := [0, 0, 200];
@@ -4367,6 +4544,7 @@ begin
         Tile := Point(2773, 2700);
         AliveIDs := [9036];
         DeadIDs := [9036];
+        Plane := 0;
       end;
     end;
     37:begin
@@ -4381,12 +4559,36 @@ begin
       daLocation.Logs[0].ID := 6333;
 
       daLocation.canFire := true;
-      fireTiles := [Point(2333, 3051), Point(2333, 3050), Point(2336, 3049), Point(2334, 3048), Point(2335, 3047), Point(2335, 3046)];
-      endFireTiles := [Point(2329, 3051), Point(2329, 3050), Point(2330, 3049), Point(2330, 3048), Point(2330, 3047), Point(2331, 3046)];
-      setLength(daLocation.FireLanes, length(fireTiles));
-      for i:=0 to high(fireTiles) do begin
-        daLocation.FireLanes[i].StartFireTile := fireTiles[i];
-        daLocation.FireLanes[i].EndFireTile := endfireTiles[i];
+      setLength(daLocation.FireLanes, 6);
+      with daLocation.FireLanes[0] do begin
+        Plane := 0;
+        Length := 4;
+        Tile := Point(2333, 3051);
+      end;
+      with daLocation.FireLanes[1] do begin
+        Plane := 0;
+        Length := 4;
+        Tile := Point(2333, 3050);
+      end;
+      with daLocation.FireLanes[2] do begin
+        Plane := 0;
+        Length := 6;
+        Tile := Point(2336, 3049);
+      end;
+      with daLocation.FireLanes[3] do begin
+        Plane := 0;
+        Length := 4;
+        Tile :=Point(2334, 3048);
+      end;
+      with daLocation.FireLanes[4] do begin
+        Plane := 0;
+        Length := 5;
+        Tile := Point(2335, 3047);
+      end;
+      with daLocation.FireLanes[5] do begin
+        Plane := 0;
+        Length := 4;
+        Tile := Point(2335, 3046);
       end;
 
       setLength(daLocation.TreeObjects, 1)
@@ -4401,6 +4603,7 @@ begin
         Tile := Point(2335, 3048);
         AliveIDs := [9036];
         DeadIDs := [9037];
+        Plane := 0;
       end;
     end;
     38:begin
@@ -4426,6 +4629,7 @@ begin
         Tile := Point(2827, 3080);
         AliveIDs := [9036];
         DeadIDs := [9037];
+        Plane := 0;
       end;
       with daLocation.TreeObjects[1] do begin
         Offset := [0, 0, 200];
@@ -4438,6 +4642,7 @@ begin
         Tile := Point(2828, 3082);
         AliveIDs := [9036];
         DeadIDs := [9037];
+        Plane := 0;
       end;
       with daLocation.TreeObjects[2] do begin
         Offset := [0, 0, 200];
@@ -4450,6 +4655,7 @@ begin
         Tile := Point(2828, 3079);
         AliveIDs := [9036];
         DeadIDs := [9037];
+        Plane := 0;
       end;
       with daLocation.TreeObjects[3] do begin
         Offset := [0, 0, 200];
@@ -4462,6 +4668,7 @@ begin
         Tile := Point(2822, 3078);
         AliveIDs := [9036];
         DeadIDs := [9037];
+        Plane := 0;
       end;
     end;
     39:begin
@@ -4487,6 +4694,7 @@ begin
         Tile := Point(2823, 3088);
         AliveIDs := [9036];
         DeadIDs := [9037];
+        Plane := 0;
       end;
       with daLocation.TreeObjects[1] do begin
         Offset := [0, 0, 200];
@@ -4499,6 +4707,7 @@ begin
         Tile := Point(2825, 3087);
         AliveIDs := [9036];
         DeadIDs := [9037];
+        Plane := 0;
       end;
       with daLocation.TreeObjects[2] do begin
         Offset := [0, 0, 200];
@@ -4511,6 +4720,7 @@ begin
         Tile := Point(2827, 3088);
         AliveIDs := [9036];
         DeadIDs := [9037];
+        Plane := 0;
       end;
       with daLocation.TreeObjects[3] do begin
         Offset := [0, 0, 200];
@@ -4523,6 +4733,7 @@ begin
         Tile := Point(2827, 3085);
         AliveIDs := [9036];
         DeadIDs := [9037];
+        Plane := 0;
       end;
       with daLocation.TreeObjects[4] do begin
         Offset := [0, 0, 200];
@@ -4535,6 +4746,7 @@ begin
         Tile := Point(2826, 3084);
         AliveIDs := [9036];
         DeadIDs := [9037];
+        Plane := 0;
       end;
     end;
     40:begin
@@ -4560,6 +4772,7 @@ begin
         Tile := Point(2822, 3084);
         AliveIDs := [9034];
         DeadIDs := [9035];
+        Plane := 0;
       end;
       with daLocation.TreeObjects[1] do begin
         Offset := [0, 0, 200];
@@ -4572,6 +4785,7 @@ begin
         Tile := Point(2820, 3088);
         AliveIDs := [9034];
         DeadIDs := [9035];
+        Plane := 0;
       end;
       with daLocation.TreeObjects[2] do begin
         Offset := [0, 0, 200];
@@ -4584,6 +4798,7 @@ begin
         Tile := Point(2820, 3080);
         AliveIDs := [9034];
         DeadIDs := [9035];
+        Plane := 0;
       end;
       with daLocation.TreeObjects[3] do begin
         Offset := [0, 0, 200];
@@ -4596,6 +4811,7 @@ begin
         Tile := Point(2824, 3080);
         AliveIDs := [9034];
         DeadIDs := [9035];
+        Plane := 0;
       end;
     end;
     41:begin
@@ -4872,7 +5088,7 @@ end;
 
 procedure doFire;
 var goodLanes : TIntegerArray;
-    goodLane, h, activeID, count, i : integer;
+    goodLane, h, activeID, i : integer;
     tP, tP2 : TPoint;
     tB : TBox;
     fail, fail2, fail3 : TreflectTimer;
@@ -4891,29 +5107,31 @@ begin
     Exit;
 
   goodLanes := getGoodFireLaneIndices;
+  goodLane := -1;
 
   if high(goodLanes) <= -1 then begin
     doDropping(true);
     exit;
   end;
 
-  goodLane := -1;
-  for i:=0 to high(goodLanes) do
-    if Reflect.Tiles.NearTile(daLocation.FireLanes[goodLanes[i]].StartFireTile, 1) then
-      goodLane := goodLanes[i];
-
-  if goodLane = -1 then
+  if(random(5) = 1) then begin
     goodLane := goodLanes[random(length(goodLanes))];
+  end else begin
+    for i:=0 to high(goodLanes) do
+      if (goodLane = -1) or (Reflect.Tiles.DistanceFromTile(daLocation.FireLanes[goodLanes[i]].Tile) < Reflect.Tiles.DistanceFromTile(daLocation.FireLanes[goodLane].Tile)) then
+        goodLane := goodLanes[i];
+  end;
 
   fail.restart;
-  while not R_TileOnMS(daLocation.FireLanes[goodLane].StartFireTile, tP) and (fail.Elapsedtime < 30000) do begin
+  while not R_TileOnMS(daLocation.FireLanes[goodLane].Tile, tP) and (fail.Elapsedtime < 30000) do begin
     updateScreen('Going to firelane.');
-    ReflectPlayer.BlindWalkMM(daLocation.FireLanes[goodLane].StartFireTile, 5);
+    ReflectPlayer.BlindWalkMM(daLocation.FireLanes[goodLane].Tile, 5);
     ReflectPlayer.FFlag(0, 2500+random(500));
     sleepScript(500+random(500));
   end;
 
   goodLanes := getGoodFireLaneIndices;
+  goodLane := -1;
 
   if high(goodLanes) <= -1 then begin
     doDropping(true);
@@ -4921,78 +5139,71 @@ begin
   end;
 
   for i:=0 to high(goodLanes) do
-    if Reflect.Tiles.DistanceFromTile(daLocation.FireLanes[goodLane].StartFireTile) > Reflect.Tiles.DistanceFromTile(daLocation.FireLanes[goodLanes[i]].StartFireTile) then
+    if (goodLane = -1) or (Reflect.Tiles.DistanceFromTile(daLocation.FireLanes[goodLanes[i]].Tile) < Reflect.Tiles.DistanceFromTile(daLocation.FireLanes[goodLane].Tile)) then
       goodLane := goodLanes[i];
 
   fail.restart;
-  while not Reflect.Tiles.NearTile(daLocation.FireLanes[goodLane].StartFireTile, 1) and R_TileOnMS(daLocation.FireLanes[goodLane].StartFireTile, tP) and (fail.Elapsedtime < 10000) do begin
+  while not Reflect.Tiles.NearTile(daLocation.FireLanes[goodLane].Tile, 1) and R_TileOnMS(daLocation.FireLanes[goodLane].Tile, tP) and (fail.Elapsedtime < 10000) do begin
     updateScreen('Going to firelane tile.');
-    R_InteractTile(daLocation.FireLanes[goodLane].StartFireTile, ['Walk']);
+    R_InteractTile(daLocation.FireLanes[goodLane].Tile, ['Walk']);
     ReflectPlayer.FFlag(0, 5000+random(500));
     sleepScript(500+random(500));
   end;
+
   tP := Reflect.Tiles.GetGlobalTile;
   if Reflect.Inv.Contains(LogIDs) and Reflect.Inv.Contains(TinderIds) and
-        (tP.Y = daLocation.FireLanes[goodLane].StartFireTile.Y) and (tP.X >= daLocation.FireLanes[goodLane].EndFireTile.x) and
-        (tP.X <= daLocation.FireLanes[goodLane].StartFireTile.x) and ReflectPlayer.isLoggedIn and not ReflectPlayer.IsUnderAttack then begin
-    for h:=daLocation.FireLanes[goodLane].EndFireTile.X to daLocation.FireLanes[goodLane].StartFireTile.X do
-      inc(count);
-
-    _Docount(count);
+        (tP.Y = daLocation.FireLanes[goodLane].Tile.Y) and (tP.X >= daLocation.FireLanes[goodLane].Tile.x-daLocation.FireLanes[goodLane].Length) and
+        (tP.X <= daLocation.FireLanes[goodLane].Tile.x) and ReflectPlayer.isLoggedIn and not ReflectPlayer.IsUnderAttack then
+  begin
+    _Docount(daLocation.FireLanes[goodLane].Length);
     updateScreen('Making fires...');
     randomHandler;
     doProggy(ProggieLocation);
   end;
 
   while Reflect.Inv.Contains(LogIDs) and Reflect.Inv.Contains(TinderIds) and
-        (tP.Y = daLocation.FireLanes[goodLane].StartFireTile.Y) and (tP.X >= daLocation.FireLanes[goodLane].EndFireTile.x) and
-        (tP.X <= daLocation.FireLanes[goodLane].StartFireTile.x) and ReflectPlayer.isLoggedIn and not ReflectPlayer.IsUnderAttack do begin
+        (tP.Y = daLocation.FireLanes[goodLane].Tile.Y) and (tP.X >= daLocation.FireLanes[goodLane].Tile.x-daLocation.FireLanes[goodLane].Length) and
+        (tP.X <= daLocation.FireLanes[goodLane].Tile.x) and ReflectPlayer.isLoggedIn and not ReflectPlayer.IsUnderAttack do
+  begin
     if Reflect.Gametab.CurrentColor <> Gametab_Inventory then
       Reflect.Gametab.Open(Gametab_Inventory);
+
     _obj.GetAt(ObjGame, tP);
     if Reflect.Smart.IsNull(_obj.Reference) or not inIntArray(FireIDs, _obj.GetID) then begin
       if not anySlotActivated(true) then begin
-        for h:=0 to high(TinderIds) do begin
-          if(_item.Find(TinderIds[h]))then begin
+        if _item.Find(TinderIds) then begin
+          getMousePos(tP2.x, tP2.y);
+          tB := _item.getbox;
+          if not PointInBox(tP2, tB) then
+            reflect.mouse.move(tB, mouse_left)
+          else
+            fastClick(mouse_left);
+          fail2.restart;
+          while not anySlotActivated(true) and (fail2.Elapsedtime < 1000) do
+            sleepScript(25);
+        end;
+      end;
+
+      if anySlotActivated(true) then begin
+        activeID := getActiveItemID;
+        if inIntArray(LogIDs, activeID) then begin
+          if _item.Find(TinderIds) then begin
             getMousePos(tP2.x, tP2.y);
             tB := _item.getbox;
             if not PointInBox(tP2, tB) then
               reflect.mouse.move(tB, mouse_left)
             else
               fastClick(mouse_left);
-            fail2.restart;
-            while not anySlotActivated(true) and (fail2.Elapsedtime < 1000) do
-              sleepScript(25);
-            break;
           end;
-        end;
-      end;
-      if anySlotActivated(true) then begin
-        activeID := getActiveItemID;
-        if inIntArray(LogIDs, activeID) then begin
-          for h:=0 to high(TinderIds) do begin
-            if(_item.Find(TinderIds[h]))then begin
+        end else begin
+          if inIntArray(TinderIds, activeID) then begin
+            if _item.Find(LogIDs) then begin
               getMousePos(tP2.x, tP2.y);
               tB := _item.getbox;
               if not PointInBox(tP2, tB) then
                 reflect.mouse.move(tB, mouse_left)
               else
                 fastClick(mouse_left);
-              break;
-            end;
-          end;
-        end else begin
-          if inIntArray(TinderIds, activeID) then begin
-            for h:=0 to high(LogIDs) do begin
-              if(_item.Find(LogIDs[h]))then begin
-                getMousePos(tP2.x, tP2.y);
-                tB := _item.getbox;
-                if not PointInBox(tP2, tB) then
-                  reflect.mouse.move(tB, mouse_left)
-                else
-                  fastClick(mouse_left);
-                break;
-              end;
             end;
           end else begin
             fixActive;
@@ -5010,45 +5221,36 @@ begin
           fail.restart;
         if (fail3.Elapsedtime > 350) then begin     //used to stop overlap or false postive with wasactive
           if not anySlotActivated(true) then begin
-            if (Reflect.Inv.CountQuantities(LogIDs) > 1) and ((tP.X-1) >= daLocation.FireLanes[goodLane].EndFireTile.x) then begin
-              for h:=0 to high(TinderIds) do begin
-                if(_item.Find(TinderIds[h]))then begin
-                  getMousePos(tP2.x, tP2.y);
-                  tB := _item.getbox;
-                  if not PointInBox(tP2, tB) then
-                    reflect.mouse.move(tB, mouse_left)
-                  else
-                    fastClick(mouse_left);
-                  fail2.restart;
-                  while not anySlotActivated(true) and (fail2.Elapsedtime < 1000) do
-                    sleepScript(25);
-                  break;
-                end;
+            if (Reflect.Inv.CountQuantities(LogIDs) > 1){cuz theres a delay until the log disappears} and ((tP.X-1) >= daLocation.FireLanes[goodLane].Tile.x-daLocation.FireLanes[goodLane].Length) then begin
+              if _item.Find(TinderIds) then begin
+                getMousePos(tP2.x, tP2.y);
+                tB := _item.getbox;
+                if not PointInBox(tP2, tB) then
+                  reflect.mouse.move(tB, mouse_left)
+                else
+                  fastClick(mouse_left);
+                fail2.restart;
+                while not anySlotActivated(true) and (fail2.Elapsedtime < 1000) do
+                  sleepScript(25);
               end;
             end;
           end;
           if anySlotActivated(true) then begin
             activeID := getActiveItemID;
             if inIntArray(LogIDs, activeID) then begin
-              for h:=0 to high(TinderIds) do begin
-                if(_item.Find(TinderIds[h]))then begin
+              if _item.Find(TinderIds) then begin
+                getMousePos(tP2.x, tP2.y);
+                tB := _item.getbox;
+                if not PointInBox(tP2, tB) then
+                  reflect.mouse.move(tB);
+              end;
+            end else begin
+              if inIntArray(TinderIds, activeID) then begin
+                if _item.Find(LogIDs) then begin
                   getMousePos(tP2.x, tP2.y);
                   tB := _item.getbox;
                   if not PointInBox(tP2, tB) then
                     reflect.mouse.move(tB);
-                  break;
-                end;
-              end;
-            end else begin
-              if inIntArray(TinderIds, activeID) then begin
-                for h:=0 to high(LogIDs) do begin
-                  if(_item.Find(LogIDs[h]))then begin
-                    getMousePos(tP2.x, tP2.y);
-                    tB := _item.getbox;
-                    if not PointInBox(tP2, tB) then
-                      reflect.mouse.move(tB);
-                    break;
-                  end;
                 end;
               end else begin
                 fixActive;
@@ -5064,13 +5266,13 @@ begin
         _obj.GetAt(ObjGame, tP);
       tP := Reflect.Tiles.GetGlobalTile;
     end else begin
-      for h:=tP.x downto daLocation.FireLanes[goodLane].EndFireTile.X do begin
+      for h:=tP.x downto daLocation.FireLanes[goodLane].Tile.X-daLocation.FireLanes[goodLane].Length do begin
         _obj.GetAt(ObjGame, Point(h, tP.y));
         if Reflect.Smart.IsNull(_obj.Reference) or not inIntArray(FireIDs, _obj.GetID) then begin
           tP := Point(h, tP.y);
           break;
         end else begin
-          if (h = daLocation.FireLanes[goodLane].EndFireTile.X) then
+          if (h = daLocation.FireLanes[goodLane].Tile.X-daLocation.FireLanes[goodLane].Length) then
             exit;
         end;
       end;
@@ -5103,7 +5305,16 @@ var _item : TReflectInvItem;
     i : integer;
     logIDs : TIntegerArray;
 begin
+  if not daLocation.canFletch then
+    exit;
+
   logIDs := daLocation.getLogIDs;
+  if not Reflect.Inv.Contains(LogIDs) then
+    exit;
+
+  if not Reflect.Inv.Contains(KnifeIDs) then
+    exit;
+
   while ReflectPlayer.IsLoggedIn and Reflect.Inv.Contains(LogIDs) and Reflect.Inv.Contains(KnifeIDs)
   and not ReflectPlayer.IsUnderAttack do begin
     if Reflect.Gametab.CurrentColor <> Gametab_Inventory then
@@ -5292,6 +5503,10 @@ begin
   case daLocation.ID of
     0..1, 6:begin//lumb gen
       if daLocation.DoorObjects[0].Open(false) then
+        goTo normal;
+    end;
+    18:begin//edge
+      if daLocation.DoorObjects[0].Open(true) then
         goTo normal;
     end;
     else begin
@@ -5731,17 +5946,23 @@ begin
         ReflectPlayer.FFlag(0, 5000+random(500));
         sleepScript(1000+random(1000));
         tempObject.GetAt(ObjGame, tempTree.Tile);
-        objectID := tempObject.GetId;
+        if not Reflect.Smart.IsNull(tempObject.Reference) then
+          objectID := tempObject.GetId
+        else
+          objectID := -1;
         while ReflectPlayer.IsLoggedIn and inIntArray(TempTree.AliveIDs, objectID) and
-        (inIntArray(ChopAnimationIDs, ReflectPlayer.GetAnimation) or apeAtollIsChopping(tempTree.tile, tempTree.AliveIDs)) and
-        not Reflect.Inv.IsFull and
-        not ReflectPlayer.IsUnderAttack do begin
+              (inIntArray(ChopAnimationIDs, ReflectPlayer.GetAnimation) or apeAtollIsChopping(tempTree.tile, tempTree.AliveIDs)) and
+              not Reflect.Inv.IsFull and not ReflectPlayer.IsUnderAttack do
+        begin
           randomHandler;
           FixActive;
           UpdateScreen('Chopping tree...');
           wasWorking := true;
           tempObject.GetAt(ObjGame, tempTree.Tile);
-          objectID := tempObject.GetId;
+          if not Reflect.Smart.IsNull(tempObject.Reference) then
+            objectID := tempObject.GetId
+          else
+            objectID := -1;
         end;
       end;
     end;
@@ -5809,7 +6030,7 @@ begin
     ReflectPlayer.SetRun(true);
 
   if gItemTim.Elapsedtime > gItemOften then begin
-    _items.GetAll(10);
+    _items.GetAll(ItemCheckDistance);
     for i:=0 to high(_items) do begin
       nestTile := _items[i].GetTile;
       if inIntArray(NestIDs, _items[i].getId) and not Reflect.Inv.IsFull {and canBank} then begin
@@ -5844,21 +6065,21 @@ begin
     if Reflect.Gametab.CurrentColor <> Gametab_Inventory then
       Reflect.Gametab.Open(Gametab_Inventory);
     setupPlayer;
-    if(ReflectPlayer.GetSkillExp(SKILL_WOODCUTTING) <= LastXPXPCheck)then begin
+    if(ReflectPlayer.GetSkillExp(SKILL_WOODCUTTING) <= LastXPXP)then begin
       UpdateScreen('No woodcutting XP gained in 10 minutes.');
       daLogger.Error('No woocutting XP gained in 10 minutes.', []);
-      LastXPXPCheck := ReflectPlayer.GetSkillExp(SKILL_WOODCUTTING);
+      LastXPXP := ReflectPlayer.GetSkillExp(SKILL_WOODCUTTING);
       ReflectPlayer.Active := false;
       ReflectPlayer.Logout;
       sleepScript(2500);
       exit;
     end;
-    LastXPXPCheck := ReflectPlayer.GetSkillExp(SKILL_WOODCUTTING);
+    LastXPXP := ReflectPlayer.GetSkillExp(SKILL_WOODCUTTING);
   end;
 
-  if (tim.Elapsedtime > tim2) then begin
-    tim.restart;
-    tim2 := 50000 + random(400000);
+  if (StatsTimer.Elapsedtime > StatsTime) then begin
+    StatsTimer.restart;
+    StatsTime := 50000 + random(400000);
     tInt := 0;
     for i:=0 to high(daLocation.Logs) do
       tInt := tInt + (daLocation.Logs[i].price * daLocation.Logs[i].chopped);
@@ -5896,8 +6117,8 @@ begin
 end;
 
 begin
-  safeShowModal;
-  if started or forceUpdate then begin
+  showForm;
+  if started then begin
     ClearDebug;
     Reflect.Setup;
     Reflect.Smart.Graphics.Clear;

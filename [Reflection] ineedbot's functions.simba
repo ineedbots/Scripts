@@ -1,6 +1,6 @@
 //Feel free to use code, MAKE SURE TO GIVE CREDIT WHERE DUE! -ineedbot
 const
-      fVersion = 2.11;
+      fVersion = 2.12;
 
       fScriptPage = 'https://raw.githubusercontent.com/ineedbots/Scripts/master/%5BReflection%5D%20ineedbot''s%20functions.simba';
 
@@ -16,7 +16,7 @@ const
 type TReflectDoor = record
      TileEncompass : TPointArray;
      Tile : TPoint;
-     IDs : TIntegerArray;
+     Plane : Integer;
      Offset : array[0..2] of integer;
      TileOffset : array[0..1] of integer;
      Actions : TStringArray;
@@ -56,20 +56,33 @@ begin
   end;
 end;
 
-var ProggieLocation, me_name, SoundString, fScript : string;
-    daLogger : TReflectLogger;
-    ReflectPlayer : TReflectLocalPlayer;
-    breaks, breakInFinal, breakIn, breakFor, breakinRandom, breakForRandom, AntiAmount, chatTimeOften, closeAllOften, updateAllOften, me_indice, dismissAllOften, lookForChatOften, checkForLevelOften : integer;
-    breakInTimer, breakForTimer, closeAllTimer, updateAllTimer, tim3, dismissAllTimer, lookForChatTimer, checkForLevelTimer, updateScreenTimer : TReflectTimer;
-    rewardIDs : TIntegerArray;
-    chatTimers : array of TReflectTimer;
-    useAutoResponder, forceUpdate, useFakeWaitTime, wasWorking: boolean;
+var
+  ProggieLocation,me_name,SoundString: string;
 
-    commonHelloStrings, youStrings, whatStrings, howStrings, areStrings, thatStrings, questionStrings,
-    doingStrings, hiStrings, helloStrings, lolStrings, heyStrings, puncStrings, imStrings,
-    botStrings, dontStrings, levelStrings, whyStrings, niceStrings, thanksStrings, randomsStrings : TStringArray;
+  daLogger: TReflectLogger;
 
-    SkillStringsArray : array of TStringArray;
+  ReflectPlayer: TReflectLocalPlayer;
+
+  breaks,breakInFinal,breakIn,breakFor,breakinRandom,breakForRandom,
+  AntiAmount,chatTimeOften,closeAllOften,updateAllOften,me_indice,
+  dismissAllOften,lookForChatOften,checkForLevelOften: integer;
+
+  breakInTimer,breakForTimer,closeAllTimer,updateAllTimer,debugTime,
+  dismissAllTimer,lookForChatTimer,checkForLevelTimer,
+  updateScreenTimer: TReflectTimer;
+
+  rewardIDs: TIntegerArray;
+
+  chatTimers: array of TReflectTimer;
+
+  useAutoResponder,useFakeWaitTime,wasWorking: boolean;
+
+  commonHelloStrings,youStrings,whatStrings,howStrings,areStrings,thatStrings,
+  questionStrings,doingStrings,hiStrings,helloStrings,lolStrings,heyStrings,
+  puncStrings,imStrings,botStrings,dontStrings,levelStrings,whyStrings,
+  niceStrings,thanksStrings,randomsStrings: TStringArray;
+
+  SkillStringsArray: array of TStringArray;
 
 procedure updateScreen(_string:string);
 begin
@@ -662,8 +675,9 @@ var tP : TPoint;
     timer : TReflectTimer;
 begin
   tObj.GetAt(ObjBoundary, daDoor.Tile);
-  if not Reflect.Smart.IsNull(tObj.Reference) and inIntArray(daDoor.IDs, tObj.GetID) then begin
+  if not Reflect.Smart.IsNull(tObj.Reference) then begin
     if not R_TileOnMS(daDoor.Tile, tP, daDoor.Offset[0], daDoor.Offset[1], daDoor.Offset[2]) then begin
+      updateScreen('Going to door.');
       ReflectPlayer.BlindWalkMM(Point(daDoor.Tile.x+daDoor.TileOffset[0], daDoor.Tile.y+daDoor.TileOffset[1]), 1);
       ReflectPlayer.FFlag(0, 2500+random(500));
     end;
@@ -673,19 +687,22 @@ begin
       ReflectPlayer.FFlag(0, 2500+random(500));
       timer.restart;
       tObj.GetAt(ObjBoundary, daDoor.Tile);
-      while (timer.Elapsedtime < 2500) and not Reflect.Smart.IsNull(tObj.Reference) and inIntArray(daDoor.IDs, tObj.GetID) do begin
+      while (timer.Elapsedtime < 2500) and not Reflect.Smart.IsNull(tObj.Reference) do begin
         sleepScript(50);
         tObj.GetAt(ObjBoundary, daDoor.Tile);
       end;
     end;
   end else begin
     result := true;
-    if not Reflect.Tiles.NearTile(daDoor.Tile, 40) then
+    if not Reflect.Tiles.NearTile(daDoor.Tile, 60) then
       ReflectPlayer.BlindWalkMM(daDoor.Tile, 1);
   end;
 end;
 
 begin
+  if self.Plane <> Reflect.Tiles.GetPlane then
+    exit(true);
+
   if wantOut then begin
     if Reflect.Tiles.InPolygon(Self.TileEncompass) then
       result := openDaDoor(self)
@@ -1257,12 +1274,12 @@ begin
     1..10:doAnAnti;
     else begin
       {$IFDEF iDEBUG}
-        writeln(tim3.Elapsedtime, ' ', i);
+        writeln(debugTime.Elapsedtime, ' ', i);
       {$ENDIF}
     end;
   end;
   {$IFDEF iDEBUG}
-    tim3.Restart;
+    debugTime.Restart;
   {$ENDIF}
 end;
 
@@ -1413,11 +1430,13 @@ end;
 
 procedure doFUpdate;     //thanks shuttleu
 var NetworkVersion : extended;
-    FileNew : string;
+    FileNew, fscript : string;
     ThisFile : integer;
 begin
   if DirectoryExists(ScriptPath + '.git\') then
     exit;
+
+  fscript := Reflect.Misc.GetPage(fscriptPage);
   try
     NetworkVersion := strToFloat(between('fVersion = ', ';', fscript));
   except
@@ -1427,7 +1446,7 @@ begin
     end;
   end;
   daLogger.Status('ineedbot''s functions:  Local Version: '+floatToStr(fVersion)+'  Network Version: '+floatToStr(NetworkVersion), []);
-  if((fVersion < NetworkVersion) or forceUpdate)then begin
+  if(fVersion < NetworkVersion)then begin
     FileNew := ScriptPath + '[Reflection] ineedbot''s functions.simba';
     ThisFile := Rewritefile(FileNew, true);
     try
@@ -1734,7 +1753,7 @@ begin
   dismissAllTimer.Restart;
   lookForChatTimer.Restart;
   {$IFDEF iDEBUG}
-    tim3.Restart;
+    debugTime.Restart;
   {$ENDIF}
   updateAllTimer.Restart;
   updateScreenTimer.Restart;

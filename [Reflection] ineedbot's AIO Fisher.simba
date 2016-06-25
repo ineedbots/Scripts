@@ -1,14 +1,13 @@
-program newLapeFisher;
+program newerLapeFisher;
 {$DEFINE SMART}
 {$DEFINE FISHER}
 {$i Reflection/Reflection.Simba}
 {$i [Reflection] ineedbot's functions.simba}
 
-const Version = 5.194;
+const Version = 6.0;
 
-      PicturePage = 'http://pastebin.com/raw/hs3w81WZ';
+      PicturePage = 'http://pastebin.com/raw/xX7dC2tk';
       ScriptPage = 'https://raw.githubusercontent.com/ineedbots/Scripts/master/%5BReflection%5D%20ineedbot''s%20AIO%20Fisher.simba';
-      ForumPage = 'http://villavu.com/forum/showthread.php?t=109034';
 
       Widget_Cook_Container = 307;
       Cook_Options = 4;
@@ -22,6 +21,7 @@ type TreeObject = record
      AliveIDs, DeadIDs : TIntegerArray;
      Options : TStringArray;
      Name : String;
+     Plane : integer;
 end;
 
 type BankLocation = record
@@ -59,6 +59,7 @@ type FishNPC = record
      RawFishes, CookedFishes, BurntFishes : array of workedFish;
      Options, Names : TStringArray;
      Locations : TPointArray;
+     Plane : integer;
 end;
 
 type Location = record
@@ -77,31 +78,66 @@ type Location = record
      BankNPCs : array of BankNPC;
 end;
 
-var graphicOpti : TMufasaBitmap;
-    statsServer : TStats;
-    daLocation : Location;
-    WorldList, CookingAnimationIDs, FiremakingAnimationIDs, WoodcuttingAnimationIDs, AxeIDs, TinderIDs, CoinsIDs, KnifeIDs, FireIDs, LogIDs : TIntegerArray;
-    sdrop,script, sbrin, sbreak, sbin, sbrfor, sbfor, swait, schat, scriptstatus, sname, spass, spin, samount, sloc, sfish, santi, srun, sworld, scook, sbank, smouse, sbarb, ssound, schatt, swaitt, swaito, supdatet, sscreent, slchatt, slevelt, scloset, sdismisst, sfired : string;
-    deadObjID, FireCheckDistance, statsProfit, playNum, statsFishXP, tim2, statsCookXP, statsFireXP, statsAgilXP, statsSTRxp, statsWoodXP, FishspotIndice, nullINT, Job, AmountAmount, RunAmount, startFishXP, startFishLevel, startCookXP, startAgilXp, startStrXp, startWoodXp, LastXPXP, StartFireXP, updateScreenOften, cpuLoadWait, cpuLoadOften : integer;
-    dropOnly, useBreaks, useStats, started, saving, loading, mouseKeys, DisableCook, DisableBank, BarbFish : boolean;
-    tim, LastXPCheck : TReflectTimer;
-    fireOptions : TStringArray;
-    DsgnForm, DsgnForm2, DsgnForm3:TForm;
-    UsernameBox,PasswordBox,PinBox,AntibanBox,RunBox,AmountBox,WorldBox,LocalBox,NetworkBox, PlayBox,brfor, bfor, brin, bin, soundBox, chatTimeBox, screenTimeBox, waitOftenBox, waitTimeBox, dismissTimeBox, updateTimeBox, levelTimeBox, closeTimeBox, lookChatTimeBox, fireCheckBox: TEdit;
-    Image: TImage;
-    UpdateButton,PlayButton,LoadButton,SaveButton,Q3Box,brakebutton,extraButton: TButton;
-    BarbBox,BankBox,CookBox,MousekeysBox, chatBox, waitBox,brakebox,dropbox: TCheckBox;
-    LocationBox,FishBox: TComboBox;
-    bmp0: TBitmap;
-    Label1, Label2, Label3, Label4, Label5, Label6, Label7, label8, Label9, Label10, Label11, Label12, label13, Label14, Label15, Label16, Label17, label18: TLabel;
+var
+  graphicOpti: TMufasaBitmap;
+
+  statsServer: TStats;
+
+  daLocation: Location;
+
+  statsTimer,LastXPCheck: TReflectTimer;
+
+  fireOptions: TStringArray;
+
+  playNum,job,RunAmount,AmountAmount,cpuLoadOften,cpuLoadWait,
+  updateScreenOften,ItemCheckDistance,deadObjID,statsProfit,statsFishXP,
+  statsTime,statsCookXP,statsFireXP,statsAgilXP,statsSTRxp,
+  statsWoodXP,FishspotIndice,nullINT,startFishXP,startFishLevel,startCookXP,
+  startAgilXp,startStrXp,startWoodXp,LastXPXP,StartFireXP: integer;
+
+  WorldList,CookingAnimationIDs,FiremakingAnimationIDs,WoodcuttingAnimationIDs,
+  AxeIDs,TinderIDs,CoinsIDs,KnifeIDs,FireIDs,LogIDs: TIntegerArray;
+
+  started,loading,saving,MouseKeys,DisableBank,DisableCook,useBreaks,
+  dropOnly,useStats: boolean;
+
+  sdrop,sbrin,sbreak,sbin,sbrfor,sbfor,swait,schat,sname,spass,spin,samount,
+  sloc,stype,santi,srun,sworld,scook,sbank,smouse,ssound,schatt,swaitt,swaito,
+  supdatet,sscreent,slchatt,slevelt,scloset,sdismisst,sitemd,scriptstatus: string;
+
+  TFormMain,TFormBreak,TFormExtra: TForm;
+
+  TLabelPin,TLabelWorld,TLabelRun,TLabelAnti,TLabelAmount,TLabelPlayNum,
+  TLabelbIn,TLabelbrIn,TLabelbFor,TLabelItemDis,TLabelLookForChatTime,
+  TLabelCloseTime,TLabelLevelUpTime,TLabelUpdateTime,TLabelDismissTime,
+  TLabelWaitTime,TLabelWaitOften,TLabelbrFor,TLabelScreenTime,TLabelSound,
+  TLabelChatTime: TLabel;
+
+  TEditUser,TEditPass,TEditPin,TEditWorld,TEditRun,TEditAnti,TEditAmount,
+  TEditPlayNum,TEditbIn,TEditbrIn,TEditItemDis,TEditLookForChatTime,
+  TEditCloseTime,TEditLevelUpTime,TEditUpdateTime,TEditDismissTime,
+  TEditWaitTime,TEditWaitOften,TEditbFor,TEditbrFor,TEditScreenTime,
+  TEditSound,TEditChatTime: TEdit;
+
+  TButtonPlay,TButtonLoad,TButtonSave,TButtonBreak,TButtonExtra: TButton;
+
+  TCheckBoxBreak,TCheckBoxTalk,TCheckBoxWait,TCheckBoxMouse,TCheckBoxCook,
+  TCheckBoxBank,TCheckBoxDropOnly: TCheckBox;
+
+  TComboBoxLoc,TComboBoxType: TComboBox;
+
+  TMainImage: TImage;
+
+  TMainBMP: TBitmap;
 
 procedure doUpdate;     //thanks shuttleu
 var NetworkVersion : extended;
-    FileNew : string;
+    FileNew, script : string;
     ThisFile : integer;
 begin
   if DirectoryExists(ScriptPath + '.git\') then
     exit;
+  script := Reflect.Misc.GetPage(scriptPage);
   try
     NetworkVersion := strToFloat(between('Version = ', ';', script));
   except
@@ -111,7 +147,7 @@ begin
     end;
   end;
   daLogger.Status('ineedbot''s Fisher:  Local Version: '+FloatToStr(Version)+'  Network Version: '+FloatToStr(NetworkVersion), []);
-  if(Version < NetworkVersion) or forceUpdate then begin
+  if(Version < NetworkVersion)then begin
     FileNew := ScriptPath + '[Reflection] ineedbot''s AIO Fisher.simba';
     ThisFile := Rewritefile(FileNew, true);
     try
@@ -139,65 +175,139 @@ native;
 {$ENDIF}
 begin
   case sender of
-    brakeButton:begin
-      DsgnForm2.ShowModal();
+    TButtonBreak:begin
+      TFormBreak.ShowModal();
     end;
-    UpdateButton:begin
-      forceUpdate := true;
+    TButtonExtra:begin
+      TFormExtra.ShowModal();
+    end;
+    TButtonPlay:begin
       started := true;
-      DsgnForm.Close;
+      TFormMain.Close;
     end;
-    extraButton:begin
-      DsgnForm3.ShowModal();
-    end;
-    PlayButton:begin
-      started := true;
-      DsgnForm.Close;
-    end;
-    LoadButton:begin
+    TButtonLoad:begin
       loading := true;
-      DsgnForm.Close;
+      TFormMain.Close;
     end;
-    SaveButton:begin
-      schat := tostr(chatbox.getstate);
-      swait := tostr(waitbox.getstate);
-      sname := Usernamebox.Gettext;
-      spass := Passwordbox.gettext;
-      spin := pinbox.gettext;
-      samount := amountbox.gettext;
-      sfish := tostr(fishbox.getitemindex);
-      sloc := tostr(locationbox.getitemindex);
-      santi := antibanbox.gettext;
-      srun := runbox.gettext;
-      sworld := worldbox.gettext;
-      scook := tostr(cookbox.getstate);
-      sbank := tostr(bankbox.getstate);
-      smouse := tostr(mousekeysbox.getstate);
-      sbarb := tostr(barbbox.getstate);
-      sbreak := tostr(brakebox.getstate);
-      sbfor := bFor.gettext;
-      sbrfor := brFor.gettext;
-      sbin := bin.gettext;
-      sbrin := brin.gettext;
-      ssound := soundBox.getText;
-      sdismisst := dismissTimeBox.getText;
-      slchatt := lookChatTimeBox.getText;
-      schatt := chatTimeBox.getText;
-      supdatet := updateTimeBox.getText;
-      sscreent := screenTimeBox.getText;
-      slevelt := levelTimeBox.getTExt;
-      swaitt := waitTimeBox.getText;
-      swaito := waitOftenBox.getText;
-      scloset := closeTimeBox.getTExt;
-      sfired := fireCheckBox.getText;
-      sdrop := tostr(dropBox.getstate);
+    TButtonSave:begin
+      schat := tostr(TCheckBoxTalk.getstate);
+      swait := tostr(TCheckBoxWait.getstate);
+      sname := TEditUser.Gettext;
+      spass := TEditPass.gettext;
+      spin := TEditPin.gettext;
+      samount := TEditAmount.gettext;
+      stype := tostr(TComboBoxType.getitemindex);
+      sloc := tostr(TComboBoxLoc.getitemindex);
+      santi := TEditAnti.gettext;
+      srun := TEditRun.gettext;
+      sworld := TEditWorld.gettext;
+      scook := tostr(TCheckBoxCook.getstate);
+      sbank := tostr(TCheckBoxBank.getstate);
+      smouse := tostr(TCheckBoxMouse.getstate);
+      sbreak := tostr(TCheckBoxBreak.getstate);
+      sbfor := TEditbFor.gettext;
+      sbrfor := TEditbrFor.gettext;
+      sbin := TEditbin.gettext;
+      sbrin := TEditbrin.gettext;
+      ssound := TEditSound.getText;
+      sdismisst := TEditDismissTime.getText;
+      slchatt := TEditLookForChatTime.getText;
+      schatt := TEditChatTime.getText;
+      supdatet := TEditUpdateTime.getText;
+      sscreent := TEditScreenTime.getText;
+      slevelt := TEditLevelUpTime.getTExt;
+      swaitt := TEditWaitTime.getText;
+      swaito := TEditWaitOften.getText;
+      scloset := TEditCloseTime.getTExt;
+      sitemd := TEditItemDis.getText;
+      sdrop := tostr(TCheckBoxDropOnly.getstate);
       saving := true;
-      DsgnForm.Close;
+      TFormMain.Close;
      end;
-    Q3Box:begin
-      openWebPage(ForumPage);
+  end;
+end;
+
+procedure _OnChange2;
+var i : integer;
+begin
+  TComboBoxType.Clear;
+  TComboBoxType.setText('Type of fish:');
+  i := -1;
+  case TComboBoxLoc.getItemIndex of
+    (i:=i+1):begin//draynor
+      TComboBoxType.AddItem('Small net (cook) (bank)', nil);
+      TComboBoxType.AddItem('Bait (cook) (bank)', nil);
+    end;
+    (i:=i+1):begin//Barb
+      TComboBoxType.AddItem('Lure (cook) (bank)', nil);
+      TComboBoxType.AddItem('Bait (cook) (bank)', nil);
+    end;
+    (i:=i+1):begin//fishg
+      TComboBoxType.AddItem('Big net (cook) (bank)', nil);
+      TComboBoxType.AddItem('Cage (cook) (bank)', nil);
+      TComboBoxType.AddItem('Harpoon (cook) (bank)', nil);
+      TComboBoxType.AddItem('Harpoon (shark) (cook) (bank)', nil);
+    end;
+    (i:=i+1):begin//cather
+      TComboBoxType.AddItem('Small net (cook) (bank)', nil);
+      TComboBoxType.AddItem('Bait (cook) (bank)', nil);
+      TComboBoxType.AddItem('Big net (cook) (bank)', nil);
+      TComboBoxType.AddItem('Cage (cook) (bank)', nil);
+      TComboBoxType.AddItem('Harpoon (cook) (bank)', nil);
+      TComboBoxType.AddItem('Harpoon (shark) (cook) (bank)', nil);
+    end;
+    (i:=i+1):begin//karm
+      TComboBoxType.AddItem('Cage (cook) (bank)', nil);
+      TComboBoxType.AddItem('Harpoon (cook) (bank)', nil);
+      TComboBoxType.AddItem('Small net (cook) (sell)', nil);
+      TComboBoxType.AddItem('Bait (cook) (sell)', nil);
+      TComboBoxType.AddItem('Cage (cook) (sell)', nil);
+      TComboBoxType.AddItem('Harpoon (cook) (sell)', nil);
+      TComboBoxType.AddItem('Proggresive fishing', nil);
+    end;
+    (i:=i+1):begin//rasolo
+      TComboBoxType.AddItem('Lure (cook) (sell)', nil);
+      TComboBoxType.AddItem('Bait (cook) (sell)', nil);
+    end;
+    (i:=i+1):begin//Shilo
+      TComboBoxType.AddItem('Lure (bank)', nil);
+      TComboBoxType.AddItem('Bait (bank)', nil);
+    end;
+    (i:=i+1):begin//otto
+      TComboBoxType.AddItem('Heavy Rod (knife)', nil);
+    end;
+    (i:=i+1):begin//pic
+      TComboBoxType.AddItem('Small net (bank)', nil);
+      TComboBoxType.AddItem('Harpoon (bank)', nil);
+    end;
+    (i:=i+1):begin//zul
+      TComboBoxType.AddItem('Sacred Eels (knife)', nil);
+    end;
+    (i:=i+1):begin//power
+      TComboBoxType.AddItem('Small net', nil);
     end;
   end;
+end;
+
+procedure breakCheck;
+begin
+  TButtonBreak.setEnabled(toStr(TCheckBoxBreak.getState) = 'cbChecked');
+end;
+
+procedure OnChange(Sender: TObject);
+{$IFNDEF CODEINSIGHT}
+native;
+{$ENDIF}
+begin
+  _OnChange2;
+end;
+
+procedure brakeHandle(Sender: TObject);
+{$IFNDEF CODEINSIGHT}
+native;
+{$ENDIF}
+begin
+  breakCheck;
 end;
 
 procedure OnlyPostiveNumbers(Sender: TObject; var Key:Char);
@@ -257,422 +367,288 @@ begin
   end;
 end;
 
-procedure _OnChange2;
-var i : integer;
-begin
-  FishBox.Clear;
-  FishBox.setText('Fish method');
-  i := -1;
-  case LocationBox.getItemIndex of
-    (i:=i+1):begin//draynor
-      FishBox.AddItem('Small net (cook) (bank)', nil);
-      FishBox.AddItem('Bait (cook) (bank)', nil);
-    end;
-    (i:=i+1):begin//Barb
-      FishBox.AddItem('Lure (cook) (bank)', nil);
-      FishBox.AddItem('Bait (cook) (bank)', nil);
-    end;
-    (i:=i+1):begin//fishg
-      FishBox.AddItem('Big net (cook) (bank)', nil);
-      FishBox.AddItem('Cage (cook) (bank)', nil);
-      FishBox.AddItem('Harpoon (cook) (bank)', nil);
-      FishBox.AddItem('Harpoon (shark) (cook) (bank)', nil);
-    end;
-    (i:=i+1):begin//cather
-      FishBox.AddItem('Small net (cook) (bank)', nil);
-      FishBox.AddItem('Bait (cook) (bank)', nil);
-      FishBox.AddItem('Big net (cook) (bank)', nil);
-      FishBox.AddItem('Cage (cook) (bank)', nil);
-      FishBox.AddItem('Harpoon (cook) (bank)', nil);
-      FishBox.AddItem('Harpoon (shark) (cook) (bank)', nil);
-    end;
-    (i:=i+1):begin//karm
-      FishBox.AddItem('Cage (cook) (bank)', nil);
-      FishBox.AddItem('Harpoon (cook) (bank)', nil);
-      FishBox.AddItem('Small net (cook) (sell)', nil);
-      FishBox.AddItem('Bait (cook) (sell)', nil);
-      FishBox.AddItem('Cage (cook) (sell)', nil);
-      FishBox.AddItem('Harpoon (cook) (sell)', nil);
-      FishBox.AddItem('Proggresive fishing', nil);
-    end;
-    (i:=i+1):begin//rasolo
-      FishBox.AddItem('Lure (cook) (sell)', nil);
-      FishBox.AddItem('Bait (cook) (sell)', nil);
-    end;
-    (i:=i+1):begin//Shilo
-      FishBox.AddItem('Lure (bank)', nil);
-      FishBox.AddItem('Bait (bank)', nil);
-    end;
-    (i:=i+1):begin//otto
-      FishBox.AddItem('Heavy Rod (knife)', nil);
-    end;
-    (i:=i+1):begin//pic
-      FishBox.AddItem('Small net (bank)', nil);
-      FishBox.AddItem('Harpoon (bank)', nil);
-    end;
-    (i:=i+1):begin//zul
-      FishBox.AddItem('Sacred Eels (knife)', nil);
-    end;
-    (i:=i+1):begin//power
-      FishBox.AddItem('Small net', nil);
-    end;
-  end;
-end;
-
-procedure OnChange(Sender: TObject);
-{$IFNDEF CODEINSIGHT}
-native;
-{$ENDIF}
-begin
-  _OnChange2;
-end;
-
-procedure breakCheck;
-begin
-  brakeButton.setEnabled(toStr(brakeBox.getState) = 'cbChecked');
-end;
-
-procedure brakeHandle(Sender: TObject);
-{$IFNDEF CODEINSIGHT}
-native;
-{$ENDIF}
-begin
-  breakCheck;
-end;
-
 procedure InitForm;
-var TempFont : TFont;
+var
+  tempFont : TFont;
 begin
- DsgnForm.init(nil);
-  with DsgnForm do
+  tempFont.Init;
+  tempFont.setColor(0);
+//TFormMain\\
+ TFormMain.Init(nil);
+  with TFormMain do
     begin
-      setCaption('ineedbot''s AIO Fisher v' + toStr(Version)+'('+floatToStr(fversion)+')');
+      SetCaption('ineedbot''s AIO Fisher');
       setBorderStyle(bsSingle);
+      SetBounds(0,0,374,208);
       SetPosition(poScreenCenter);
-      setWidth(513);
-      setHeight(336);
   end;
-  Image.init(DsgnForm);
-  with Image do
+  TMainImage.init(TFormMain);
+  with TMainImage do
     begin
-      setParent(DsgnForm);
-      setLeft(0);
-      setTop(0);
-      setWidth(513);
-      setHeight(336);
-      setPicture(bmp0);
+      setParent(TFormMain);
+      SetBounds(0,0,374,208);
+      setPicture(TMainBMP);
   end;
- UsernameBox.init(DsgnForm);
-  with UsernameBox do
+//TLabelPin\\
+ TLabelPin.Init(TFormMain);
+  with TLabelPin do
     begin
-      setParent(DsgnForm);
-      setText('Username or eMail');
-      setLeft(6);
-      setTop(36);
-      setWidth(263);
-      setHeight(23);
+      SetParent(TFormMain);
+      SetCaption('Pin:');
+      SetBounds(2,57,53,16);
+      setFont(tempFont);
   end;
- PasswordBox.init(DsgnForm);
-  with PasswordBox do
+//TLabelWorld\\
+ TLabelWorld.Init(TFormMain);
+  with TLabelWorld do
     begin
-      setParent(DsgnForm);
-      setText('Password');
-      setLeft(287);
-      setTop(38);
-      setWidth(219);
-      setHeight(23);
+      SetParent(TFormMain);
+      SetCaption('World:');
+      SetBounds(2,82,68,16);
+      setFont(tempFont);
+  end;
+//TLabelRun\\
+ TLabelRun.Init(TFormMain);
+  with TLabelRun do
+    begin
+      SetParent(TFormMain);
+      SetCaption('When to run:');
+      SetBounds(2,107,57,16);
+      setFont(tempFont);
+  end;
+//TLabelAnti\\
+ TLabelAnti.Init(TFormMain);
+  with TLabelAnti do
+    begin
+      SetParent(TFormMain);
+      SetCaption('Antiban often:');
+      SetBounds(2,132,58,16);
+      setFont(tempFont);
+  end;
+//TLabelAmount\\
+ TLabelAmount.Init(TFormMain);
+  with TLabelAmount do
+    begin
+      SetParent(TFormMain);
+      SetCaption('Amount to fish:');
+      SetBounds(2,157,80,16);
+      setFont(tempFont);
+  end;
+//TLabelPlayNum\\
+ TLabelPlayNum.Init(TFormMain);
+  with TLabelPlayNum do
+    begin
+      SetParent(TFormMain);
+      SetCaption('Player number:');
+      SetBounds(116,182,85,16);
+      setFont(tempFont);
+  end;
+//TEditUser\\
+ TEditUser.Init(TFormMain);
+  with TEditUser do
+    begin
+      SetParent(TFormMain);
+      SetText('Username or email');
+      SetBounds(2,27,219,23);
+      setFont(tempFont);
+  end;
+//TEditPass\\
+ TEditPass.Init(TFormMain);
+  with TEditPass do
+    begin
+      SetParent(TFormMain);
+      SetText('Password');
+      SetBounds(225,27,147,23);
+      setFont(tempFont);
       setPasswordChar('*');
       setMaxLength(20);
   end;
- PinBox.init(DsgnForm);
-  with PinBox do
+//TEditPin\\
+ TEditPin.Init(TFormMain);
+  with TEditPin do
     begin
-      setParent(DsgnForm);
-      setText('');
-      setLeft(47);
-      setTop(69);
-      setWidth(80);
-      setHeight(23);
-      setMaxLength(4);
+      SetParent(TFormMain);
+      SetText('');
+      SetBounds(26,52,36,23);
+      setFont(tempFont);
       setPasswordChar('*');
+      setMaxLength(4);
       setONKEYPRESS(OnlyPostiveNumbers);
   end;
-  AntibanBox.init(DsgnForm);
-  with AntibanBox do
+//TEditWorld\\
+ TEditWorld.Init(TFormMain);
+  with TEditWorld do
     begin
-      setParent(DsgnForm);
-      setText('1000');
-      setLeft(133);
-      setTop(99);
-      setWidth(80);
-      setHeight(23);
-      setONKEYPRESS(OnlyPostiveNumbers);
-      setMaxLength(6);
+      SetParent(TFormMain);
+      SetText('');
+      SetBounds(40,77,80,23);
+      setFont(tempFont);
+      setONKEYPRESS(OnlyPostiveNumbers2);
   end;
-  RunBox.init(DsgnForm);
-  with RunBox do
+//TEditRun\\
+ TEditRun.Init(TFormMain);
+  with TEditRun do
     begin
-      setParent(DsgnForm);
-      setText('50');
-      setLeft(153);
-      setTop(131);
-      setWidth(80);
-      setHeight(23);
-      setONKEYPRESS(onlyPostiveNumbers);
+      SetParent(TFormMain);
+      SetText('75');
+      SetBounds(75,102,30,23);
+      setFont(tempFont);
       setMaxLength(3);
+      setONKEYPRESS(OnlyPostiveNumbers);
   end;
- AmountBox.init(DsgnForm);
-  with AmountBox do
+//TEditAnti\\
+ TEditAnti.Init(TFormMain);
+  with TEditAnti do
     begin
-      setParent(DsgnForm);
-      setText('-1');
-      setLeft(211);
-      setTop(165);
-      setWidth(80);
-      setHeight(23);
-      setONKEYPRESS(OnlyNumbers);
+      SetParent(TFormMain);
+      SetText('1000');
+      SetBounds(82,127,48,23);
+      setFont(tempFont);
       setMaxLength(6);
+      setONKEYPRESS(OnlyPostiveNumbers);
   end;
-  Q3Box.init(DsgnForm);
-  with Q3Box do
+//TEditAmount\\
+ TEditAmount.Init(TFormMain);
+  with TEditAmount do
     begin
-      setParent(DsgnForm);
-      setCaption('?');
-      setLeft(299);
-      setTop(170);
-      setWidth(32);
-      setHeight(25);
+      SetParent(TFormMain);
+      SetText('-1');
+      SetBounds(88,152,48,23);
+      setFont(tempFont);
+      setMaxLength(6);
+      setONKEYPRESS(OnlyPostiveNumbers);
+  end;
+//TEditPlayNum\\
+ TEditPlayNum.Init(TFormMain);
+  with TEditPlayNum do
+    begin
+      SetParent(TFormMain);
+      SetText('0');
+      SetBounds(200,180,20,23);
+      setFont(tempFont);
+      setMaxLength(2);
+      setONKEYPRESS(OnlyPostiveNumbers);
+  end;
+//TButtonPlay\\
+ TButtonPlay.Init(TFormMain);
+  with TButtonPlay do
+    begin
+      SetParent(TFormMain);
+      SetCaption('Play');
+      SetBounds(296,180,75,25);
+      setFont(tempFont);
       setOnClick(YourClickProcedure);
   end;
-  WorldBox.init(DsgnForm);
-  with WorldBox do
+//TButtonLoad\\
+ TButtonLoad.Init(TFormMain);
+  with TButtonLoad do
     begin
-      setParent(DsgnForm);
-      setText('');
-      setLeft(73);
-      setTop(190);
-      setWidth(80);
-      setHeight(23);
-      setONKEYPRESS(OnlyPostiveNumbers2);
-      setMaxLength(25);
+      SetParent(TFormMain);
+      SetCaption('Load');
+      SetBounds(2,180,50,25);
+      setFont(tempFont);
+      setOnClick(YourClickProcedure);
   end;
-  TempFont.Init;
- TempFont.setColor(16776960);
- chatBox.init(DsgnForm);
-  with chatBox do
+//TButtonSave\\
+ TButtonSave.Init(TFormMain);
+  with TButtonSave do
     begin
-      setParent(DsgnForm);
-      setCaption('autoResponder?');
-      setState(0);
-      setLeft(17);
-      setTop(225);
-      //setFont(tempFont);
+      SetParent(TFormMain);
+      SetCaption('Save');
+      SetBounds(54,180,50,25);
+      setFont(tempFont);
+      setOnClick(YourClickProcedure);
   end;
-  waitBox.init(DsgnForm);
-  with waitBox do
+//TButtonBreak\\
+ TButtonBreak.Init(TFormMain);
+  with TButtonBreak do
     begin
-      setParent(DsgnForm);
-      setCaption('Use waits between fishing?');
-      setState(0);
-      setLeft(17);
-      setTop(250);
-      //setFont(tempFont);
-  end;
- BarbBox.init(DsgnForm);
-  with BarbBox do
-    begin
-      setParent(DsgnForm);
-      setCaption('Barb Fishing?');
-      setState(0);
-      setLeft(17);
-      setTop(275);
-      //setFont(tempFont);
-  end;
-  CookBox.init(DsgnForm);
-  with CookBox do
-    begin
-      setParent(DsgnForm);
-      setCaption('Force Disable Cook?');
-      setState(0);
-      setLeft(168);
-      setTop(275);
-      //setFont(tempFont);
-  end;
- BankBox.init(DsgnForm);
-  with BankBox do
-    begin
-      setParent(DsgnForm);
-      setCaption('Force Disable Bank?');
-      setState(0);
-      setLeft(343);
-      setTop(275);
-      //setFont(tempFont);
-  end;
- MousekeysBox.init(DsgnForm);
-  with MousekeysBox do
-    begin
-      setParent(DsgnForm);
-      setCaption('Mouse keys?');
-      setState(0);
-      setLeft(350);
-      setTop(305);
-      //setFont(tempFont);
-  end;
-  PlayBox.init(DsgnForm);
-  with PlayBox do
-    begin
-      setParent(DsgnForm);
-      setText('0');
-      setLeft(250);
-      setTop(305);
-      setWidth(40);
-      setHeight(23);
-      setONKEYPRESS(OnlyPostiveNumbers);
-  end;
-  brakeBox.init(DsgnForm);
-  with brakeBox do
-    begin
-      setParent(DsgnForm);
-      setCaption('');
-      setState(0);
-      setLeft(310);
-      setTop(250);
-      setOnChange(brakeHandle);
-  end;
-  brakeButton.init(DsgnForm);
-  with brakeButton do
-    begin
-      setParent(DsgnForm);
-      setCaption('BreakHandler');
-      setLeft(325);
-      setTop(250);
-      setWidth(75);
-      setHeight(25);
+      SetParent(TFormMain);
+      SetCaption('Break handler');
+      SetBounds(160,152,85,25);
+      setFont(tempFont);
       setOnClick(YourClickProcedure);
       setEnabled(false);
   end;
-  extraButton.init(DsgnForm);
-  with extraButton do
+//TButtonExtra\\
+ TButtonExtra.Init(TFormMain);
+  with TButtonExtra do
     begin
-      setParent(DsgnForm);
-      setCaption('Extra');
-      setLeft(415);
-      setTop(250);
-      setWidth(65);
-      setHeight(25);
+      SetParent(TFormMain);
+      SetCaption('Extras');
+      SetBounds(304,152,60,25);
+      setFont(tempFont);
       setOnClick(YourClickProcedure);
   end;
- LoadButton.init(DsgnForm);
-  with LoadButton do
+//TCheckBoxBreak\\
+ TCheckBoxBreak.Init(TFormMain);
+  with TCheckBoxBreak do
     begin
-      setParent(DsgnForm);
-      setCaption('Load');
-      setLeft(8);
-      setTop(305);
-      setWidth(75);
-      setHeight(25);
-      setOnClick(YourClickProcedure);
-  end;
- SaveButton.init(DsgnForm);
-  with SaveButton do
-    begin
-      setParent(DsgnForm);
-      setCaption('Save');
-      setLeft(89);
-      setTop(305);
-      setWidth(75);
-      setHeight(25);
-      setOnClick(YourClickProcedure);
-  end;
-  PlayButton.init(DsgnForm);
-  with PlayButton do
-    begin
-      setParent(DsgnForm);
-      setCaption('Play');
-      setLeft(436);
-      setTop(305);
-      setWidth(75);
-      setHeight(25);
-      setOnClick(YourClickProcedure);
-  end;
- LocalBox.init(DsgnForm);
-  with LocalBox do
-    begin
-      setParent(DsgnForm);
-      setText(floattoStr(version)+'('+floattoStr(fVersion)+')');
-      setLeft(375);
-      setTop(85);
-      setWidth(65);
-      setHeight(23);
-      setONKEYPRESS(NoKeys);
-  end;
- Label1.init(DsgnForm);
-  with Label1 do
-    begin
-      setParent(DsgnForm);
-      setCaption('Local Version:');
-      setLeft(294);
-      setTop(85);
-      setWidth(42);
-      setHeight(16);
+      SetParent(TFormMain);
+      SetCaption('');
+      SetBounds(140,154,23,19);
+      setState(0);
+      setOnChange(brakeHandle);
       setFont(tempFont);
   end;
- Label2.init(DsgnForm);
-  with Label2 do
+//TCheckBoxTalk\\
+ TCheckBoxTalk.Init(TFormMain);
+  with TCheckBoxTalk do
     begin
-      setParent(DsgnForm);
-      setCaption('Network Version:');
-      setLeft(270);
-      setTop(120);
-      setWidth(42);
-      setHeight(16);
+      SetParent(TFormMain);
+      SetCaption('Use auto responder?');
+      SetBounds(140,52,101,19);
+      setState(0);
       setFont(tempFont);
   end;
- NetworkBox.init(DsgnForm);
-  with NetworkBox do
+//TCheckBoxWait\\
+ TCheckBoxWait.Init(TFormMain);
+  with TCheckBoxWait do
     begin
-      setParent(DsgnForm);
-      setText(between('Version = ', ';', script)+'('+between('fVersion = ', ';', fscript)+')');
-      setLeft(375);
-      setTop(120);
-      setWidth(65);
-      setHeight(23);
-      setONKEYPRESS(NoKeys);
-  end;
- UpdateButton.init(DsgnForm);
-  with UpdateButton do
-    begin
-      setParent(DsgnForm);
-      setCaption('Update');
-      setLeft(445);
-      setTop(100);
-      setWidth(65);
-      setHeight(25);
-      setOnClick(YourClickProcedure);
-  end;
-  Label3.init(DsgnForm);
-  TempFont.setColor(16776960);
-  with Label3 do
-    begin
-      setParent(DsgnForm);
-      setCaption('Player number:');
-      setLeft(165);
-      setTop(305);
-      setWidth(42);
-      setHeight(16);
+      SetParent(TFormMain);
+      SetCaption('Force waits after actions?');
+      SetBounds(140,72,103,19);
+      setState(0);
       setFont(tempFont);
   end;
-  LocationBox.init(DsgnForm);
-  with LocationBox do
+//TCheckBoxMouse\\
+ TCheckBoxMouse.Init(TFormMain);
+  with TCheckBoxMouse do
     begin
-      setParent(DsgnForm);
-      setLeft(180);
-      setTop(4);
-      setWidth(150);
-      setHeight(23);
-      setText('Location');
-      setONKEYPRESS(NoKeys);
-      setOnExit(OnChange);
+      SetParent(TFormMain);
+      SetCaption('Use mouse keys?');
+      SetBounds(140,92,115,19);
+      setState(0);
+      setFont(tempFont);
+  end;
+//TCheckBoxCook\\
+ TCheckBoxCook.Init(TFormMain);
+  with TCheckBoxCook do
+    begin
+      SetParent(TFormMain);
+      SetCaption('Force disable cooking?');
+      SetBounds(140,112,107,19);
+      setState(0);
+      setFont(tempFont);
+  end;
+//TCheckBoxBank\\
+ TCheckBoxBank.Init(TFormMain);
+  with TCheckBoxBank do
+    begin
+      SetParent(TFormMain);
+      SetCaption('Force disable banking?');
+      SetBounds(140,132,105,19);
+      setState(0);
+      setFont(tempFont);
+  end;
+//TComboBoxLoc\\
+ TComboBoxLoc.Init(TFormMain);
+  with TComboBoxLoc do
+    begin
+      SetParent(TFormMain);
+      SetBounds(2,2,219,23);
+      setCaption('Location:');
+      //add your items here
       AddItem('Draynor', nil);
       AddItem('Barb. Village', nil);
       AddItem('Fish Guild', nil);
@@ -684,470 +660,504 @@ begin
       AddItem('Piscatoris', nil);
       AddItem('Zul-Andra', nil);
       AddItem('Powerfish', nil);
+      //End items
+      setFont(tempFont);
+      setONKEYPRESS(NoKeys);
+      setOnExit(OnChange);
   end;
- FishBox.init(DsgnForm);
-  with FishBox do
+//TComboBoxType\\
+ TComboBoxType.Init(TFormMain);
+  with TComboBoxType do
     begin
-      setParent(DsgnForm);
-      setLeft(332);
-      setTop(4);
-      setWidth(180);
-      setHeight(23);
-      setText('Fish method');
+      SetParent(TFormMain);
+      SetBounds(225,2,147,23);
+      setCaption('Type of fish:');
+      setFont(tempFont);
       setONKEYPRESS(NoKeys);
   end;
-  DsgnForm2.init(nil);
-  with DsgnForm2 do
+
+  TFormBreak.init(nil);
+  with TFormBreak do
     begin
-      setCaption('Break Handler');
+      SetCaption('Break Handler');
       setBorderStyle(bsSingle);
+      SetBounds(0,0,255,120);
       SetPosition(poScreenCenter);
-      setWidth(255);
-      setHeight(120);
   end;
-  TempFont.setColor(0);
-  Label4.init(DsgnForm2);
-  with Label4 do
+  TLabelbIn.init(TFormBreak);
+  with TLabelbIn do
     begin
-      setParent(DsgnForm2);
+      setParent(TFormBreak);
       setCaption('Break after/every/within:');
-      setLeft(5);
-      setTop(5);
+      SetBounds(5,5,68,16);
       setFont(tempFont);
   end;
-  Label5.init(DsgnForm2);
-  with Label5 do
+  TLabelbrIn.init(TFormBreak);
+  with TLabelbrIn do
     begin
-      setParent(DsgnForm2);
+      setParent(TFormBreak);
       setCaption('Random:');
-      setLeft(5);
-      setTop(30);
+      SetBounds(5,30,68,16);
       setFont(tempFont);
   end;
-  Label6.init(DsgnForm2);
-  with Label6 do
+  TLabelbFor.init(TFormBreak);
+  with TLabelbFor do
     begin
-      setParent(DsgnForm2);
+      setParent(TFormBreak);
       setCaption('Break for:');
-      setLeft(5);
-      setTop(65);
+      SetBounds(5,65,68,16);
       setFont(tempFont);
   end;
-  Label7.init(DsgnForm2);
-  with Label7 do
+  TLabelbrFor.init(TFormBreak);
+  with TLabelbrFor do
     begin
-      setParent(DsgnForm2);
+      setParent(TFormBreak);
       setCaption('Random:');
-      setLeft(5);
-      setTop(90);
+      SetBounds(5,90,68,16);
       setFont(tempFont);
   end;
-  bIn.init(DsgnForm2);
-  with bIn do
+  TEditbIn.init(TFormBreak);
+  with TEditbIn do
     begin
-      setParent(DsgnForm2);
+      setParent(TFormBreak);
       setText('90');
-      setLeft(150);
-      setTop(2);
-      setWidth(100);
-      setHeight(23);
+      SetBounds(150,2,100,23);
       setONKEYPRESS(OnlyPostiveNumbers);
       setMaxLength(9);
+      setFont(tempFont);
   end;
-  brIn.init(DsgnForm2);
-  with brIn do
+  TEditbrIn.init(TFormBreak);
+  with TEditbrIn do
     begin
-      setParent(DsgnForm2);
+      setParent(TFormBreak);
       setText('30');
-      setLeft(150);
-      setTop(30);
-      setWidth(100);
-      setHeight(23);
+      SetBounds(150,30,100,23);
       setONKEYPRESS(OnlyPostiveNumbers);
       setMaxLength(9);
+      setFont(tempFont);
   end;
-  bFor.init(DsgnForm2);
-  with bFor do
+  TEditbFor.init(TFormBreak);
+  with TEditbFor do
     begin
-      setParent(DsgnForm2);
+      setParent(TFormBreak);
       setText('10');
-      setLeft(150);
-      setTop(67);
-      setWidth(100);
-      setHeight(23);
+      SetBounds(150,67,100,23);
       setONKEYPRESS(OnlyPostiveNumbers);
       setMaxLength(9);
+      setFont(tempFont);
   end;
-  brFor.init(DsgnForm2);
-  with brFor do
+  TEditbrFor.init(TFormBreak);
+  with TEditbrFor do
     begin
-      setParent(DsgnForm2);
+      setParent(TFormBreak);
       setText('5');
-      setLeft(150);
-      setTop(92);
-      setWidth(100);
-      setHeight(23);
+      SetBounds(150,92,100,23);
       setONKEYPRESS(OnlyPostiveNumbers);
       setMaxLength(9);
+      setFont(tempFont);
   end;
 
-  DsgnForm3.init(nil);
-  with DsgnForm3 do
+  TFormExtra.init(nil);
+  with TFormExtra do
     begin
       setCaption('Extras');
       setBorderStyle(bsSingle);
+      SetBounds(0,0,255,300);
       SetPosition(poScreenCenter);
-      setWidth(255);
-      setHeight(300);
   end;
-  Label8.init(DsgnForm3);
-  with Label8 do
+  TLabelSound.init(TFormExtra);
+  with TLabelSound do
     begin
-      setParent(DsgnForm3);
+      setParent(TFormExtra);
       setCaption('Sound:');
-      setLeft(5);
-      setTop(5);
+      SetBounds(5,5,68,16);
       setFont(tempFont);
   end;
-  soundBox.init(DsgnForm3);
-  with soundBox do
+  TEditSound.init(TFormExtra);
+  with TEditSound do
     begin
-      setParent(DsgnForm3);
-      setText('C:\Windows\Media\Windows Notify Messaging.wav');
-      setLeft(150);
-      setTop(5);
-      setWidth(100);
-      setHeight(23);
+      setParent(TFormExtra);
+      setText('C:\Windows\Media\Windows Notify.wav');
+      SetBounds(150,5,100,23);
+      setFont(tempFont);
   end;
-  Label9.init(DsgnForm3);
-  with Label9 do
+  TLabelChatTime.init(TFormExtra);
+  with TLabelChatTime do
     begin
-      setParent(DsgnForm3);
+      setParent(TFormExtra);
       setCaption('Chat time often:');
-      setLeft(5);
-      setTop(30);
+      SetBounds(5,30,68,16);
       setFont(tempFont);
   end;
-  chatTimeBox.init(DsgnForm3);
-  with chatTimeBox do
+  TEditChatTime.init(TFormExtra);
+  with TEditChatTime do
     begin
-      setParent(DsgnForm3);
+      setParent(TFormExtra);
       setText('200000');
-      setLeft(150);
-      setTop(30);
-      setWidth(100);
-      setHeight(23);
+      SetBounds(150,30,100,23);
       setONKEYPRESS(OnlyNumbers);
       setMaxLength(9);
+      setFont(tempFont);
   end;
-  Label10.init(DsgnForm3);
-  with Label10 do
+  TLabelScreenTime.init(TFormExtra);
+  with TLabelScreenTime do
     begin
-      setParent(DsgnForm3);
+      setParent(TFormExtra);
       setCaption('Screen time often:');
-      setLeft(5);
-      setTop(55);
+      SetBounds(5,55,68,16);
       setFont(tempFont);
   end;
-  screenTimeBox.init(DsgnForm3);
-  with screenTimeBox do
+  TEditScreenTime.init(TFormExtra);
+  with TEditScreenTime do
     begin
-      setParent(DsgnForm3);
+      setParent(TFormExtra);
       setText('1000');
-      setLeft(150);
-      setTop(55);
-      setWidth(100);
-      setHeight(23);
+      SetBounds(150,55,100,23);
       setONKEYPRESS(OnlyNumbers);
       setMaxLength(9);
+      setFont(tempFont);
   end;
-  Label11.init(DsgnForm3);
-  with Label11 do
+  TLabelWaitTime.init(TFormExtra);
+  with TLabelWaitTime do
     begin
-      setParent(DsgnForm3);
+      setParent(TFormExtra);
       setCaption('Wait time:');
-      setLeft(5);
-      setTop(80);
+      SetBounds(5,80,68,16);
       setFont(tempFont);
   end;
-  waitTimeBox.init(DsgnForm3);
-  with waitTimeBox do
+  TEditWaitTime.init(TFormExtra);
+  with TEditWaitTime do
     begin
-      setParent(DsgnForm3);
+      setParent(TFormExtra);
       setText('-1');
-      setLeft(150);
-      setTop(80);
-      setWidth(100);
-      setHeight(23);
+      SetBounds(150,80,100,23);
       setONKEYPRESS(OnlyNumbers);
       setMaxLength(9);
-  end;
-  Label12.init(DsgnForm3);
-  with Label12 do
-    begin
-      setParent(DsgnForm3);
-      setCaption('Wait often:');
-      setLeft(5);
-      setTop(105);
       setFont(tempFont);
   end;
-  waitOftenBox.init(DsgnForm3);
-  with waitOftenBox do
+  TLabelWaitOften.init(TFormExtra);
+  with TLabelWaitOften do
     begin
-      setParent(DsgnForm3);
+      setParent(TFormExtra);
+      setCaption('Wait often:');
+      SetBounds(5,105,68,16);
+      setFont(tempFont);
+  end;
+  TEditWaitOften.init(TFormExtra);
+  with TEditWaitOften do
+    begin
+      setParent(TFormExtra);
       setText('250');
-      setLeft(150);
-      setTop(105);
-      setWidth(100);
-      setHeight(23);
+      SetBounds(150,105,100,23);
       setONKEYPRESS(OnlyPostiveNumbers);
       setMaxLength(9);
+      setFont(tempFont);
   end;
-  Label13.init(DsgnForm3);
-  with Label13 do
+  TLabelDismissTime.init(TFormExtra);
+  with TLabelDismissTime do
     begin
-      setParent(DsgnForm3);
+      setParent(TFormExtra);
       setCaption('Dismiss time:');
-      setLeft(5);
-      setTop(130);
+      SetBounds(5,130,68,16);
       setFont(tempFont);
   end;
-  dismissTimeBox.init(DsgnForm3);
-  with dismissTimeBox do
+  TEditDismissTime.init(TFormExtra);
+  with TEditDismissTime do
     begin
-      setParent(DsgnForm3);
+      setParent(TFormExtra);
       setText('10000');
-      setLeft(150);
-      setTop(130);
-      setWidth(100);
-      setHeight(23);
+      SetBounds(150,130,100,23);
       setONKEYPRESS(OnlyNumbers);
       setMaxLength(9);
+      setFont(tempFont);
   end;
-  Label14.init(DsgnForm3);
-  with Label14 do
+  TLabelUpdateTime.init(TFormExtra);
+  with TLabelUpdateTime do
     begin
-      setParent(DsgnForm3);
+      setParent(TFormExtra);
       setCaption('Update time:');
-      setLeft(5);
-      setTop(155);
+      SetBounds(5,155,68,16);
       setFont(tempFont);
   end;
-  updateTimeBox.init(DsgnForm3);
-  with updateTimeBox do
+  TEditUpdateTime.init(TFormExtra);
+  with TEditUpdateTime do
     begin
-      setParent(DsgnForm3);
+      setParent(TFormExtra);
       setText('45000');
-      setLeft(150);
-      setTop(155);
-      setWidth(100);
-      setHeight(23);
+      SetBounds(150,155,100,23);
       setONKEYPRESS(OnlyNumbers);
       setMaxLength(9);
+      setFont(tempFont);
   end;
-  Label15.init(DsgnForm3);
-  with Label15 do
+  TLabelLevelUpTime.init(TFormExtra);
+  with TLabelLevelUpTime do
     begin
-      setParent(DsgnForm3);
+      setParent(TFormExtra);
       setCaption('Level up time:');
-      setLeft(5);
-      setTop(180);
+      SetBounds(5,180,68,16);
       setFont(tempFont);
   end;
-  levelTimeBox.init(DsgnForm3);
-  with levelTimeBox do
+  TEditLevelUpTime.init(TFormExtra);
+  with TEditLevelUpTime do
     begin
-      setParent(DsgnForm3);
+      setParent(TFormExtra);
       setText('2500');
-      setLeft(150);
-      setTop(180);
-      setWidth(100);
-      setHeight(23);
+      SetBounds(150,180,100,23);
       setONKEYPRESS(OnlyNumbers);
       setMaxLength(9);
+      setFont(tempFont);
   end;
-  Label16.init(DsgnForm3);
-  with Label16 do
+  TLabelCloseTime.init(TFormExtra);
+  with TLabelCloseTime do
     begin
-      setParent(DsgnForm3);
+      setParent(TFormExtra);
       setCaption('Close stuff time:');
-      setLeft(5);
-      setTop(205);
+      SetBounds(5,205,68,16);
       setFont(tempFont);
   end;
-  closeTimeBox.init(DsgnForm3);
-  with closeTimeBox do
+  TEditCloseTime.init(TFormExtra);
+  with TEditCloseTime do
     begin
-      setParent(DsgnForm3);
+      setParent(TFormExtra);
       setText('10000');
-      setLeft(150);
-      setTop(205);
-      setWidth(100);
-      setHeight(23);
+      SetBounds(150,205,100,23);
       setONKEYPRESS(OnlyNumbers);
       setMaxLength(9);
+      setFont(tempFont);
   end;
-  Label17.init(DsgnForm3);
-  with Label17 do
+  TLabelLookForChatTime.init(TFormExtra);
+  with TLabelLookForChatTime do
     begin
-      setParent(DsgnForm3);
+      setParent(TFormExtra);
       setCaption('Look for chat time:');
-      setLeft(5);
-      setTop(230);
+      SetBounds(5,230,68,16);
       setFont(tempFont);
   end;
-  lookChatTimeBox.init(DsgnForm3);
-  with lookChatTimeBox do
+  TEditLookForChatTime.init(TFormExtra);
+  with TEditLookForChatTime do
     begin
-      setParent(DsgnForm3);
+      setParent(TFormExtra);
       setText('2000');
-      setLeft(150);
-      setTop(230);
-      setWidth(100);
-      setHeight(23);
+      SetBounds(150,230,100,23);
       setONKEYPRESS(OnlyNumbers);
       setMaxLength(9);
-  end;
-  Label18.init(DsgnForm3);
-  with Label18 do
-    begin
-      setParent(DsgnForm3);
-      setCaption('Fire check distance:');
-      setLeft(5);
-      setTop(255);
       setFont(tempFont);
   end;
-  fireCheckBox.init(DsgnForm3);
-  with fireCheckBox do
+  TLabelItemDis.init(TFormExtra);
+  with TLabelItemDis do
     begin
-      setParent(DsgnForm3);
+      setParent(TFormExtra);
+      setCaption('Fire check distance:');
+      SetBounds(5,255,68,16);
+      setFont(tempFont);
+  end;
+  TEditItemDis.init(TFormExtra);
+  with TEditItemDis do
+    begin
+      setParent(TFormExtra);
       setText('20');
-      setLeft(150);
-      setTop(255);
-      setWidth(100);
-      setHeight(23);
+      SetBounds(150,255,100,23);
       setONKEYPRESS(OnlyPostiveNumbers);
       setMaxLength(3);
+      setFont(tempFont);
   end;
-  dropBox.init(DsgnForm3);
-  with dropBox do
+  TCheckBoxDropOnly.init(TFormExtra);
+  with TCheckBoxDropOnly do
     begin
-      setParent(DsgnForm3);
+      setFont(tempFont);
+      setParent(TFormExtra);
       setCaption('Drop only?');
       setState(0);
-      setLeft(5);
-      setTop(280);
-      //setFont(tempFont);
+      SetBounds(5,280,68,16);
   end;
-  TempFont.Free;
+  tempFont.Free;
 end;
 
-procedure ShowFormModal();
+procedure ShowFormModal;
 {$IFNDEF CODEINSIGHT}
 native;
 {$ENDIF}
-var i, h : integer;
-    strings : TStringArray;
+var
+  i, h : integer;
+  strings : TStringArray;
 begin
   InitForm;
 
   if loading or saving then begin
     saving := false;
     loading := false;
-    usernamebox.setText(sname);
-    passwordbox.setText(spass);
-    pinbox.setText(spin);
-    worldbox.setText(sworld);
+    TEditUser.setText(sname);
+    TEditPass.setText(spass);
+    TEditPin.setText(spin);
+    TEditWorld.setText(sworld);
+
     if (Length(santi) > 0) then
-      antibanbox.setText(santi)
+      TEditAnti.setText(santi)
     else
-      antibanbox.setText('0');
+      TEditAnti.setText('0');
+
     if (Length(srun) > 0) then
-      runbox.setText(srun)
+      TEditRun.setText(srun)
     else
-      runbox.setText('0');
+      TEditRun.setText('0');
+
     if (Length(samount) > 0) then
-      amountbox.setText(samount)
+      TEditAmount.setText(samount)
     else
-      amountbox.setText('0');
+      TEditAmount.setText('0');
+
     if (Length(sloc) > 0) then
-      locationbox.setItemIndex(StrToInt(sloc))
+      TComboBoxLoc.setItemIndex(StrToInt(sloc))
     else
-      locationbox.setItemIndex(0);
+      TComboBoxLoc.setItemIndex(0);
     _OnChange2;
-    if (Length(sfish) > 0) then
-      fishbox.setItemIndex(StrToInt(sfish))
+
+    if (Length(stype) > 0) then
+      TComboBoxType.setItemIndex(StrToInt(stype))
     else
-      fishbox.setItemIndex(0);
-    if(sbarb = 'cbUnchecked')then begin
-      barbbox.setState(0);
-    end else begin
-      barbbox.setState(1);
-    end;
-    if(sbank = 'cbUnchecked')then begin
-      bankbox.setState(0);
-    end else begin
-      bankbox.setState(1);
-    end;
-    if(scook = 'cbUnchecked')then begin
-      cookbox.setState(0);
-    end else begin
-      cookbox.setState(1);
-    end;
-    if(schat = 'cbUnchecked')then begin
-      chatbox.setState(0);
-    end else begin
-      chatbox.setState(1);
-    end;
-    if(swait = 'cbUnchecked')then begin
-      waitbox.setState(0);
-    end else begin
-      waitbox.setState(1);
-    end;
-    if(smouse = 'cbUnchecked')then begin
-      mousekeysbox.setState(0);
-    end else begin
-      mousekeysbox.setState(1);
-    end;
-    if(sbreak = 'cbUnchecked')then begin
-      brakebox.setState(0);
-    end else begin
-      brakebox.setState(1);
-    end;
+      TComboBoxType.setItemIndex(0);
+
+    if(sbank = 'cbUnchecked')then
+      TCheckBoxBank.setState(0)
+    else
+      TCheckBoxBank.setState(1);
+
+    if(scook = 'cbUnchecked')then
+      TCheckBoxCook.setState(0)
+    else
+      TCheckBoxCook.setState(1);
+
+    if(schat = 'cbUnchecked')then
+      TCheckBoxTalk.setState(0)
+    else
+      TCheckBoxTalk.setState(1);
+
+    if(swait = 'cbUnchecked')then
+      TCheckBoxWait.setState(0)
+    else
+      TCheckBoxWait.setState(1);
+
+    if(smouse = 'cbUnchecked')then
+      TCheckBoxMouse.setState(0)
+    else
+      TCheckBoxMouse.setState(1);
+
+    if(sbreak = 'cbUnchecked')then
+      TCheckBoxBreak.setState(0)
+    else
+      TCheckBoxBreak.setState(1);
     breakCheck;
-    bin.setText(sbin);
-    brin.setText(sbrin);
-    bfor.setText(sbfor);
-    brfor.setText(sbrfor);
 
-    if(sdrop = 'cbUnchecked')then begin
-      dropBox.setState(0);
-    end else begin
-      dropBOx.setState(1);
-    end;
+    TEditbin.setText(sbin);
+    TEditbrin.setText(sbrin);
+    TEditbfor.setText(sbfor);
+    TEditbrfor.setText(sbrfor);
 
-    soundBox.setText(ssound);
-    closeTimeBox.setText(scloset);
-    waitOftenBox.setText(swaito);
-    waitTimeBox.setText(swaitt);
-    levelTimeBox.setText(slevelt);
-    screenTimeBox.setText(sscreent);
-    updateTimeBox.setText(supdatet);
-    chatTimeBox.setText(schatt);
-    lookChatTimeBox.setText(slchatt);
-    dismissTimeBox.setText(sdismisst);
+    if(sdrop = 'cbUnchecked')then
+      TCheckBoxDropOnly.setState(0)
+    else
+      TCheckBoxDropOnly.setState(1);
 
-    fireCheckBox.setText(sfired);
+    TEditSound.setText(ssound);
+    TEditCloseTime.setText(scloset);
+    TEditWaitOften.setText(swaito);
+    TEditWaitTime.setText(swaitt);
+    TEditLevelUpTime.setText(slevelt);
+    TEditScreenTime.setText(sscreent);
+    TEditUpdateTime.setText(supdatet);
+    TEditChatTime.setText(schatt);
+    TEditLookForChatTime.setText(slchatt);
+    TEditDismissTime.setText(sdismisst);
 
-    playbox.setText(tostr(playNum));
+    TEditItemDis.setText(sitemd);
+
+    TEditPlayNum.setText(tostr(playNum));
   end;
 
-  DsgnForm.showModal();
+  TFormMain.ShowModal;
 
-  ReflectPlayer.Username := UsernameBox.getText;
-  ReflectPlayer.Password := PasswordBox.getText;
-  ReflectPlayer.Pin := PinBox.getText;
+  i := -1;
+  h := -1;
+  case TComboBoxLoc.getItemIndex of
+    (i:=i+1):begin//draynor
+      case TComboBoxType.getItemIndex of
+        (h:=h+1):Job:=0;//net
+        (h:=h+1):Job:=1;//bait
+      end;
+    end;
+    (i:=i+1):begin//barb
+      case TComboBoxType.getItemIndex of
+        (h:=h+1):Job:=2;//lure
+        (h:=h+1):Job:=3;//bait
+      end;
+    end;
+    (i:=i+1):begin//fishg
+      case TComboBoxType.getItemIndex of
+        (h:=h+1):Job:=4;//bignet
+        (h:=h+1):Job:=5;//cage
+        (h:=h+1):Job:=6;//harp
+        (h:=h+1):Job:=7;//harpsh
+      end;
+    end;
+    (i:=i+1):begin//cath
+      case TComboBoxType.getItemIndex of
+        (h:=h+1):Job:=8;//small
+        (h:=h+1):Job:=9;//bait
+        (h:=h+1):Job:=10;//bignet
+        (h:=h+1):Job:=11;//cage
+        (h:=h+1):Job:=12;//harp
+        (h:=h+1):Job:=13;//harpsh
+      end;
+    end;
+    (i:=i+1):begin//karm
+      case TComboBoxType.getItemIndex of
+        (h:=h+1):Job:=14;//cageb
+        (h:=h+1):Job:=15;//harpb
+        (h:=h+1):Job:=16;//small
+        (h:=h+1):Job:=17;//bait
+        (h:=h+1):Job:=18;//cage
+        (h:=h+1):Job:=19;//harp
+        (h:=h+1):Job:=28;//prog
+      end;
+    end;
+    (i:=i+1):begin//rasolo
+      case TComboBoxType.getItemIndex of
+        (h:=h+1):Job:=20;//lure
+        (h:=h+1):Job:=21;//bait
+      end;
+    end;
+    (i:=i+1):begin//shilo
+      case TComboBoxType.getItemIndex of
+        (h:=h+1):Job:=22;//lure
+        (h:=h+1):Job:=23;//bait
+      end;
+    end;
+    (i:=i+1):begin//otto
+      case TComboBoxType.getItemIndex of
+        (h:=h+1):Job:=24;//heavy
+      end;
+    end;
+    (i:=i+1):begin//pic
+      case TComboBoxType.getItemIndex of
+        (h:=h+1):Job:=25;//small
+        (h:=h+1):Job:=26;//harpoon
+      end;
+    end;
+    (i:=i+1):begin//zul
+      case TComboBoxType.getItemIndex of
+        (h:=h+1):Job:=29;//eel
+      end;
+    end;
+    (i:=i+1):begin//power
+      case TComboBoxType.getItemIndex of
+        (h:=h+1):Job:=27;//small
+      end;
+    end;
+  end;
 
+  ReflectPlayer.Username := TEditUser.getText;
+  ReflectPlayer.Password := TEditPass.getText;
+  ReflectPlayer.Pin := TEditPin.getText;
   ReflectPlayer.Active := true;
 
   SmartShowConsole := false;
@@ -1162,7 +1172,7 @@ begin
     7:SmartUserAgent := 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:38.0) Gecko/20100101 Firefox/38.0';
   end;
 
-  strings := GetWordsEx(WorldBox.getText, '1234567890');
+  strings := GetWordsEx(TEditWorld.getText, '1234567890');
   if (length(strings) > 0) then
     SmartWorld := StrToInt(Strings[0]);
 
@@ -1170,171 +1180,105 @@ begin
   for i := 0 to high(strings) do
     WorldList[i] := StrToInt(strings[i]);
 
-  MouseKeys := (toStr(MouseKeysBox.getState) = 'cbChecked');
-  BarbFish := (toStr(BarbBox.getState) = 'cbChecked');
-  DisableBank := (toStr(BankBox.getState) = 'cbChecked');
-  DisableCook := (toStr(CookBox.getState) = 'cbChecked');
-  useBreaks := (toStr(brakeBox.getState) = 'cbChecked');
-  useAutoResponder := (toStr(ChatBox.getState) = 'cbChecked');
-  useFakeWaitTime := (toStr(WaitBox.getState) = 'cbChecked');
-  dropOnly := (toStr(dropBox.getState) = 'cbChecked');
+  MouseKeys := (toStr(TCheckBoxMouse.getState) = 'cbChecked');
+  DisableBank := (toStr(TCheckBoxBank.getState) = 'cbChecked');
+  DisableCook := (toStr(TCheckBoxCook.getState) = 'cbChecked');
+  useBreaks := (toStr(TCheckBoxBreak.getState) = 'cbChecked');
+  useAutoResponder := (toStr(TCheckBoxTalk.getState) = 'cbChecked');
+  useFakeWaitTime := (toStr(TCheckBoxWait.getState) = 'cbChecked');
+  dropOnly := (toStr(TCheckBoxDropOnly.getState) = 'cbChecked');
 
-  if (Length(RunBox.getText) > 0) then
-    RunAmount := StrToInt(RunBox.getText)
+  if (Length(TEditRun.getText) > 0) then
+    RunAmount := StrToInt(TEditRun.getText)
   else
     RunAmount := 0;
-  if (Length(AmountBox.getText) > 0) then
-    AmountAmount := StrToInt(AmountBox.getText)
+
+  if (Length(TEditAmount.getText) > 0) then
+    AmountAmount := StrToInt(TEditAmount.getText)
   else
     AmountAmount := 0;
-  if (Length(AntiBanBox.getText) > 0) then
-    AntiAmount := StrToInt(AntiBanBox.getText)
+
+  if (Length(TEditAnti.getText) > 0) then
+    AntiAmount := StrToInt(TEditAnti.getText)
   else
     AntiAmount := 0;
-  if (Length(playBox.getText) > 0) then
-    playNum := StrToInt(playBox.getText)
+
+  if (Length(TEditPlayNum.getText) > 0) then
+    playNum := StrToInt(TEditPlayNum.getText)
   else
     playNum := 0;
 
-  if (Length(closeTimeBox.getText) > 0) then
-    closeAllOften := StrToInt(closeTimeBox.GetText)
+  if (Length(TEditCloseTime.getText) > 0) then
+    closeAllOften := StrToInt(TEditCloseTime.GetText)
   else
     closeAllOften := 0;
-  if (Length(dismissTimeBox.getText) > 0) then
-    dismissAllOften := StrToInt(dismissTimeBox.GetText)
+
+  if (Length(TEditDismissTime.getText) > 0) then
+    dismissAllOften := StrToInt(TEditDismissTime.GetText)
   else
     dismissAllOften := 0;
-  if (Length(lookChatTimeBox.getText) > 0) then
-    lookForChatOften := StrToInt(lookChatTimeBox.GetText)
+
+  if (Length(TEditLookForChatTime.getText) > 0) then
+    lookForChatOften := StrToInt(TEditLookForChatTime.GetText)
   else
     lookForChatOften := 0;
-  if (Length(levelTimeBox.getText) > 0) then
-    checkForLevelOften := StrToInt(levelTimeBox.GetText)
+
+  if (Length(TEditLevelupTime.getText) > 0) then
+    checkForLevelOften := StrToInt(TEditLevelupTime.GetText)
   else
     checkForLevelOften := 0;
-  if (Length(chatTimeBox.getText) > 0) then
-    chatTimeOften := StrToInt(chatTimeBox.GetText)
+
+  if (Length(TEditChatTime.getText) > 0) then
+    chatTimeOften := StrToInt(TEditChatTime.GetText)
   else
     chatTimeOften := 0;
-  if (Length(updateTimeBox.getText) > 0) then
-    updateAllOften := StrToInt(updateTimeBox.GetText)
+
+  if (Length(TEditUpdateTime.getText) > 0) then
+    updateAllOften := StrToInt(TEditUpdateTime.GetText)
   else
     updateAllOften := 0;
-  if (Length(waitOftenBox.getText) > 0) then
-    cpuLoadOften := StrToInt(waitOftenBox.GetText)
+
+  if (Length(TEditWaitOften.getText) > 0) then
+    cpuLoadOften := StrToInt(TEditWaitOften.GetText)
   else
     cpuLoadOften := 0;
-  if (Length(waitTimeBox.getText) > 0) then
-    cpuLoadWait := StrToInt(waitTimeBox.GetText)
+
+  if (Length(TEditWaitTime.getText) > 0) then
+    cpuLoadWait := StrToInt(TEditWaitTime.GetText)
   else
     cpuLoadWait := 0;
-  if (Length(screenTimeBox.getText) > 0) then
-    updateScreenOften := StrToInt(screenTimeBox.GetText)
+
+  if (Length(TEditScreenTime.getText) > 0) then
+    updateScreenOften := StrToInt(TEditScreenTime.GetText)
   else
     updateScreenOften := 0;
 
-  if (Length(bin.getText) > 0) then
-    breakIn := StrToInt(bin.getText)
+  if (Length(TEditbin.getText) > 0) then
+    breakIn := StrToInt(TEditbin.getText)
   else
     breakIn := 0;
-  if (Length(brin.getText) > 0) then
-    breakInRandom := StrToInt(brin.getText)
+
+  if (Length(TEditbrin.getText) > 0) then
+    breakInRandom := StrToInt(TEditbrin.getText)
   else
     breakInRandom := 0;
-  if (Length(bfor.getText) > 0) then
-    breakFor := StrToInt(bfor.getText)
+
+  if (Length(TEditbfor.getText) > 0) then
+    breakFor := StrToInt(TEditbfor.getText)
   else
     breakFor := 0;
-  if (Length(brfor.getText) > 0) then
-    breakForRandom := StrToInt(brfor.getText)
+
+  if (Length(TEditbrfor.getText) > 0) then
+    breakForRandom := StrToInt(TEditbrfor.getText)
   else
     breakForRandom := 0;
 
-  i := -1;
-  h := -1;
-  case LocationBox.getItemIndex of
-    (i:=i+1):begin//draynor
-      case FishBox.getItemIndex of
-        (h:=h+1):Job:=0;//net
-        (h:=h+1):Job:=1;//bait
-      end;
-    end;
-    (i:=i+1):begin//barb
-      case FishBox.getItemIndex of
-        (h:=h+1):Job:=2;//lure
-        (h:=h+1):Job:=3;//bait
-      end;
-    end;
-    (i:=i+1):begin//fishg
-      case FishBox.getItemIndex of
-        (h:=h+1):Job:=4;//bignet
-        (h:=h+1):Job:=5;//cage
-        (h:=h+1):Job:=6;//harp
-        (h:=h+1):Job:=7;//harpsh
-      end;
-    end;
-    (i:=i+1):begin//cath
-      case FishBox.getItemIndex of
-        (h:=h+1):Job:=8;//small
-        (h:=h+1):Job:=9;//bait
-        (h:=h+1):Job:=10;//bignet
-        (h:=h+1):Job:=11;//cage
-        (h:=h+1):Job:=12;//harp
-        (h:=h+1):Job:=13;//harpsh
-      end;
-    end;
-    (i:=i+1):begin//karm
-      case FishBox.getItemIndex of
-        (h:=h+1):Job:=14;//cageb
-        (h:=h+1):Job:=15;//harpb
-        (h:=h+1):Job:=16;//small
-        (h:=h+1):Job:=17;//bait
-        (h:=h+1):Job:=18;//cage
-        (h:=h+1):Job:=19;//harp
-        (h:=h+1):Job:=28;//prog
-      end;
-    end;
-    (i:=i+1):begin//rasolo
-      case FishBox.getItemIndex of
-        (h:=h+1):Job:=20;//lure
-        (h:=h+1):Job:=21;//bait
-      end;
-    end;
-    (i:=i+1):begin//shilo
-      case FishBox.getItemIndex of
-        (h:=h+1):Job:=22;//lure
-        (h:=h+1):Job:=23;//bait
-      end;
-    end;
-    (i:=i+1):begin//otto
-      case FishBox.getItemIndex of
-        (h:=h+1):Job:=24;//heavy
-      end;
-    end;
-    (i:=i+1):begin//pic
-      case FishBox.getItemIndex of
-        (h:=h+1):Job:=25;//small
-        (h:=h+1):Job:=26;//harpoon
-      end;
-    end;
-    (i:=i+1):begin//zul
-      case FishBox.getItemIndex of
-        (h:=h+1):Job:=29;//eel
-      end;
-    end;
-    (i:=i+1):begin//power
-      case FishBox.getItemIndex of
-        (h:=h+1):Job:=27;//small
-      end;
-    end;
-  end;
-
-  if (Length(fireCheckBox.getText) > 0) then
-    FireCheckDistance := StrToInt(fireCheckBox.GetText)
+  if (Length(TEditItemDis.getText) > 0) then
+    ItemCheckDistance := StrToInt(TEditItemDis.GetText)
   else
-    FireCheckDistance := 0;
+    ItemCheckDistance := 0;
 
-  SoundString := SoundBox.getText;
+  SoundString := TEditSound.getText;
 
   breakIn := breakIn*60000;
   breakInRandom := breakInRandom*60000;
@@ -1344,127 +1288,104 @@ begin
   breakInTimer.restart;
   breakInFinal := breakIn + randomRange(-breakInRandom, breakInRandom);
 
-  DsgnForm.Free;
-  DsgnForm2.Free;
-  DsgnForm3.Free;
+  TFormBreak.Free;
+  TFormExtra.Free;
+  TFormMain.Free;
 end;
 
-procedure safeShowModal();
-var PictureString : string;
-    bmp1:integer;
+procedure ShowForm();
+var
+  tempBMP : integer;
+  IniString, picString : string;
 begin
   daLogger.Init('Script', TReflectLoggerLevel.Status);
 
-  try
-    PictureString := GetPage(PicturePage);
-  except
-    begin
-      daLogger.Error('Failed to get picture string from: '+PicturePage, []);
-    end;
-  end;
-  bmp1 := BitmapFromString(513, 336, PictureString);
-  bmp0.Init;
-  bmp0 := GetMufasaBitmap(bmp1).ToTBitmap;
-  freeBitmap(bmp1);
+  picString := GetPage(PicturePage);
 
-  try
-    script := Reflect.Misc.GetPage(scriptPage);
-  except
-    begin
-      daLogger.Error('Failed to get script from: '+scriptPage,[]);
-    end;
-  end;
-  try
-    fScript := Reflect.Misc.GetPage(fscriptPage);
-  except
-    begin
-      daLogger.Error('Failed to get fscript from: '+fscriptPage,[]);
-    end;
-  end;
+  tempBMP := BitmapFromString(374, 208, picString);
+  TMainBMP.Init;
+  TMainBMP := GetMufasaBitmap(tempBMP).ToTBitmap;
+  freeBitmap(tempBMP);
 
-  forceUpdate := false;
   started := false;
   saving := false;
   loading := false;
   job := -1;
   playNum := 0;
+  IniString := scriptPath+'ineedbot''s AIO Fisher user details.ini';
 
-  PictureString := scriptPath+'ineedbot''s AIO Fisher user details.ini';
-
-  sync(showFormModal);
+  sync(ShowFormModal);
   while saving or loading do begin
     if saving then begin
-      writeini('chat', intToStr(playNum), schat, PictureString);
-      writeini('wait', intToStr(playNum), swait, PictureString);
-      writeini('name', intToStr(playNum), sname, PictureString);
-      writeini('pass', intToStr(playNum), spass, PictureString);
-      writeini('pin', intToStr(playNum), spin, PictureString);
-      writeini('world', intToStr(playNum), sworld, PictureString);
-      writeini('amount', intToStr(playNum), samount, PictureString);
-      writeini('run', intToStr(playNum), srun, PictureString);
-      writeini('anti', intToStr(playNum), santi, PictureString);
-      writeini('fish', intToStr(playNum), sfish, PictureString);
-      writeini('loc', intToStr(playNum), sloc, PictureString);
-      writeini('mouse', intToStr(playNum), smouse, PictureString);
-      writeini('barb', intToStr(playNum), sbarb, PictureString);
-      writeini('bank', intToStr(playNum), sbank, PictureString);
-      writeini('cook', intToStr(playNum), scook, PictureString);
-      writeini('bfor', intToStr(playNum), sbfor, PictureString);
-      writeini('brfor', intToStr(playNum), sbrfor, PictureString);
-      writeini('bin', intToStr(playNum), sbin, PictureString);
-      writeini('brin', intToStr(playNum), sbrin, PictureString);
-      writeini('brake', intToStr(playNum), sbreak, PictureString);
-      writeini('sound', intToStr(playNum), ssound, PictureString);
-      writeini('dismisst', intToStr(playNum), sdismisst, PictureString);
-      writeini('lchatt', intToStr(playNum), slchatt, PictureString);
-      writeini('chatt', intToStr(playNum), schatt, PictureString);
-      writeini('updatet', intToStr(playNum), supdatet, PictureString);
-      writeini('screent', intToStr(playNum), sscreent, PictureString);
-      writeini('levelt', intToStr(playNum), slevelt, PictureString);
-      writeini('waitt', intToStr(playNum), swaitt, PictureString);
-      writeini('waito', intToStr(playNum), swaito, PictureString);
-      writeini('closet', intToStr(playNum), scloset, PictureString);
-      writeini('fired', intToStr(playNum), sfired, PictureString);
-      writeini('drop', intToStr(playNum), sdrop, PictureString);
+      writeini('chat', intToStr(playNum), schat, IniString);
+      writeini('wait', intToStr(playNum), swait, IniString);
+      writeini('name', intToStr(playNum), sname, IniString);
+      writeini('pass', intToStr(playNum), spass, IniString);
+      writeini('pin', intToStr(playNum), spin, IniString);
+      writeini('world', intToStr(playNum), sworld, IniString);
+      writeini('amount', intToStr(playNum), samount, IniString);
+      writeini('run', intToStr(playNum), srun, IniString);
+      writeini('anti', intToStr(playNum), santi, IniString);
+      writeini('type', intToStr(playNum), stype, IniString);
+      writeini('loc', intToStr(playNum), sloc, IniString);
+      writeini('mouse', intToStr(playNum), smouse, IniString);
+      writeini('bank', intToStr(playNum), sbank, IniString);
+      writeini('cook', intToStr(playNum), scook, IniString);
+      writeini('bfor', intToStr(playNum), sbfor, IniString);
+      writeini('brfor', intToStr(playNum), sbrfor, IniString);
+      writeini('bin', intToStr(playNum), sbin, IniString);
+      writeini('brin', intToStr(playNum), sbrin, IniString);
+      writeini('brake', intToStr(playNum), sbreak, IniString);
+      writeini('sound', intToStr(playNum), ssound, IniString);
+      writeini('dismisst', intToStr(playNum), sdismisst, IniString);
+      writeini('lchatt', intToStr(playNum), slchatt, IniString);
+      writeini('chatt', intToStr(playNum), schatt, IniString);
+      writeini('updatet', intToStr(playNum), supdatet, IniString);
+      writeini('screent', intToStr(playNum), sscreent, IniString);
+      writeini('levelt', intToStr(playNum), slevelt, IniString);
+      writeini('waitt', intToStr(playNum), swaitt, IniString);
+      writeini('waito', intToStr(playNum), swaito, IniString);
+      writeini('closet', intToStr(playNum), scloset, IniString);
+      writeini('itemd', intToStr(playNum), sitemd, IniString);
+      writeini('drop', intToStr(playNum), sdrop, IniString);
     end;
-    if (loading or saving) and FileExists(PictureString) then begin
-      schat := ReadINI('chat', intToStr(playNum), PictureString);
-      swait := ReadINI('wait', intToStr(playNum), PictureString);
-      sname := ReadINI('name', intToStr(playNum), PictureString);
-      spass := ReadINI('pass', intToStr(playNum), PictureString);
-      spin := ReadINI('pin', intToStr(playNum), PictureString);
-      sworld := ReadINI('world', intToStr(playNum), PictureString);
-      samount := ReadINI('amount', intToStr(playNum), PictureString);
-      srun := ReadINI('run', intToStr(playNum), PictureString);
-      santi := ReadINI('anti', intToStr(playNum), PictureString);
-      sfish := ReadINI('fish', intToStr(playNum), PictureString);
-      sloc := ReadINI('loc', intToStr(playNum), PictureString);
-      smouse := ReadINI('mouse', intToStr(playNum), PictureString);
-      sbarb := ReadINI('barb', intToStr(playNum), PictureString);
-      sbank := ReadINI('bank', intToStr(playNum), PictureString);
-      scook := ReadINI('cook', intToStr(playNum), PictureString);
-      sbfor := ReadINI('bfor', intToStr(playNum), PictureString);
-      sbrfor := ReadINI('brfor', intToStr(playNum), PictureString);
-      sbin := ReadINI('bin', intToStr(playNum), PictureString);
-      sbrin := ReadINI('brin', intToStr(playNum), PictureString);
-      sbreak := ReadINI('brake', intToStr(playNum), PictureString);
-      ssound := ReadINI('sound', intToStr(playNum), PictureString);
-      sdismisst := ReadINI('dismisst', intToStr(playNum), PictureString);
-      slchatt := ReadINI('lchatt', intToStr(playNum), PictureString);
-      schatt := ReadINI('chatt', intToStr(playNum), PictureString);
-      supdatet := ReadINI('updatet', intToStr(playNum), PictureString);
-      sscreent := ReadINI('screent', intToStr(playNum), PictureString);
-      slevelt := ReadINI('levelt', intToStr(playNum), PictureString);
-      swaitt := ReadINI('waitt', intToStr(playNum), PictureString);
-      swaito := ReadINI('waito', intToStr(playNum), PictureString);
-      scloset := ReadINI('closet', intToStr(playNum), PictureString);
-      sfired := ReadINI('fired', intToStr(playNum), PictureString);
-      sdrop := ReadINI('drop', intToStr(playNum), PictureString);
+    if (loading or saving) and FileExists(IniString) then begin
+      schat := ReadINI('chat', intToStr(playNum), IniString);
+      swait := ReadINI('wait', intToStr(playNum), IniString);
+      sname := ReadINI('name', intToStr(playNum), IniString);
+      spass := ReadINI('pass', intToStr(playNum), IniString);
+      spin := ReadINI('pin', intToStr(playNum), IniString);
+      sworld := ReadINI('world', intToStr(playNum), IniString);
+      samount := ReadINI('amount', intToStr(playNum), IniString);
+      srun := ReadINI('run', intToStr(playNum), IniString);
+      santi := ReadINI('anti', intToStr(playNum), IniString);
+      stype := ReadINI('type', intToStr(playNum), IniString);
+      sloc := ReadINI('loc', intToStr(playNum), IniString);
+      smouse := ReadINI('mouse', intToStr(playNum), IniString);
+      sbank := ReadINI('bank', intToStr(playNum), IniString);
+      scook := ReadINI('cook', intToStr(playNum), IniString);
+      sbfor := ReadINI('bfor', intToStr(playNum), IniString);
+      sbrfor := ReadINI('brfor', intToStr(playNum), IniString);
+      sbin := ReadINI('bin', intToStr(playNum), IniString);
+      sbrin := ReadINI('brin', intToStr(playNum), IniString);
+      sbreak := ReadINI('brake', intToStr(playNum), IniString);
+      ssound := ReadINI('sound', intToStr(playNum), IniString);
+      sdismisst := ReadINI('dismisst', intToStr(playNum), IniString);
+      slchatt := ReadINI('lchatt', intToStr(playNum), IniString);
+      schatt := ReadINI('chatt', intToStr(playNum), IniString);
+      supdatet := ReadINI('updatet', intToStr(playNum), IniString);
+      sscreent := ReadINI('screent', intToStr(playNum), IniString);
+      slevelt := ReadINI('levelt', intToStr(playNum), IniString);
+      swaitt := ReadINI('waitt', intToStr(playNum), IniString);
+      swaito := ReadINI('waito', intToStr(playNum), IniString);
+      scloset := ReadINI('closet', intToStr(playNum), IniString);
+      sitemd := ReadINI('itemd', intToStr(playNum), IniString);
+      sdrop := ReadINI('drop', intToStr(playNum), IniString);
     end;
     sync(showFormModal);
   end;
 
-  bmp0.Free;
+  TMainBMP.free;
 end;
 
 function Location.getRawFishIDs : TIntegerArray;
@@ -1533,32 +1454,6 @@ begin
       setLength(result, length(result)+1);
       result[high(result)] := self.FishNPCs[i].Locations[h];
     end;
-end;
-
-function isInvFullScript:boolean;
-begin
-  if daLocation.canCook then begin
-    case daLocation.ID of
-      24:begin //otto
-        result := Reflect.Inv.IsFull;
-      end;
-      29:begin //zul
-        result := Reflect.Inv.IsFull;
-      end;
-      8..13:begin//cath
-        result := Reflect.Inv.IsFull;
-      end;
-      else begin
-        if Reflect.Inv.Contains(LogIDs) then begin
-          result := Reflect.Inv.IsFull;
-        end else begin
-          result := (Reflect.Inv.Count >= 27);
-        end;
-      end;
-    end;
-  end else begin
-    result := Reflect.Inv.IsFull;
-  end;
 end;
 
 procedure doCount;
@@ -1703,7 +1598,7 @@ begin
 end;
 
 procedure doUpdateScreen;
-var TimeRunning, tempCheck, tempCheck2, currentFishXP, currentFishLevel, currentCookXP, currentAgilXP, currentStrXP, currentFireXP, currentWoodXP, tempInt, h, i, rawCaught, cookedCaught, burntCaught : integer;
+var TimeRunning, tempCheck, tempCheck2, currentFishXP, currentFishLevel, currentCookXP, currentAgilXP, currentStrXP, currentFireXP, currentWoodXP, tempInt, h, i, rawCaught, cookedCaught, burntCaught, myPlane : integer;
     _items : TReflectInvItemArray;
     tempObject : TReflectObject;
     _eitems : TReflectWornEquipmentArray;
@@ -1733,6 +1628,8 @@ begin
 
   TimeRunning := GetTimeRunning;
   perHour := 3600000/TimeRunning;
+
+  myPlane := Reflect.Tiles.GetPlane;
 
   tempInt := Reflect.Gametab.CurrentColor;
   if(tempInt = Gametab_Inventory)then begin
@@ -1807,7 +1704,7 @@ begin
     end;
   end;
 
-  _objects.GetAll(ObjGame, FireCheckDistance);
+  _objects.GetAll(ObjGame, ItemCheckDistance);
   for i:=0 to high(_objects) do begin
     if inIntArray(FireIDs, _objects[i].getid) then begin
       rsTile2 := _objects[i].gettile;
@@ -1820,24 +1717,24 @@ begin
   end;
 
   for i:=0 to high(daLocation.BankLocations) do begin
-    if R_TileOnMM(daLocation.BankLocations[i].Tile, RSTile) then begin
+    if (myPlane = daLocation.BankLocations[i].Plane) and R_TileOnMM(daLocation.BankLocations[i].Tile, RSTile) then begin
       graphicOpti.DrawEllipse(RSTile, 5, 5, clBlue, false);
       if R_TileOnMS(daLocation.BankLocations[i].Tile, RSTile, daLocation.BankLocations[i].Offset[0], daLocation.BankLocations[i].Offset[1], daLocation.BankLocations[i].Offset[2]) then
         graphicOpti.DrawClippedText(daLocation.BankLocations[i].Name, 'upchars07', RSTile, true, clBlue);
     end;
   end;
 
-  FishLocations := daLocation.getFishLocations;
-  for i:=0 to high(FishLocations) do begin
-    if R_TileOnMM(FishLocations[i], RSTile) then begin
-      graphicOpti.DrawEllipse(RSTile, 5, 5, clAqua, false);
-      if R_TileOnMS(FishLocations[i], RSTile) then
-        graphicOpti.DrawClippedText('Fishies', 'upchars07', RSTile, true, clAqua);
-    end;
-  end;
+  for i:=0 to high(daLocation.FishNPCs) do
+    if (myPlane = daLocation.FishNPCs[i].Plane) then
+      for h:=0 to high(daLocation.FishNPCs[i].Locations) do
+        if R_TileOnMM(daLocation.FishNPCs[i].Locations[h], RSTile) then begin
+          graphicOpti.DrawEllipse(RSTile, 5, 5, clAqua, false);
+          if R_TileOnMS(daLocation.FishNPCs[i].Locations[h], RSTile) then
+            graphicOpti.DrawClippedText('Fishies', 'upchars07', RSTile, true, clAqua);
+        end;
 
   for i:=0 to high(daLocation.FireLocations) do begin
-    if R_TileOnMM(daLocation.FireLocations[i].Tile, RSTile) then begin
+    if (myPlane = daLocation.FireLocations[i].Plane) and R_TileOnMM(daLocation.FireLocations[i].Tile, RSTile) then begin
       graphicOpti.DrawEllipse(RSTile, 5, 5, clOrange, false);
       if R_TileOnMS(daLocation.FireLocations[i].Tile, RSTile, daLocation.FireLocations[i].Offset[0], daLocation.FireLocations[i].Offset[1], daLocation.FireLocations[i].Offset[2]) then
         graphicOpti.DrawClippedText(daLocation.FireLocations[i].Name, 'upchars07', RSTile, true, clOrange);
@@ -1850,6 +1747,7 @@ begin
       setLength(BankNPCIDs, length(BankNPCIDs)+1);
       BankNPCIDs[high(BankNPCIDs)] := daLocation.BankNPCs[i].IDs[h];
     end;
+
   _npcs.GetAll;
   for i:=0 to high(_npcs) do begin
     tempInt := _npcs[i].getid;
@@ -1871,11 +1769,11 @@ begin
   end;
 
   for i:=0 to high(daLocation.DoorObjects) do begin
-    if R_TileOnMM(daLocation.DoorObjects[i].Tile, RSTile) then begin
+    if (myPlane = daLocation.DoorObjects[i].Plane) and R_TileOnMM(daLocation.DoorObjects[i].Tile, RSTile) then begin
       graphicOpti.DrawEllipse(RSTile, 5, 5, clGray, false);
       if R_TileOnMS(daLocation.DoorObjects[i].Tile, RSTile, daLocation.DoorObjects[i].Offset[0], daLocation.DoorObjects[i].Offset[1], daLocation.DoorObjects[i].Offset[2]) then begin
         tempObject.GetAt(ObjBoundary, daLocation.DoorObjects[i].Tile);
-        if not Reflect.Smart.IsNull(tempObject.Reference) and inIntArray(daLocation.DoorObjects[i].IDs, tempObject.GetId) then begin
+        if not Reflect.Smart.IsNull(tempObject.Reference) then begin
           graphicOpti.DrawClippedText('Closed door', 'upchars07', RSTile, true, clGray);
         end else begin
           graphicOpti.DrawClippedText('Opened door', 'upchars07', RSTile, true, clGray);
@@ -1885,18 +1783,21 @@ begin
   end;
 
   for i:=0 to high(daLocation.TreeObjects) do begin
-    if R_TileOnMM(daLocation.TreeObjects[i].Tile, RSTile) then begin
+    if (myPlane = daLocation.TreeObjects[i].Plane) and R_TileOnMM(daLocation.TreeObjects[i].Tile, RSTile) then begin
       graphicOpti.DrawEllipse(RSTile, 5, 5, clLime, false);
       if R_TileOnMS(daLocation.TreeObjects[i].Tile, RSTile, daLocation.TreeObjects[i].Offset[0], daLocation.TreeObjects[i].Offset[1], daLocation.TreeObjects[i].Offset[2]) then begin
         tempObject.GetAt(ObjGame, daLocation.TreeObjects[i].Tile);
-        tempInt := tempObject.GetId;
+        if not Reflect.Smart.IsNull(tempObject.Reference) then
+          tempInt := tempObject.GetId
+        else
+          tempInt := -1;
         if inIntArray(daLocation.TreeObjects[i].AliveIDs, tempInt) then begin
           graphicOpti.DrawClippedText('Alive '+daLocation.TreeObjects[i].name, 'upchars07', RSTile, true, clLime);
         end else begin
           if inIntArray(daLocation.TreeObjects[i].DeadIDs, tempInt) then begin
             graphicOpti.DrawClippedText('Dead '+daLocation.TreeObjects[i].name, 'upchars07', RSTile, true, clLime);
           end else begin
-            graphicOpti.DrawClippedText('Unknown '+daLocation.TreeObjects[i].name, 'upchars07', RSTile, true, clLime);
+            graphicOpti.DrawClippedText('Unknown '+daLocation.TreeObjects[i].name+'('+intToStr(tempInt)+')', 'upchars07', RSTile, true, clLime);
           end;
         end;
       end;
@@ -1974,7 +1875,7 @@ begin
     graphicOpti.DrawClippedText('Breaks taken: '+intToStr(breaks)+', next break in: '+Reflect.Time.msToTime(breakInFinal-breakInTimer.Elapsedtime, Time_Bare), 'upchars07', Point(5, tempInt), true, 65280);
     tempInt:=tempInt+15;
   end;
-  graphicOpti.DrawClippedText('Current job: '+daLocation.Name+', bank:'+boolToStr(daLocation.canBank)+', cook:'+boolToStr(daLocation.canCook)+', barb:'+boolToStr(BarbFish), 'upchars07', Point(5, tempInt), true, 65280);
+  graphicOpti.DrawClippedText('Current job: '+daLocation.Name+', bank:'+boolToStr(daLocation.canBank)+', cook:'+boolToStr(daLocation.canCook), 'upchars07', Point(5, tempInt), true, 65280);
   tempInt:=tempInt+15;
   graphicOpti.DrawClippedText('Ran for '+Reflect.Time.msToTime(TimeRunning, TIME_FORMAL)+'. Script version: '+floatToStr(version)+'('+floatToStr(fversion)+')', 'upchars07', Point(5, tempInt), true, 65280);
 
@@ -2034,15 +1935,26 @@ begin
         Offset := [0, 0, 50];
       end;
 
-      setLength(daLocation.TreeObjects, 1);
+      setLength(daLocation.TreeObjects, 2);
       with daLocation.TreeObjects[0] do begin
-        Offset := [50, 50, 200];
+        Offset := [30, 50, 200];
         TileOffset := [0, -1];
-        Tile := Point(2945, 3148);
+        Tile := Point(2943, 3153);
         AliveIDs := [1276];
         DeadIDs := [1342];
         Options := ['Chop down Tree'];
         Name := 'Tree';
+        Plane := 0;
+      end;
+      with daLocation.TreeObjects[1] do begin
+        Offset := [30, 50, 200];
+        TileOffset := [0, -1];
+        Tile := Point(2944, 3148);
+        AliveIDs := [1276];
+        DeadIDs := [1342];
+        Options := ['Chop down Tree'];
+        Name := 'Tree';
+        Plane := 0;
       end;
 
       curLevel := ReflectPlayer.GetMaxSkillLevel(SKILL_FISHING);
@@ -2052,10 +1964,11 @@ begin
           daLocation.ID := 18;
           setLength(daLocation.FishNPCs, 1);
           with daLocation.FishNPCs[0] do begin
+            Plane := 0;
             Names := [];
             BaitIDs := [];
             AnimationIDs := [619];
-            EquipmentIDs := [311, 303, 301];
+            EquipmentIDs := [311, 303, 301, 10129];
             IDs := [1522];
             Locations := [Point(2924, 3178)];
             Options := ['Cage'];
@@ -2099,10 +2012,11 @@ begin
           daLocation.ID := 19;
           setLength(daLocation.FishNPCs, 1);
           with daLocation.FishNPCs[0] do begin
+            Plane := 0;
             Names := [];
             BaitIDs := [];
-            AnimationIDs := [618, 5108];
-            EquipmentIDs := [311, 303, 301];
+            EquipmentIDs := [311, 303, 301, 10129];
+            AnimationIDs := [618, 5108, 6709, 6707, 6708, 6710, 6711, 6703, 6704];
             IDs := [1522];
             Locations := [Point(2924, 3178)];
             Options := ['Harpoon'];
@@ -2147,10 +2061,11 @@ begin
         daLocation.ID := 16;
         setLength(daLocation.FishNPCs, 1);
         with daLocation.FishNPCs[0] do begin
+          Plane := 0;
           Names := [];
           BaitIDs := [];
           AnimationIDs := [621];
-          EquipmentIDs := [311, 303, 301];
+          EquipmentIDs := [311, 303, 301, 10129];
           IDs := [1521];
           Locations := [Point(2924, 3178)];
           Options := ['Net'];
@@ -2233,8 +2148,8 @@ begin
 
   LastXPXP := StartFishXP;
   LastXPCheck.restart;
-  tim2 := 50000 + random(400000);
-  tim.restart;
+  StatsTime := 50000 + random(400000);
+  StatsTimer.restart;
 
   wasWorking := false;
 
@@ -2285,6 +2200,7 @@ begin
           daLocation.ID := 0;
           setLength(daLocation.FishNPCs, 1);
           with daLocation.FishNPCs[0] do begin
+            Plane := 0;
             Names := [];
             BaitIDs := [];
             AnimationIDs := [621];
@@ -2314,6 +2230,7 @@ begin
           daLocation.ID := 1;
           setLength(daLocation.FishNPCs, 1);
           with daLocation.FishNPCs[0] do begin
+            Plane := 0;
             Names := [];
             BaitIDs := [313];
             AnimationIDs := [622, 623];
@@ -2343,7 +2260,7 @@ begin
       setLength(daLocation.BankLocations, 1);
       with daLocation.BankLocations[0] do begin
         Offset := [0, 0, 50];
-        TileOffset := [2, -1];
+        TileOffset := [1, -1];
         Tile := Point(3091, 3245);
         Options := ['Bank Bank booth'];
         Plane := 0;
@@ -2362,6 +2279,7 @@ begin
         DeadIDs := [1342];
         Options := ['Chop down Tree'];
         Name := 'Tree';
+        Plane := 0;
       end;
     end;
     2..3:begin
@@ -2369,35 +2287,6 @@ begin
       daLocation.canCook := true;
 
       daLocation.RunDirections := ['n', 's', 'w'];
-
-      setLength(daLocation.TreeObjects, 3);
-      with daLocation.TreeObjects[0] do begin
-        Offset := [0, 0, 200];
-        TileOffset := [0, 0];
-        Tile := Point(3103, 3431);
-        AliveIDs := [1278];
-        DeadIDs := [1342];
-        Options := ['Chop down Tree'];
-        Name := 'Tree';
-      end;
-      with daLocation.TreeObjects[1] do begin
-        Offset := [0, 0, 200];
-        TileOffset := [0, 0];
-        Tile := Point(3103, 3429);
-        AliveIDs := [1278];
-        DeadIDs := [1342];
-        Options := ['Chop down Tree'];
-        Name := 'Tree';
-      end;
-      with daLocation.TreeObjects[2] do begin
-        Offset := [0, 0, 200];
-        TileOffset := [0, 0];
-        Tile := Point(3101, 3436);
-        AliveIDs := [1278];
-        DeadIDs := [1342];
-        Options := ['Chop down Tree'];
-        Name := 'Tree';
-      end;
 
       daLocation.PathToBank := [Point(3104, 3434), Point(3096, 3437), Point(3092, 3444), Point(3090, 3453), Point(3088, 3459), Point(3087, 3465), Point(3082, 3477), Point(3086, 3485), Point(3094, 3491)];
       daLocation.PathToFish := [Point(3094, 3491), Point(3086, 3486), Point(3082, 3477), Point(3087, 3464), Point(3091, 3458), Point(3090, 3449), Point(3091, 3443), Point(3096, 3438), Point(3102, 3435), Point(3106, 3434), Point(3109, 3433)];
@@ -2420,12 +2309,23 @@ begin
         Name := 'Bank';
       end;
 
+      setLength(daLocation.FireLocations, 1);
+      with daLocation.FireLocations[0] do begin
+        Offset := [0, 0, 5];
+        TileOffset := [0, 0];
+        Tile := Point(3105, 3432);
+        Options := ['Fire'];
+        Plane := 0;
+        Name := 'Fire';
+      end;
+
       case job of
         2:begin
           daLocation.Name := 'Barb. Village luring';
           daLocation.ID := 2;
           setLength(daLocation.FishNPCs, 1);
           with daLocation.FishNPCs[0] do begin
+            Plane := 0;
             Names := [];
             BaitIDs := [314];
             AnimationIDs := [622, 623];
@@ -2453,6 +2353,7 @@ begin
           daLocation.ID := 3;
           setLength(daLocation.FishNPCs, 1);
           with daLocation.FishNPCs[0] do begin
+            Plane := 0;
             Names := [];
             BaitIDs := [313];
             AnimationIDs := [622, 623];
@@ -2487,19 +2388,20 @@ begin
 
       setLength(daLocation.TreeObjects, 1);
       with daLocation.TreeObjects[0] do begin
-        Offset := [0, 0, 200];
-        TileOffset := [-2, 1];
-        Tile := Point(2580, 3423);
+        Offset := [30, 50, 200];
+        TileOffset := [2, 1];
+        Tile := Point(2580, 3422);
         AliveIDs := [1276];
         DeadIDs := [1342];
         Options := ['Chop down Tree'];
         Name := 'Tree';
+        Plane := 0;
       end;
 
       setLength(daLocation.BankLocations, 1);
       with daLocation.BankLocations[0] do begin
         Offset := [0, 0, 50];
-        TileOffset := [2, 0];
+        TileOffset := [2, 1];
         Tile := Point(2585, 3419);
         Options := ['Bank Bank booth'];
         Plane := 0;
@@ -2512,6 +2414,7 @@ begin
           daLocation.ID := 4;
           setLength(daLocation.FishNPCs, 1);
           with daLocation.FishNPCs[0] do begin
+            Plane := 0;
             Names := [];
             BaitIDs := [];
             AnimationIDs := [620];
@@ -2545,6 +2448,7 @@ begin
           daLocation.ID := 5;
           setLength(daLocation.FishNPCs, 1);
           with daLocation.FishNPCs[0] do begin
+            Plane := 0;
             Names := [];
             BaitIDs := [];
             AnimationIDs := [619];
@@ -2568,10 +2472,11 @@ begin
           daLocation.ID := 6;
           setLength(daLocation.FishNPCs, 1);
           with daLocation.FishNPCs[0] do begin
+            Plane := 0;
             Names := [];
             BaitIDs := [];
-            AnimationIDs := [618, 5108];
-            EquipmentIDs := [311];
+            AnimationIDs := [618, 5108, 6709, 6707, 6708, 6710, 6711, 6703, 6704];
+            EquipmentIDs := [311, 10129];
             IDs := [1510];
             Locations := [Point(2604, 3420)];
             Options := ['Harpoon'];
@@ -2597,10 +2502,11 @@ begin
           daLocation.ID := 7;
           setLength(daLocation.FishNPCs, 1);
           with daLocation.FishNPCs[0] do begin
+            Plane := 0;
             Names := [];
             BaitIDs := [];
-            AnimationIDs := [618, 5108];
-            EquipmentIDs := [311];
+            AnimationIDs := [618, 5108, 6705, 6709, 6706, 6704, 6703];
+            EquipmentIDs := [311, 10129];
             IDs := [1511];
             Locations := [Point(2604, 3420)];
             Options := ['Harpoon'];
@@ -2638,8 +2544,8 @@ begin
 
       setLength(daLocation.FireLocations, 1);
       with daLocation.FireLocations[0] do begin
-        Offset := [0, 0, 50];
-        TileOffset := [0, -2];
+        Offset := [0, 0, 25];
+        TileOffset := [-1, -2];
         Tile := Point(2817, 3444);
         Options := ['Range'];
         Plane := 0;
@@ -2652,6 +2558,7 @@ begin
           daLocation.ID := 8;
           setLength(daLocation.FishNPCs, 1);
           with daLocation.FishNPCs[0] do begin
+            Plane := 0;
             Names := [];
             BaitIDs := [];
             AnimationIDs := [621];
@@ -2681,6 +2588,7 @@ begin
           daLocation.ID := 9;
           setLength(daLocation.FishNPCs, 1);
           with daLocation.FishNPCs[0] do begin
+            Plane := 0;
             Names := [];
             BaitIDs := [313];
             AnimationIDs := [622, 623];
@@ -2710,6 +2618,7 @@ begin
           daLocation.ID := 10;
           setLength(daLocation.FishNPCs, 1);
           with daLocation.FishNPCs[0] do begin
+            Plane := 0;
             Names := [];
             BaitIDs := [];
             AnimationIDs := [620];
@@ -2743,6 +2652,7 @@ begin
           daLocation.ID := 11;
           setLength(daLocation.FishNPCs, 1);
           with daLocation.FishNPCs[0] do begin
+            Plane := 0;
             Names := [];
             BaitIDs := [];
             AnimationIDs := [619];
@@ -2766,10 +2676,11 @@ begin
           daLocation.ID := 12;
           setLength(daLocation.FishNPCs, 1);
           with daLocation.FishNPCs[0] do begin
+            Plane := 0;
             Names := [];
             BaitIDs := [];
-            AnimationIDs := [618, 5108];
-            EquipmentIDs := [311];
+            AnimationIDs := [618, 5108, 6709, 6707, 6708, 6710, 6711, 6703, 6704];
+            EquipmentIDs := [311, 10129];
             IDs := [1519];
             Locations := [Point(2846, 3430)];
             Options := ['Harpoon'];
@@ -2795,10 +2706,11 @@ begin
           daLocation.ID := 13;
           setLength(daLocation.FishNPCs, 1);
           with daLocation.FishNPCs[0] do begin
+            Plane := 0;
             Names := [];
             BaitIDs := [];
-            AnimationIDs := [618, 5108];
-            EquipmentIDs := [311];
+            AnimationIDs := [618, 5108, 6705, 6709, 6706, 6704, 6703];
+            EquipmentIDs := [311, 10129];
             IDs := [1520];
             Locations := [Point(2846, 3430)];
             Options := ['Harpoon'];
@@ -2829,6 +2741,7 @@ begin
           daLocation.ID := 14;
           setLength(daLocation.FishNPCs, 1);
           with daLocation.FishNPCs[0] do begin
+            Plane := 0;
             Names := [];
             BaitIDs := [];
             AnimationIDs := [619];
@@ -2852,10 +2765,11 @@ begin
           daLocation.ID := 15;
           setLength(daLocation.FishNPCs, 1);
           with daLocation.FishNPCs[0] do begin
+            Plane := 0;
             Names := [];
             BaitIDs := [];
-            AnimationIDs := [618, 5108];
-            EquipmentIDs := [311];
+            AnimationIDs := [618, 5108, 6709, 6707, 6708, 6710, 6711, 6703, 6704];
+            EquipmentIDs := [311, 10129];
             IDs := [1522];
             Locations := [Point(2924, 3178)];
             Options := ['Harpoon'];
@@ -2891,15 +2805,26 @@ begin
       daLocation.PathToBank := [Point(3028, 3217), Point(3027, 3222), Point(3027, 3227), Point(3027, 3232), Point(3030, 3236), Point(3035, 3236), Point(3040, 3236), Point(3045, 3236)];
       daLocation.PathToFish := [Point(2951, 3147), Point(2946, 3147), Point(2941, 3146), Point(2936, 3146), Point(2931, 3148), Point(2926, 3148), Point(2921, 3150), Point(2916, 3150), Point(2915, 3155), Point(2919, 3159), Point(2920, 3164), Point(2920, 3169), Point(2923, 3173), Point(2924, 3178)];
 
-      setLength(daLocation.TreeObjects, 1);
+      setLength(daLocation.TreeObjects, 2);
       with daLocation.TreeObjects[0] do begin
-        Offset := [50, 50, 200];
+        Offset := [30, 50, 200];
         TileOffset := [0, -1];
-        Tile := Point(2945, 3148);
+        Tile := Point(2943, 3153);
         AliveIDs := [1276];
         DeadIDs := [1342];
         Options := ['Chop down Tree'];
         Name := 'Tree';
+        Plane := 0;
+      end;
+      with daLocation.TreeObjects[1] do begin
+        Offset := [30, 50, 200];
+        TileOffset := [0, -1];
+        Tile := Point(2944, 3148);
+        AliveIDs := [1276];
+        DeadIDs := [1342];
+        Options := ['Chop down Tree'];
+        Name := 'Tree';
+        Plane := 0;
       end;
 
       setLength(daLocation.customTPAs, 3);
@@ -2931,15 +2856,26 @@ begin
         Offset := [0, 0, 50];
       end;
 
-      setLength(daLocation.TreeObjects, 1);
+      setLength(daLocation.TreeObjects, 2);
       with daLocation.TreeObjects[0] do begin
-        Offset := [50, 50, 200];
+        Offset := [30, 50, 200];
         TileOffset := [0, -1];
-        Tile := Point(2945, 3148);
+        Tile := Point(2943, 3153);
         AliveIDs := [1276];
         DeadIDs := [1342];
         Options := ['Chop down Tree'];
         Name := 'Tree';
+        Plane := 0;
+      end;
+      with daLocation.TreeObjects[1] do begin
+        Offset := [30, 50, 200];
+        TileOffset := [0, -1];
+        Tile := Point(2944, 3148);
+        AliveIDs := [1276];
+        DeadIDs := [1342];
+        Options := ['Chop down Tree'];
+        Name := 'Tree';
+        Plane := 0;
       end;
 
       case job of
@@ -2948,6 +2884,7 @@ begin
           daLocation.ID := 16;
           setLength(daLocation.FishNPCs, 1);
           with daLocation.FishNPCs[0] do begin
+            Plane := 0;
             Names := [];
             BaitIDs := [];
             AnimationIDs := [621];
@@ -2977,6 +2914,7 @@ begin
           daLocation.ID := 17;
           setLength(daLocation.FishNPCs, 1);
           with daLocation.FishNPCs[0] do begin
+            Plane := 0;
             Names := [];
             BaitIDs := [313];
             AnimationIDs := [622, 623];
@@ -3006,6 +2944,7 @@ begin
           daLocation.ID := 18;
           setLength(daLocation.FishNPCs, 1);
           with daLocation.FishNPCs[0] do begin
+            Plane := 0;
             Names := [];
             BaitIDs := [];
             AnimationIDs := [619];
@@ -3029,10 +2968,11 @@ begin
           daLocation.ID := 19;
           setLength(daLocation.FishNPCs, 1);
           with daLocation.FishNPCs[0] do begin
+            Plane := 0;
             Names := [];
             BaitIDs := [];
-            AnimationIDs := [618, 5108];
-            EquipmentIDs := [311];
+            AnimationIDs := [618, 5108, 6709, 6707, 6708, 6710, 6711, 6703, 6704];
+            EquipmentIDs := [311, 10129];
             IDs := [1522];
             Locations := [Point(2924, 3178)];
             Options := ['Harpoon'];
@@ -3062,13 +3002,14 @@ begin
 
       setLength(daLocation.TreeObjects, 1);
       with daLocation.TreeObjects[0] do begin
-        Offset := [0, 0, 200];
-        TileOffset := [0, -1];
-        Tile := Point(2535, 3414);
+        Offset := [50, 50, 200];
+        TileOffset := [-1, -1];
+        Tile := Point(2535, 3413);
         AliveIDs := [1278];
         DeadIDs := [1342];
         Options := ['Chop down Tree'];
         Name := 'Tree';
+        Plane := 0;
       end;
 
       setLength(daLocation.BankNPCs, 1);
@@ -3087,6 +3028,7 @@ begin
           daLocation.ID := 20;
           setLength(daLocation.FishNPCs, 1);
           with daLocation.FishNPCs[0] do begin
+            Plane := 0;
             Names := [];
             BaitIDs := [314];
             AnimationIDs := [622, 623];
@@ -3114,6 +3056,7 @@ begin
           daLocation.ID := 21;
           setLength(daLocation.FishNPCs, 1);
           with daLocation.FishNPCs[0] do begin
+            Plane := 0;
             Names := [];
             BaitIDs := [313];
             AnimationIDs := [622, 623];
@@ -3157,6 +3100,7 @@ begin
           daLocation.ID := 22;
           setLength(daLocation.FishNPCs, 1);
           with daLocation.FishNPCs[0] do begin
+            Plane := 0;
             Names := [];
             BaitIDs := [314];
             AnimationIDs := [622, 623];
@@ -3184,6 +3128,7 @@ begin
           daLocation.ID := 23;
           setLength(daLocation.FishNPCs, 1);
           with daLocation.FishNPCs[0] do begin
+            Plane := 0;
             Names := [];
             BaitIDs := [313];
             AnimationIDs := [622, 623];
@@ -3214,6 +3159,7 @@ begin
       daLocation.ID := 24;
       setLength(daLocation.FishNPCs, 1);
       with daLocation.FishNPCs[0] do begin
+        Plane := 0;
         Names := [];
         BaitIDs := [314];
         AnimationIDs := [622, 623];
@@ -3256,6 +3202,7 @@ begin
           daLocation.ID := 25;
           setLength(daLocation.FishNPCs, 1);
           with daLocation.FishNPCs[0] do begin
+            Plane := 0;
             Names := [];
             BaitIDs := [];
             AnimationIDs := [621];
@@ -3273,10 +3220,11 @@ begin
           daLocation.ID := 26;
           setLength(daLocation.FishNPCs, 1);
           with daLocation.FishNPCs[0] do begin
+            Plane := 0;
             Names := [];
             BaitIDs := [];
-            AnimationIDs := [618, 5108];
-            EquipmentIDs := [311];
+            AnimationIDs := [618, 5108, 6709, 6707, 6708, 6710, 6711, 6703, 6704];
+            EquipmentIDs := [311, 10129];
             IDs := [4316];
             Locations := [Point(2317, 3698), Point(2335, 3697), Point(2349, 3698)];
             Options := ['Harpoon'];
@@ -3294,6 +3242,7 @@ begin
       daLocation.ID := 27;
       setLength(daLocation.FishNPCs, 1);
       with daLocation.FishNPCs[0] do begin
+        Plane := 0;
         Names := [];
         BaitIDs := [];
         AnimationIDs := [621];
@@ -3313,6 +3262,7 @@ begin
       daLocation.Name := 'Progressive fishing';
       setLength(daLocation.FishNPCs, 1);
       with daLocation.FishNPCs[0] do begin
+        Plane := 0;
         Names := [];
         BaitIDs := [];
         AnimationIDs := [];
@@ -3363,6 +3313,7 @@ begin
       daLocation.canCook := true;
       setLength(daLocation.FishNPCs, 1);
       with daLocation.FishNPCs[0] do begin
+        Plane := 0;
         Names := [];
         BaitIDs := [313];
         AnimationIDs := [623, 622];
@@ -3402,6 +3353,13 @@ begin
     daLocation.canBank := false;
 end;
 
+procedure setupPlayer;
+begin
+  Reflect.Compass.Make('n');
+  Reflect.Compass.MakePitch(10);
+  LastXPCheck.restart;
+end;
+
 procedure FreeDTMZ;
 begin
   graphicOpti.Free;
@@ -3409,13 +3367,6 @@ begin
   if useStats then
     if statsServer.Commit then
       daLogger.Status('Successfully sent heartbeat to ''stats.grats.pw''.', []);
-end;
-
-procedure setupPlayer;
-begin
-  Reflect.Compass.Make('n');
-  Reflect.Compass.MakePitch(10);
-  LastXPCheck.restart;
 end;
 
 procedure goToBank;
@@ -4039,18 +3990,51 @@ begin
       normal:
       updateScreen('Looking for tree...');
       for i:=0 to high(daLocation.TreeObjects) do begin
-        tempO.GetAt(ObjGame, daLocation.TreeObjects[i].Tile);
-        if inIntArray(daLocation.TreeObjects[i].AliveIDs, tempO.getID) then begin
-          if not R_TileOnMS(daLocation.TreeObjects[i].Tile, RSTile, daLocation.TreeObjects[i].Offset[0], daLocation.TreeObjects[i].Offset[1], daLocation.TreeObjects[i].Offset[2]) then begin
-             updateScreen('Going to tree spot.');
-             ReflectPlayer.BlindWalkMM(Point(daLocation.TreeObjects[i].Tile.x+daLocation.TreeObjects[i].TileOffset[0], daLocation.TreeObjects[i].Tile.y+daLocation.TreeObjects[i].TileOffset[1]), 5);
-             ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
-             sleepScript(random(1000));
+        if(Reflect.Tiles.GetPlane = daLocation.TreeObjects[i].Plane)then begin
+          tempO.GetAt(ObjGame, daLocation.TreeObjects[i].Tile);
+          if not Reflect.Smart.IsNull(tempO.Reference) then begin
+            if inIntArray(daLocation.TreeObjects[i].AliveIDs, tempO.getID) then begin
+              if not R_TileOnMS(daLocation.TreeObjects[i].Tile, RSTile, daLocation.TreeObjects[i].Offset[0], daLocation.TreeObjects[i].Offset[1], daLocation.TreeObjects[i].Offset[2]) then begin
+                 updateScreen('Going to tree spot.');
+                 ReflectPlayer.BlindWalkMM(Point(daLocation.TreeObjects[i].Tile.x+daLocation.TreeObjects[i].TileOffset[0], daLocation.TreeObjects[i].Tile.y+daLocation.TreeObjects[i].TileOffset[1]), 5);
+                 ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
+                 sleepScript(random(1000));
+              end;
+              break;
+            end;
           end;
-          break;
         end;
       end;
     end;
+  end;
+end;
+
+function isInvFullScript:boolean;
+begin
+  if daLocation.canCook then begin
+    case daLocation.ID of
+      24:begin //otto
+        result := Reflect.Inv.IsFull;
+      end;
+      29:begin //zul
+        result := Reflect.Inv.IsFull;
+      end;
+      8..13:begin//cath
+        result := Reflect.Inv.IsFull;
+      end;
+      2..3:begin //barb
+        result := Reflect.Inv.IsFull;
+      end;
+      else begin
+        if Reflect.Inv.Contains(LogIDs) then begin
+          result := Reflect.Inv.IsFull;
+        end else begin
+          result := (Reflect.Inv.Count >= 27);
+        end;
+      end;
+    end;
+  end else begin
+    result := Reflect.Inv.IsFull;
   end;
 end;
 
@@ -4076,7 +4060,7 @@ begin
       if not Reflect.Inv.Contains(cookedFishIDs) then
         goto normal;
     end;
-    8..13:begin  //cath
+    8..13,2..3:begin  //cath //barb
     end;
     else begin
       normal:
@@ -4107,7 +4091,7 @@ var rsTile : TPoint;
     i, objectID : integer;
 label normal;
 begin
-  if not daLocation.canCook or (length(daLocation.TreeObjects) = 0) then
+  if not daLocation.canCook or (length(daLocation.TreeObjects) = 0) or Reflect.Inv.IsFull then
     exit;
 
   case daLocation.ID of
@@ -4115,28 +4099,37 @@ begin
       normal:
       updateScreen('Looking for tree...');
       for i:=0 to high(daLocation.TreeObjects) do begin
-        tempO.GetAt(ObjGame, daLocation.TreeObjects[i].Tile);
-        if inIntArray(daLocation.TreeObjects[i].AliveIDs, tempO.getID) and not Reflect.Inv.IsFull then begin
-          if R_TileOnMS(daLocation.TreeObjects[i].Tile, RSTile, daLocation.TreeObjects[i].Offset[0], daLocation.TreeObjects[i].Offset[1], daLocation.TreeObjects[i].Offset[2]) then begin
-            updateScreen('Going to chop tree.');
-            if R_InteractTile(daLocation.TreeObjects[i].Tile, daLocation.TreeObjects[i].Options, daLocation.TreeObjects[i].Offset[0], daLocation.TreeObjects[i].Offset[1], daLocation.TreeObjects[i].Offset[2]) then begin
-              ReflectPlayer.FFlag(0, 5000+random(500));
-              sleepScript(1000+random(1000));
-              if(random(round(AntiAmount/1000)) = 1)then
-                Reflect.Antiban.MMouseOffClient('rand');
-              tempO.GetAt(ObjGame, daLocation.TreeObjects[i].Tile);
-              objectID := tempO.getId;
-              while ReflectPlayer.isLoggedIn and inIntArray(daLocation.TreeObjects[i].AliveIDs, objectID) and ReflectPlayer.isDoingAnim(WoodcuttingAnimationIDs, 1000)
-              and not Reflect.Inv.Contains(LogIDs) and not ReflectPlayer.IsUnderAttack do begin
-                randomHandler;
-                updateScreen('Chopping tree...');
-                tempO.GetAt(ObjGame, daLocation.TreeObjects[i].Tile);
-                objectID := tempO.getId;
+        if(Reflect.Tiles.GetPlane = daLocation.TreeObjects[i].Plane)then begin
+          tempO.GetAt(ObjGame, daLocation.TreeObjects[i].Tile);
+          if not Reflect.Smart.IsNull(tempO.Reference) then begin
+            if inIntArray(daLocation.TreeObjects[i].AliveIDs, tempO.getID) then begin
+              if R_TileOnMS(daLocation.TreeObjects[i].Tile, RSTile, daLocation.TreeObjects[i].Offset[0], daLocation.TreeObjects[i].Offset[1], daLocation.TreeObjects[i].Offset[2]) then begin
+                updateScreen('Going to chop tree.');
+                if R_InteractTile(daLocation.TreeObjects[i].Tile, daLocation.TreeObjects[i].Options, daLocation.TreeObjects[i].Offset[0], daLocation.TreeObjects[i].Offset[1], daLocation.TreeObjects[i].Offset[2]) then begin
+                  ReflectPlayer.FFlag(0, 5000+random(500));
+                  sleepScript(1000+random(1000));
+                  if(random(round(AntiAmount/1000)) = 1)then
+                    Reflect.Antiban.MMouseOffClient('rand');
+                  tempO.GetAt(ObjGame, daLocation.TreeObjects[i].Tile);
+                  if not Reflect.Smart.IsNull(tempO.Reference) then
+                    objectID := tempO.getId
+                  else
+                    objectID := -1;
+                  while ReflectPlayer.isLoggedIn and inIntArray(daLocation.TreeObjects[i].AliveIDs, objectID) and ReflectPlayer.isDoingAnim(WoodcuttingAnimationIDs, 1000)
+                  and not Reflect.Inv.Contains(LogIDs) and not ReflectPlayer.IsUnderAttack do begin
+                    randomHandler;
+                    updateScreen('Chopping tree...');
+                    tempO.GetAt(ObjGame, daLocation.TreeObjects[i].Tile);
+                    if not Reflect.Smart.IsNull(tempO.Reference) then
+                      objectID := tempO.getId
+                    else
+                      objectID := -1;
+                  end;
+                end;
               end;
               break;
             end;
           end;
-          break;
         end;
       end;
     end;
@@ -4160,12 +4153,12 @@ begin
    tempObj.GetAt(ObjGame, point(tile.x, tile.y+1));
    if Reflect.Smart.IsNull(tempObj.Reference) or tempObj.getID < deadObjID then
     exit(tempObj.getTile);
-   exit(Point(0, 0));
+   exit(Point(-1, -1));
 end;
 
 procedure createFire;
 var rsTile : TPoint;
-    i, fireID : integer;
+    fireID : integer;
     tinderFirst : boolean;
     tempO : TReflectObject;
     _item : TReflectInvItem;
@@ -4185,7 +4178,9 @@ begin
       RSTile := Reflect.Tiles.GetGlobalTile;
       tempO.GetAt(ObjGame, RSTile);
       if not Reflect.Smart.IsNull(tempO.Reference) then
-        fireID := tempO.getId;
+        fireID := tempO.getId
+      else
+        fireID := -1;
       if fireID < deadObjID then begin
         updateScreen('Going to make fire...');
         if Reflect.Gametab.CurrentColor <> Gametab_Inventory then
@@ -4196,39 +4191,27 @@ begin
           tinderFirst := false;
         if not anySlotActivated then begin
           if tinderFirst then begin
-            for i:=0 to high(TinderIDs) do begin
-              if(_item.Find(TinderIDs[i]))then begin
-                Reflect.Mouse.Move(_item.getbox, mouse_left);
-                sleepScript(250+random(500));
-                break;
-              end;
+            if _item.Find(TinderIDs) then begin
+              _item.Interact;
+              sleepScript(250+random(500));
             end;
           end else begin
-            for i:=0 to high(LogIDs) do begin
-              if(_item.Find(LogIDs[i]))then begin
-                Reflect.Mouse.Move(_item.getbox, mouse_left);
-                sleepScript(250+random(500));
-                break;
-              end;
+            if _item.Find(LogIDs) then begin
+              _item.Interact;
+              sleepScript(250+random(500));
             end;
           end;
         end;
         if anySlotActivated(true) then begin
           if not tinderFirst then begin
-            for i:=0 to high(TinderIDs) do begin
-              if(_item.Find(TinderIDs[i]))then begin
-                Reflect.Mouse.Move(_item.getbox, mouse_left);
-                sleepScript(250+random(500));
-                break;
-              end;
+            if _item.Find(TinderIDs) then begin
+              _item.Interact;
+              sleepScript(250+random(500));
             end;
           end else begin
-            for i:=0 to high(LogIDs) do begin
-              if(_item.Find(LogIDs[i]))then begin
-                Reflect.Mouse.Move(_item.getbox, mouse_left);
-                sleepScript(250+random(500));
-                break;
-              end;
+            if _item.Find(LogIDs) then begin
+              _item.Interact;
+              sleepScript(250+random(500));
             end;
           end;
         end;
@@ -4242,12 +4225,16 @@ begin
         end;
         timer.restart;
         tempO.GetAt(ObjGame, RSTile);
-        while timer.ElapsedTime < 2500 and (Reflect.Smart.IsNull(tempO.Reference) or not inIntArray(FireIDs, tempO.GetId)) do begin
+        if not Reflect.Smart.IsNull(tempO.Reference) then
+          fireID := tempO.getId
+        else
+          fireID := -1;
+        while timer.ElapsedTime < 2500 and not inIntArray(FireIDs, fireID) do begin
           sleepScript(50);
           tempO.GetAt(ObjGame, RSTile);
         end;
       end else begin
-        updateScreen('Looking for place for fire...'+tostr(tempO.getId));
+        updateScreen('Looking for place for fire...'+inttostr(fireID));
         RSTile := R_GetClosestPlaceForFire;
         R_InteractTile(RSTile, ['Walk']);
         ReflectPlayer.FFlag(0, 5000+random(500));
@@ -4259,7 +4246,6 @@ end;
 
 procedure goToFire;
 var FireObject : TReflectObject;
-    found : boolean;
     i : integer;
     rsTile, objTile : TPoint;
     closestFireTile : FireLocation;
@@ -4276,14 +4262,8 @@ begin
     else begin
       normal:
       if (length(daLocation.FireLocations) = 0) then begin
-        for i:=0 to high(FireIDs) do begin
-          if FireObject.Find(ObjGame, FireIDs[i], FireCheckDistance) then begin
-            found := true;
-            objTile := FireObject.GetTile;
-            i := high(FireIDs);
-          end;
-        end;
-        if found then begin
+        if FireObject.Find(ObjGame, FireIDs, ItemCheckDistance) then begin
+          objTile := FireObject.GetTile;
           if not R_TileOnMS(objTile, RSTile) then begin
             updateScreen('Going to fire.');
             ReflectPlayer.BlindWalkMM(objTile, 5);
@@ -4309,7 +4289,6 @@ end;
 
 procedure OpenFire;
 var FireObject : TReflectObject;
-    found : boolean;
     i : integer;
     rsTile, objTile : TPoint;
     _item : TReflectInvItem;
@@ -4332,26 +4311,16 @@ begin
     else begin
       normal:
       if (length(daLocation.FireLocations) = 0) then begin
-        found := false;
-        for i:=0 to high(FireIDs) do begin
-          if FireObject.Find(ObjGame, FireIDs[i], FireCheckDistance) then begin
-            found := true;
-            objTile := FireObject.GetTile;
-            break;
-          end;
-        end;
-        if found then begin
+        if FireObject.Find(ObjGame, FireIDs, ItemCheckDistance) then begin
+          objTile := FireObject.GetTile;
           if R_TileOnMS(objTile, RSTile) then begin
             updateScreen('Going to cook food.');
             if Reflect.Gametab.CurrentColor <> Gametab_Inventory then
               Reflect.Gametab.Open(Gametab_Inventory);
             if not anySlotActivated then begin
-              for i:=0 to high(rawFishIds) do begin
-                if(_item.Find(rawFishIds[i]))then begin
-                  Reflect.Mouse.Move(_item.getbox, mouse_left);
-                  sleepScript(250+random(500));
-                  break;
-                end;
+              if _item.Find(rawFishIds) then begin
+                _item.Interact;
+                sleepScript(250+random(500));
               end;
             end;
             if anySlotActivated(true) then begin
@@ -4384,12 +4353,9 @@ begin
           if Reflect.Gametab.CurrentColor <> Gametab_Inventory then
             Reflect.Gametab.Open(Gametab_Inventory);
           if not anySlotActivated then begin
-            for i:=0 to high(rawFishIds) do begin
-              if(_item.Find(rawFishIds[i]))then begin
-                Reflect.Mouse.Move(_item.getbox, mouse_left);
-                sleepScript(250+random(500));
-                break;
-              end;
+            if _item.Find(rawFishIds) then begin
+              _item.Interact;
+              sleepScript(250+random(500));
             end;
           end;
           if anySlotActivated(true) then begin
@@ -4532,20 +4498,11 @@ end;
 
 procedure doCooking;
 var FireObject : TReflectObject;
-    i : integer;
-    found : boolean;
     RawFishIDs : TIntegerArray;
 begin
   RawFishIDs := daLocation.getRawFishIDs;
   if Reflect.Inv.Contains(rawFishIDs) then begin
-    found := false;
-    for i:=0 to high(FireIDs) do begin
-      if FireObject.Find(ObjGame, FireIDs[i], FireCheckDistance) then begin
-        found := true;
-        break;
-      end;
-    end;
-    if not found then begin
+    if not FireObject.Find(ObjGame, FireIDs, ItemCheckDistance) then begin
       if not Reflect.Inv.Contains(LogIDs) then begin
         goToTree;
 
@@ -4606,7 +4563,6 @@ end;
 procedure doChecks;
 var i, h, tInt : integer;
     coins : TReflectInvItem;
-    foundCoins : boolean;
     BaitIDs : TIntegerArray;
 begin
   updateScreen('');
@@ -4628,14 +4584,7 @@ begin
   end;
 
   if ((daLocation.ID = 14) or (daLocation.ID = 15)) and daLocation.canBank then begin
-    foundCoins := false;
-    for i:=0 to high(CoinsIDs) do begin
-      if coins.Find(CoinsIDs[i]) then begin
-        foundCoins := true;
-        break;
-      end;
-    end;
-    if not foundCoins or (Coins.getQuantity < 30) then begin
+    if not coins.Find(CoinsIDs) or (Coins.getQuantity < 30) then begin
       daLogger.Status('Not enough coins left.', []);
       UpdateScreen('Not enough coins.');
       ReflectPlayer.Active := false;
@@ -4669,9 +4618,9 @@ begin
     LastXPXP := ReflectPlayer.GetSkillExp(SKILL_FISHING);
   end;
 
-  if (tim.Elapsedtime > tim2)then begin
-    tim.restart;
-    tim2 := 50000 + random(400000);
+  if (StatsTimer.Elapsedtime > StatsTime)then begin
+    StatsTimer.restart;
+    StatsTime := 50000 + random(400000);
 
     for i:=0 to high(daLocation.FishNPCs) do begin
       for h:=0 to high(daLocation.FishNPCs[i].RawFishes) do
@@ -4727,8 +4676,8 @@ begin
 end
 
 begin
-  safeShowModal;
-  if started or forceUpdate then begin
+  ShowForm;
+  if started then begin
     ClearDebug;
     Reflect.Setup;
     Reflect.Smart.Graphics.Clear;
@@ -4773,8 +4722,7 @@ begin
           end;
         end else begin
           if not((FishspotIndice = ReflectPlayer.GetInteractingIndex) and (FishspotIndice > -1))
-          or (not BarbFish and not inIntArray(daLocation.getAnimationIDs, ReflectPlayer.GetAnimation))
-          or (BarbFish and not (ReflectPlayer.GetAnimation <> -1)) then begin
+          or not inIntArray(daLocation.getAnimationIDs, ReflectPlayer.GetAnimation) then begin
             doFishing;
           end else begin
             wasWorking := true;
