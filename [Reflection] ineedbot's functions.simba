@@ -1,6 +1,6 @@
 //Feel free to use code, MAKE SURE TO GIVE CREDIT WHERE DUE! -ineedbot
 const
-      fVersion = 2.12;
+      fVersion = 2.13;
 
       fScriptPage = 'https://raw.githubusercontent.com/ineedbots/Scripts/master/%5BReflection%5D%20ineedbot''s%20functions.simba';
 
@@ -514,7 +514,7 @@ begin
 
   if not soft then begin
     _string := GetUpText_WhiteColor;
-    if (pos('->', _string) <= 0) or (pos('Use', _string) <= 0) then
+    if (pos('->', _string) <= 0) and (pos('Use', _string) <= 0) then
       exit(false);
   end;
 
@@ -523,26 +523,38 @@ begin
       exit(true);
 end;
 
-procedure FixActive;
+procedure FixActive(soft:boolean=false);
 var tempBox:TBox;
-    i : integer;
-    upt : string;
+    i, tab, x, y : integer;
+    _string : string;
 begin
-  if Reflect.GameTab.CurrentColor <> Gametab_Inventory then
+  tab := Reflect.GameTab.CurrentColor;
+  if (tab <> Gametab_Inventory) and (tab <> Gametab_Magic) then
     exit;
 
-  upt := GetUpText_WhiteColor;
-  if (pos('->', upt) > 0) and (pos('Use', upt) > 0) then
+  if not soft then begin
+    _string := GetUpText_WhiteColor;
+    if (pos('->', _string) <= 0) and (pos('Use', _string) <= 0) and (pos('Cast', _string) <= 0) then
+      exit;
+  end;
+
+  if tab = Gametab_Inventory then begin
     for i:=1 to 28 do
       if slotActivated(i) then begin
-        if Reflect.GameTab.CurrentColor <> Gametab_Inventory then
-          Reflect.Gametab.Open(Gametab_Inventory);
         tempBox := Reflect.Inv.invBox(i);
         Reflect.Mouse.Move(point(randomRange(tempBox.x1, tempBox.x2), randomRange(tempBox.y1, tempBox.y2)), 0, 0);
         sleepScript(500+random(250));
         Reflect.Mouse.Click(Mouse_left);
         sleepScript(500+random(250));
       end;
+  end else begin
+    if findColor(x, y, 16777215, 557, 213, 731, 457) then begin
+      Reflect.Mouse.Move(Point(643, 183), 5, 5, Mouse_left);
+      sleepScript(500+random(250));
+      Reflect.Mouse.Move(Point(643, 183), 5, 5, Mouse_left);
+      sleepScript(500+random(250));
+    end;
+  end;
 end;
 
 function itemInSlot(I: Integer): Boolean;
@@ -667,6 +679,53 @@ begin
   end;
 end;
 
+function TReflectionTiles.InPolygonFix(
+  const APolygon: TPointArray; P : TPoint = Point(-1, -1)): Boolean;
+var       //thanks freepascal
+  xnew, ynew: Cardinal;
+  xold,yold: Cardinal;
+  x1,y1: Cardinal;
+  x2,y2: Cardinal;
+  i, npoints: Integer;
+  inside: Integer = 0;
+begin
+  if P.X = -1 then
+    P := Reflect.Tiles.GetGlobalTile;
+
+  Result := False;
+  npoints := Length(APolygon);
+  if (npoints < 3) then Exit;
+  xold := APolygon[npoints-1].X;
+  yold := APolygon[npoints-1].Y;
+  for i := 0 to npoints - 1 do
+  begin
+    xnew := APolygon[i].X;
+    ynew := APolygon[i].Y;
+    if (xnew > xold) then
+    begin
+      x1:=xold;
+      x2:=xnew;
+      y1:=yold;
+      y2:=ynew;
+    end
+    else
+    begin
+      x1:=xnew;
+      x2:=xold;
+      y1:=ynew;
+      y2:=yold;
+    end;
+    if (((xnew < P.X) = (P.X <= xold))         // edge "open" at left end
+      and ((P.Y-y1)*(x2-x1) < (y2-y1)*(P.X-x1))) then
+    begin
+      inside := not inside;
+    end;
+    xold:=xnew;
+    yold:=ynew;
+  end;
+  Result := inside <> 0;
+end;
+
 function TReflectDoor.Open(wantOut: boolean): boolean;
 
 function openDaDoor(daDoor:TReflectDoor):boolean;
@@ -704,12 +763,12 @@ begin
     exit(true);
 
   if wantOut then begin
-    if Reflect.Tiles.InPolygon(Self.TileEncompass) then
+    if Reflect.Tiles.InPolygonFix(Self.TileEncompass) then
       result := openDaDoor(self)
     else
       result := true;
   end else begin
-    if not Reflect.Tiles.InPolygon(Self.TileEncompass) then
+    if not Reflect.Tiles.InPolygonFix(Self.TileEncompass) then
       result := openDaDoor(self)
     else
       result := true;
