@@ -4,7 +4,7 @@ program newerLapeFisher;
 {$i Reflection/Reflection.Simba}
 {$i [Reflection] ineedbot's functions.simba}
 
-const Version = 6.0;
+const Version = 6.01;
 
       PicturePage = 'http://pastebin.com/raw/xX7dC2tk';
       ScriptPage = 'https://raw.githubusercontent.com/ineedbots/Scripts/master/%5BReflection%5D%20ineedbot''s%20AIO%20Fisher.simba';
@@ -1296,7 +1296,7 @@ end;
 procedure ShowForm();
 var
   tempBMP : integer;
-  IniString, picString : string;
+  IniString, picString, crypt : string;
 begin
   daLogger.Init('Script', TReflectLoggerLevel.Status);
 
@@ -1320,7 +1320,11 @@ begin
       writeini('chat', intToStr(playNum), schat, IniString);
       writeini('wait', intToStr(playNum), swait, IniString);
       writeini('name', intToStr(playNum), sname, IniString);
-      writeini('pass', intToStr(playNum), spass, IniString);
+
+      crypt := spass;
+      rc2_encrypt('ineedbotsfish', htMD5, crypt);
+      writeini('pass', intToStr(playNum), crypt, IniString);
+
       writeini('pin', intToStr(playNum), spin, IniString);
       writeini('world', intToStr(playNum), sworld, IniString);
       writeini('amount', intToStr(playNum), samount, IniString);
@@ -1353,7 +1357,11 @@ begin
       schat := ReadINI('chat', intToStr(playNum), IniString);
       swait := ReadINI('wait', intToStr(playNum), IniString);
       sname := ReadINI('name', intToStr(playNum), IniString);
-      spass := ReadINI('pass', intToStr(playNum), IniString);
+
+      crypt := ReadINI('pass', intToStr(playNum), IniString);
+      rc2_decrypt('ineedbotsfish', htMD5, crypt);
+      spass := crypt;
+
       spin := ReadINI('pin', intToStr(playNum), IniString);
       sworld := ReadINI('world', intToStr(playNum), IniString);
       samount := ReadINI('amount', intToStr(playNum), IniString);
