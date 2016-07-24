@@ -4,7 +4,7 @@ program newerLapeCutter;
 {$i Reflection/Reflection.Simba}
 {$i [Reflection] ineedbot's functions.simba}
 
-const Version = 5.02;
+const Version = 5.03;
 
       PicturePage = 'http://pastebin.com/raw/zF7qBL4J';
       ScriptPage = 'https://raw.githubusercontent.com/ineedbots/Scripts/master/%5BReflection%5D%20ineedbot''s%20AIO%20Woodcutter.simba';
@@ -387,6 +387,14 @@ begin
       TComboBoxType.AddItem('Oaks', nil);
       TComboBoxType.AddItem('Willows', nil);
     end;
+    (i:=i+1):begin     //wc guild
+      TComboBoxType.AddItem('Yews', nil);
+      TComboBoxType.AddItem('Magics', nil);
+      TComboBoxType.AddItem('Redwood', nil);
+      TComboBoxType.AddItem('Redwood(2)', nil);
+      TComboBoxType.AddItem('Redwood(3)', nil);
+      TComboBoxType.AddItem('Redwood(4)', nil);
+    end;
   end;
 end;
 
@@ -765,6 +773,7 @@ begin
       AddItem('Castle Wars', nil);
       AddItem('Tai Bwo Wannai', nil);
       AddItem('Powerchop', nil);
+      AddItem('Woodcutting Guild', nil);
       //End items
       setFont(tempFont);
       setONKEYPRESS(NoKeys);
@@ -1305,6 +1314,16 @@ begin
         (h:=h+1):Job:=41;  //   tree
         (h:=h+1):Job:=42;  //       oak
         (h:=h+1):Job:=43;  //          willow
+      end;
+    end;
+    (i:=i+1):begin //      wc guild
+      case TComboBoxType.getItemIndex of
+        (h:=h+1):Job:=45;  //          Yews
+        (h:=h+1):Job:=46;  //          Magics
+        (h:=h+1):Job:=47;  //          red
+        (h:=h+1):Job:=48;  //          red2
+        (h:=h+1):Job:=49;  //          red3
+        (h:=h+1):Job:=50;  //          red4
       end;
     end;
   end;
@@ -4870,6 +4889,436 @@ begin
       daLocation.Name := 'Progressive Chopping';
       daLocation.isDynamic := true;
     end;
+    45..50:begin
+      daLocation.canBank := true;
+      setLength(daLocation.BankLocations, 1);
+      with daLocation.BankLocations[0] do begin
+        Offset := [0, 0, 50];
+        TileOffset := [0, 0];
+        Tile := Point(1592, 3475);
+        Options := ['Bank'];
+        Plane := 0;
+        Name := 'Bank';
+      end;
+
+      case job of
+        45:begin
+          daLocation.ID := 45;
+          daLocation.Name := 'WC Guild Yews';
+
+          daLocation.RunDirections := ['rand'];
+
+          daLocation.TreeLocations := [Point(1593, 3487)];
+
+          setLength(daLocation.Logs, 1);
+          daLocation.Logs[0].ID := 1515;
+
+          setLength(daLocation.TreeObjects, 9)
+          with daLocation.TreeObjects[0] do begin
+            Offset := [0, 0, 200];
+            TileOffset := [2, 0];
+            Options := ['Chop down'];
+            Timer.Restart;
+            Timer.StartTime := -1;
+            Name := 'Yew';
+            Index := 0;
+            Tile := Point(1591, 3487);
+            AliveIDs := AliveYewIds;
+            DeadIDs := DeadYewIds;
+            Plane := 0;
+          end;
+          with daLocation.TreeObjects[1] do begin
+            Offset := [0, 0, 200];
+            TileOffset := [0, -2];
+            Options := ['Chop down'];
+            Timer.Restart;
+            Timer.StartTime := -1;
+            Name := 'Yew';
+            Index := 1;
+            Tile := Point(1596, 3490);
+            AliveIDs := AliveYewIds;
+            DeadIDs := DeadYewIds;
+            Plane := 0;
+          end;
+          with daLocation.TreeObjects[2] do begin
+            Offset := [0, 0, 200];
+            TileOffset := [0, 2];
+            Options := ['Chop down'];
+            Timer.Restart;
+            Timer.StartTime := -1;
+            Name := 'Yew';
+            Index := 2;
+            Tile := Point(1596, 3485);
+            AliveIDs := AliveYewIds;
+            DeadIDs := DeadYewIds;
+            Plane := 0;
+          end;
+          with daLocation.TreeObjects[3] do begin
+            Offset := [0, 0, 200];
+            TileOffset := [0, -2];
+            Options := ['Chop down'];
+            Timer.Restart;
+            Timer.StartTime := -1;
+            Name := 'Yew';
+            Index := 3;
+            Tile := Point(1591, 3493);
+            AliveIDs := AliveYewIds;
+            DeadIDs := DeadYewIds;
+            Plane := 0;
+          end;
+          with daLocation.TreeObjects[4] do begin
+            Offset := [0, 0, 200];
+            TileOffset := [0, -2];
+            Options := ['Chop down'];
+            Timer.Restart;
+            Timer.StartTime := -1;
+            Name := 'Yew';
+            Index := 4;
+            Tile := Point(1596, 3495);
+            AliveIDs := AliveYewIds;
+            DeadIDs := DeadYewIds;
+            Plane := 0;
+          end;
+          with daLocation.TreeObjects[5] do begin
+            Offset := [0, 0, 200];
+            TileOffset := [0, 2];
+            Options := ['Chop down'];
+            Timer.Restart;
+            Timer.StartTime := -1;
+            Name := 'Yew';
+            Index := 5;
+            Tile := Point(1586, 3480);
+            AliveIDs := AliveYewIds;
+            DeadIDs := DeadYewIds;
+            Plane := 0;
+          end;
+          with daLocation.TreeObjects[6] do begin
+            Offset := [0, 0, 200];
+            TileOffset := [0, -2];
+            Options := ['Chop down'];
+            Timer.Restart;
+            Timer.StartTime := -1;
+            Name := 'Yew';
+            Index := 6;
+            Tile := Point(1584, 3485);
+            AliveIDs := AliveYewIds;
+            DeadIDs := DeadYewIds;
+            Plane := 0;
+          end;
+          with daLocation.TreeObjects[7] do begin
+            Offset := [0, 0, 200];
+            TileOffset := [0, -2];
+            Options := ['Chop down'];
+            Timer.Restart;
+            Timer.StartTime := -1;
+            Name := 'Yew';
+            Index := 7;
+            Tile := Point(1587, 3501);
+            AliveIDs := AliveYewIds;
+            DeadIDs := DeadYewIds;
+            Plane := 0;
+          end;
+          with daLocation.TreeObjects[8] do begin
+            Offset := [0, 0, 200];
+            TileOffset := [0, -2];
+            Options := ['Chop down'];
+            Timer.Restart;
+            Timer.StartTime := -1;
+            Name := 'Yew';
+            Index := 7;
+            Tile := Point(1582, 3497);
+            AliveIDs := AliveYewIds;
+            DeadIDs := DeadYewIds;
+            Plane := 0;
+          end;
+        end;
+        46:begin
+          daLocation.ID := 46;
+          daLocation.Name := 'WC Guild Magics';
+
+          daLocation.RunDirections := ['rand'];
+
+          daLocation.TreeLocations := [Point(1579, 3485)];
+
+          setLength(daLocation.Logs, 1);
+          daLocation.Logs[0].ID := 1517;
+
+          setLength(daLocation.TreeObjects, 8)
+          with daLocation.TreeObjects[0] do begin
+            Offset := [62, 62, 200];
+            TileOffset := [2, -1];
+            Options := ['Chop down'];
+            Timer.Restart;
+            Timer.StartTime := -1;
+            Name := 'Magic';
+            Index := 0;
+            Tile := Point(1577, 3485);
+            AliveIDs := AliveMagicIds;
+            DeadIDs := DeadMagicIds;
+            Plane := 0;
+          end;
+          with daLocation.TreeObjects[1] do begin
+            Offset := [62, 62, 200];
+            TileOffset := [-1, -1];
+            Options := ['Chop down'];
+            Timer.Restart;
+            Timer.StartTime := -1;
+            Name := 'Magic';
+            Index := 1;
+            Tile := Point(1580, 3485);
+            AliveIDs := AliveMagicIds;
+            DeadIDs := DeadMagicIds;
+            Plane := 0;
+          end;
+          with daLocation.TreeObjects[2] do begin
+            Offset := [62, 62, 200];
+            TileOffset := [2, 2];
+            Options := ['Chop down'];
+            Timer.Restart;
+            Timer.StartTime := -1;
+            Name := 'Magic';
+            Index := 2;
+            Tile := Point(1577, 3482);
+            AliveIDs := AliveMagicIds;
+            DeadIDs := DeadMagicIds;
+            Plane := 0;
+          end;
+          with daLocation.TreeObjects[3] do begin
+            Offset := [62, 62, 200];
+            TileOffset := [-1, 2];
+            Options := ['Chop down'];
+            Timer.Restart;
+            Timer.StartTime := -1;
+            Name := 'Magic';
+            Index := 3;
+            Tile := Point(1580, 3482);
+            AliveIDs := AliveMagicIds;
+            DeadIDs := DeadMagicIds;
+            Plane := 0;
+          end;
+          with daLocation.TreeObjects[4] do begin
+            Offset := [62, 62, 200];
+            TileOffset := [2, 2];
+            Options := ['Chop down'];
+            Timer.Restart;
+            Timer.StartTime := -1;
+            Name := 'Magic';
+            Index := 4;
+            Tile := Point(1577, 3489);
+            AliveIDs := AliveMagicIds;
+            DeadIDs := DeadMagicIds;
+            Plane := 0;
+          end;
+          with daLocation.TreeObjects[5] do begin
+            Offset := [62, 62, 200];
+            TileOffset := [-1, 2];
+            Options := ['Chop down'];
+            Timer.Restart;
+            Timer.StartTime := -1;
+            Name := 'Magic';
+            Index := 5;
+            Tile := Point(1580, 3489);
+            AliveIDs := AliveMagicIds;
+            DeadIDs := DeadMagicIds;
+            Plane := 0;
+          end;
+          with daLocation.TreeObjects[6] do begin
+            Offset := [62, 62, 200];
+            TileOffset := [2, -1];
+            Options := ['Chop down'];
+            Timer.Restart;
+            Timer.StartTime := -1;
+            Name := 'Magic';
+            Index := 6;
+            Tile := Point(1577, 3492);
+            AliveIDs := AliveMagicIds;
+            DeadIDs := DeadMagicIds;
+            Plane := 0;
+          end;
+          with daLocation.TreeObjects[7] do begin
+            Offset := [62, 62, 200];
+            TileOffset := [-1, -1];
+            Options := ['Chop down'];
+            Timer.Restart;
+            Timer.StartTime := -1;
+            Name := 'Magic';
+            Index := 7;
+            Tile := Point(1580, 3492);
+            AliveIDs := AliveMagicIds;
+            DeadIDs := DeadMagicIds;
+            Plane := 0;
+          end;
+        end;
+        47:begin
+          daLocation.ID := 47;
+          daLocation.Name := 'WC Guild Redwood';
+
+          daLocation.RunDirections := ['rand'];
+
+          daLocation.TreeLocations := [Point(1567, 3483)];
+
+          setLength(daLocation.customTPAs, 1);
+          daLocation.customTPAs[0] := [Point(1566, 3482)]; //ladder
+
+          setLength(daLocation.Logs, 1);
+          daLocation.Logs[0].ID := 19669;
+
+          setLength(daLocation.TreeObjects, 2)
+          with daLocation.TreeObjects[0] do begin
+            Offset := [0, 0, 200];
+            TileOffset := [-1, 0];
+            Options := ['Cut'];
+            Timer.Restart;
+            Timer.StartTime := -1;
+            Name := 'Redwood';
+            Index := 0;
+            Tile := Point(1568, 3482);
+            AliveIDs := [28859];
+            DeadIDs := [28860];
+            Plane := 2;
+          end;
+          with daLocation.TreeObjects[1] do begin
+            Offset := [0, 0, 200];
+            TileOffset := [-1, 0];
+            Options := ['Cut'];
+            Timer.Restart;
+            Timer.StartTime := -1;
+            Name := 'Redwood';
+            Index := 1;
+            Tile := Point(1568, 3483);
+            AliveIDs := [28859];
+            DeadIDs := [28860];
+            Plane := 2;
+          end;
+        end;
+        48:begin
+          daLocation.ID := 48;
+          daLocation.Name := 'WC Guild Redwood(2)';
+
+          daLocation.RunDirections := ['rand'];
+
+          daLocation.TreeLocations := [Point(1567, 3493)];
+
+          setLength(daLocation.customTPAs, 1);
+          daLocation.customTPAs[0] := [Point(1566, 3493)]; //ladder
+
+          setLength(daLocation.Logs, 1);
+          daLocation.Logs[0].ID := 19669;
+
+          setLength(daLocation.TreeObjects, 2)
+          with daLocation.TreeObjects[0] do begin
+            Offset := [0, 0, 200];
+            TileOffset := [-1, 0];
+            Options := ['Cut'];
+            Timer.Restart;
+            Timer.StartTime := -1;
+            Name := 'Redwood';
+            Index := 0;
+            Tile := Point(1568, 3493);
+            AliveIDs := [28859];
+            DeadIDs := [28860];
+            Plane := 2;
+          end;
+          with daLocation.TreeObjects[1] do begin
+            Offset := [0, 0, 200];
+            TileOffset := [-1, 0];
+            Options := ['Cut'];
+            Timer.Restart;
+            Timer.StartTime := -1;
+            Name := 'Redwood';
+            Index := 1;
+            Tile := Point(1568, 3492);
+            AliveIDs := [28859];
+            DeadIDs := [28860];
+            Plane := 2;
+          end;
+        end;
+        49:begin
+          daLocation.ID := 49;
+          daLocation.Name := 'WC Guild Redwood(3)';
+
+          daLocation.RunDirections := ['rand'];
+
+          daLocation.TreeLocations := [Point(1574, 3482)];
+
+          setLength(daLocation.customTPAs, 1);
+          daLocation.customTPAs[0] := [Point(1575, 3482)]; //ladder
+
+          setLength(daLocation.Logs, 1);
+          daLocation.Logs[0].ID := 19669;
+
+          setLength(daLocation.TreeObjects, 2)
+          with daLocation.TreeObjects[0] do begin
+            Offset := [0, 0, 200];
+            TileOffset := [-1, 0];
+            Options := ['Cut'];
+            Timer.Restart;
+            Timer.StartTime := -1;
+            Name := 'Redwood';
+            Index := 0;
+            Tile := Point(1573, 3482);
+            AliveIDs := [28859];
+            DeadIDs := [28860];
+            Plane := 2;
+          end;
+          with daLocation.TreeObjects[1] do begin
+            Offset := [0, 0, 200];
+            TileOffset := [-1, 0];
+            Options := ['Cut'];
+            Timer.Restart;
+            Timer.StartTime := -1;
+            Name := 'Redwood';
+            Index := 1;
+            Tile := Point(1573, 3483);
+            AliveIDs := [28859];
+            DeadIDs := [28860];
+            Plane := 2;
+          end;
+        end;
+        50:begin
+          daLocation.ID := 50;
+          daLocation.Name := 'WC Guild Redwood(4)';
+
+          daLocation.RunDirections := ['rand'];
+
+          daLocation.TreeLocations := [Point(1574, 3493)];
+
+          setLength(daLocation.customTPAs, 1);
+          daLocation.customTPAs[0] := [Point(1575, 3493)]; //ladder
+
+          setLength(daLocation.Logs, 1);
+          daLocation.Logs[0].ID := 19669;
+
+          setLength(daLocation.TreeObjects, 2)
+          with daLocation.TreeObjects[0] do begin
+            Offset := [0, 0, 200];
+            TileOffset := [-1, 0];
+            Options := ['Cut'];
+            Timer.Restart;
+            Timer.StartTime := -1;
+            Name := 'Redwood';
+            Index := 0;
+            Tile := Point(1573, 3492);
+            AliveIDs := [28859];
+            DeadIDs := [28860];
+            Plane := 2;
+          end;
+          with daLocation.TreeObjects[1] do begin
+            Offset := [0, 0, 200];
+            TileOffset := [-1, 0];
+            Options := ['Cut'];
+            Timer.Restart;
+            Timer.StartTime := -1;
+            Name := 'Redwood';
+            Index := 1;
+            Tile := Point(1573, 3493);
+            AliveIDs := [28859];
+            DeadIDs := [28860];
+            Plane := 2;
+          end;
+        end;
+      end;
+    end;
   end;
 
   for i:=0 to high(DaLocation.Logs) do begin
@@ -5442,6 +5891,23 @@ begin
       if daLocation.DoorObjects[0].Open(false) then
         goTo normal;
     end;
+    47..50:begin //redwood
+      if Reflect.Tiles.GetPlane = 2 then begin
+        if(not R_TileOnMS(daLocation.customTPAs[0][0], rstile))then begin
+          UpdateScreen('Going to ladder.');
+          ReflectPlayer.BlindWalkMM(daLocation.customTPAs[0][0], 5);
+          ReflectPlayer.FFlag(0, 2500+random(500));
+          Sleepscript(random(2000));
+        end;
+        UpdateScreen('Going down ladder.');
+        if(R_InteractTile(daLocation.customTPAs[0][0], ['Climb-down']))then begin
+            ReflectPlayer.FFlag(0, 2500+random(500));
+            Sleepscript(random(2000));
+        end;
+      end;
+      if Reflect.Tiles.GetPlane = 0 then
+        goto Normal;
+    end;
     else begin
       normal:
       if (length(daLocation.BankNPCs) = 0) then begin
@@ -5627,6 +6093,23 @@ begin
     0..1, 6:begin//lumb gen
       if daLocation.DoorObjects[0].Open(true) then
         goTo normal;
+    end;
+    47..50:begin //redwood
+      if(Reflect.Tiles.GetPlane <> 2) then begin
+        if(not R_TileOnMS(daLocation.customTPAs[0][0], rstile))then begin
+          UpdateScreen('Going to ladder.');
+          ReflectPlayer.BlindWalkMM(daLocation.customTPAs[0][0], 5);
+          ReflectPlayer.FFlag(0, 2500+random(500));
+          Sleepscript(random(2000));
+        end;
+        UpdateScreen('Going up ladder.');
+        if(R_InteractTile(daLocation.customTPAs[0][0], ['Climb-up']))then begin
+          ReflectPlayer.FFlag(0, 2500+random(500));
+          Sleepscript(random(2000));
+        end;
+      end;
+      if(Reflect.Tiles.GetPlane = 2) then
+        goTO normal;
     end;
     else begin
       normal:
@@ -5865,6 +6348,12 @@ begin
     end;
     32..33, 44:begin     //gnome
       if Reflect.Tiles.GetPlane <> 0 then begin
+        goToTrees;
+        exit;
+      end;
+    end;
+    47..50:begin //redwood
+      if Reflect.Tiles.GetPlane <> 2 then begin
         goToTrees;
         exit;
       end;
