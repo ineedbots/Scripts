@@ -4,7 +4,7 @@ program newerLapeCutter;
 {$i Reflection/Reflection.Simba}
 {$i [Reflection] ineedbot's functions.simba}
 
-const Version = 5.03;
+const Version = 5.04;
 
       PicturePage = 'http://pastebin.com/raw/zF7qBL4J';
       ScriptPage = 'https://raw.githubusercontent.com/ineedbots/Scripts/master/%5BReflection%5D%20ineedbot''s%20AIO%20Woodcutter.simba';
@@ -3373,7 +3373,7 @@ begin
       end;
 
       case job of
-        12:begin
+        16:begin
           daLocation.ID := 16;
           daLocation.Name := 'Falador Oaks';
 
@@ -3399,7 +3399,7 @@ begin
             Plane := 0;
           end;
         end;
-        13:begin
+        17:begin
           daLocation.ID := 17;
           daLocation.Name := 'Falador Yews';
 
@@ -6307,6 +6307,37 @@ begin
   end;
 end;
 
+procedure nestCheck;
+var i : integer;
+    _items : TReflectGroundItemArray;
+    rsTile, nestTile : TPoint;
+begin
+  if gItemTim.Elapsedtime > gItemOften then begin
+    _items.GetAll(ItemCheckDistance);
+    for i:=0 to high(_items) do begin
+      nestTile := _items[i].GetTile;
+      if inIntArray(NestIDs, _items[i].getId) and not Reflect.Inv.IsFull {and canBank} then begin
+        daLogger.Status('Found nest!', []);
+        UpdateScreen('Found nest...');
+        if not R_TileOnMS(nestTile, RSTile) then begin
+          ReflectPlayer.BlindWalkMM(nestTile, 5);
+          ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
+          sleepScript(random(1500));
+        end;
+
+        UpdateScreen('Taking nest...');
+        if R_InteractTile(nestTile, ['Take B']) then begin
+          inc(Nests);
+          statsServer.IncreaseVariable('119', 1);
+          ReflectPlayer.FFlag(0, 5000+random(500));
+          sleepScript(random(2000));
+        end;
+      end;
+    end;
+    gItemTim.restart;
+  end;
+end;
+
 procedure chopTree;
 var tempTree : TreeObject;
     rSTile : Tpoint;
@@ -6458,6 +6489,7 @@ begin
           FixActive;
           UpdateScreen('Chopping tree...');
           wasWorking := true;
+          nestCheck;
           tempObject.GetAt(ObjGame, tempTree.Tile);
           if not Reflect.Smart.IsNull(tempObject.Reference) then
             objectID := tempObject.GetId
@@ -6512,8 +6544,6 @@ end;
 
 procedure doChecks;
 var i, tInt : integer;
-    _items : TReflectGroundItemArray;
-    rsTile, nestTile : TPoint;
 begin
   UpdateScreen('');
 
@@ -6529,30 +6559,7 @@ begin
   if(ReflectPlayer.GetRunEnergy >= RunAmount) and not ReflectPlayer.IsRunOn then
     ReflectPlayer.SetRun(true);
 
-  if gItemTim.Elapsedtime > gItemOften then begin
-    _items.GetAll(ItemCheckDistance);
-    for i:=0 to high(_items) do begin
-      nestTile := _items[i].GetTile;
-      if inIntArray(NestIDs, _items[i].getId) and not Reflect.Inv.IsFull {and canBank} then begin
-        daLogger.Status('Found nest!', []);
-        UpdateScreen('Found nest...');
-        if not R_TileOnMS(nestTile, RSTile) then begin
-          ReflectPlayer.BlindWalkMM(nestTile, 5);
-          ReflectPlayer.FFlag(2+randomRange(-2, 2), 5000+random(500));
-          sleepScript(random(1500));
-        end;
-
-        UpdateScreen('Taking nest...');
-        if R_InteractTile(nestTile, ['Take B']) then begin
-          inc(Nests);
-          statsServer.IncreaseVariable('119', 1);
-          ReflectPlayer.FFlag(0, 5000+random(500));
-          sleepScript(random(2000));
-        end;
-      end;
-    end;
-    gItemTim.restart;
-  end;
+  nestCheck;
 
   if ReflectPlayer.IsUnderAttack then begin
     UpdateScreen('Under attack! Running away to bank.');
